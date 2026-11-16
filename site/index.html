@@ -479,8 +479,10 @@ footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
     <img class="mark" src="icon.svg" alt="" width="96" height="96">
     <div>
       <h1>pyauto-xpp</h1>
-      <p>XPPAUT 8.2 and its AUTO as a Python module. Every XPP button is a Python call, AUTO runs from Python
-         (also for delay equations), and models can be written in Python. No X11, no windows to click.</p>
+      <p>XPPAUT 8.2 and its AUTO, made available to Python. For batch work and Python workflows: every XPP command
+         is a Python call, AUTO runs from scripts (also for delay equations), and models can be written in Python.
+         For interactive exploration, XPPAUT itself (and <a href="https://zetaone.github.io/XPPAUT-Web/" target="_blank" rel="noopener">XPPAUT-Web</a>)
+         remains the place to go; the two share the same numerics.</p>
       <ul class="facts">
         <li><code>import pyxpp</code></li><li>70 tutorials</li><li>Linux and macOS wheels, Python 3.9-3.15</li><li>GPL-3.0-or-later</li>
       </ul>
@@ -596,13 +598,23 @@ d.special("HB")</code></pre></div>
     <div class="cards" id="cards"></div>
   </section>
 
+  <section id="thanks" aria-labelledby="h-thanks">
+    <h2 id="h-thanks">Thank you, Bard <a class="anchor" href="#thanks" aria-label="Link to Thank you, Bard">#</a></h2>
+    <p>XPPAUT is the work of G. Bard Ermentrout, developed and shared freely for more than three decades. In one small,
+       fast and remarkably capable program it puts simulation, phase planes, nullclines, equilibria and AUTO's
+       bifurcation analysis side by side, and with his book <i>Simulating, Analyzing, and Animating Dynamical Systems</i>
+       (SIAM, 2002) it has taught generations of students and researchers how to explore dynamical systems.
+       Every simulation, equilibrium and bifurcation diagram here is computed by XPPAUT's own code; this project
+       exists because of it. <b>Thank you, Bard.</b></p>
+  </section>
+
   <section id="xpp-web" aria-labelledby="h-sister">
     <h2 id="h-sister">Sister project <a class="anchor" href="#xpp-web" aria-label="Link to Sister project">#</a></h2>
     <div class="sister">
       <div class="logo" aria-hidden="true">X</div>
       <div><b>XPPAUT-Web</b><p>The same XPPAUT 8.2 with its own windows, in the browser and as an Android app:
         nothing to install, for when you would rather click than script.</p></div>
-      <a class="btn ghost" href="https://zetaone.github.io/XPPAUT-Web/">Open XPPAUT-Web</a>
+      <a class="btn ghost" href="https://zetaone.github.io/XPPAUT-Web/" target="_blank" rel="noopener">Open XPPAUT-Web</a>
     </div>
   </section>
 </div>
@@ -621,7 +633,7 @@ d.special("HB")</code></pre></div>
     <div class="row">
       <span>Licence: GPL-3.0-or-later.</span>
       <a href="https://github.com/ZetaOne/pyauto-xpp">Source</a><a href="https://github.com/ZetaOne/pyauto-xpp/releases">Releases</a><a href="https://github.com/ZetaOne/pyauto-xpp/blob/main/CHANGES.md">Changes</a>
-      <a href="https://github.com/ZetaOne/pyauto-xpp/issues">Report a problem</a><a href="https://zetaone.github.io/XPPAUT-Web/">XPPAUT-Web</a>
+      <a href="https://github.com/ZetaOne/pyauto-xpp/issues">Report a problem</a><a href="https://zetaone.github.io/XPPAUT-Web/" target="_blank" rel="noopener">XPPAUT-Web</a>
     </div>
   </div>
 </footer>

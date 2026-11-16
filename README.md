@@ -9,9 +9,11 @@
 [![Platforms](https://img.shields.io/badge/wheels-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](https://github.com/ZetaOne/pyauto-xpp/releases/latest)
 [![Licence](https://img.shields.io/badge/licence-GPL--3.0--or--later-green)](LICENSE)
 
-XPPAUT 8.2, the dynamical-systems tool by Bard Ermentrout, and its AUTO as a
-Python module. Same numerics, no windows: every XPP button is a Python call,
-AUTO runs from Python, and models can be written in Python.
+XPPAUT 8.2, the dynamical-systems tool by Bard Ermentrout, and its AUTO,
+made available to Python. It is meant for batch work and Python workflows:
+every XPP command is a Python call, AUTO runs from scripts, and models can be
+written in Python. For interactive exploration XPPAUT itself (or XPPAUT-Web)
+remains the place to go; both use the same numerics.
 
 **→ https://zetaone.github.io/pyauto-xpp/**
 
@@ -36,7 +38,7 @@ scripts; more in the [gallery](https://zetaone.github.io/pyauto-xpp/#gallery).*
 ## Features
 
 - **The real XPPAUT 8.2**: Bard Ermentrout's C sources (in `csrc/xppaut`),
-  built as a library without X11. Results are XPP's own.
+  built as a library that Python can load. Results are XPP's own.
 - **Every button is a call**: Initialconds, Sing pts, nullclines, Numerics
   and the rest, as `m.buttons...`, with trajectories returned as NumPy arrays
   and AUTO's diagrams also as pandas tables.
@@ -162,6 +164,17 @@ XPP's C sources are compiled into a shared library without its X11 interface
 (`pyxpp/_lib.py`). The Python side (`pyxpp/`) presses XPP's buttons and
 answers its prompts for you, and reads back the trajectories, equilibria and
 AUTO's diagrams. Changes are listed in [`CHANGES.md`](CHANGES.md).
+
+## Thank you, Bard
+
+XPPAUT is the work of G. Bard Ermentrout, developed and shared freely for more
+than three decades. In one small, fast and remarkably capable program it puts
+simulation, phase planes, nullclines, equilibria and AUTO's bifurcation
+analysis side by side, and with his book *Simulating, Analyzing, and Animating
+Dynamical Systems* (SIAM, 2002) it has taught generations of students and
+researchers how to explore dynamical systems. Every simulation, equilibrium
+and bifurcation diagram in pyauto-xpp is computed by XPPAUT's own code; this
+project exists because of it. Thank you, Bard.
 
 ## Credits and licence
 
