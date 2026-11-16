@@ -6,7 +6,6 @@ pyauto-xpp (`pyxpp`). No widgets: each script builds its model in code with
 numbers against exact or published values.
 
 ```
-conda activate xpp-dev
 python 2D-FLOWS_fitzhugh-nagumo.py      # one script
 python run_all.py                        # all of them, one line each
 python run_all.py MAPS DELAYS            # only some groups

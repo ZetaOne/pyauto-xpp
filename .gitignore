@@ -4,6 +4,7 @@ build/
 *.egg-info/
 .pixi/
 pyxpp/_libxpp.*
+*.dll
 tutorials/scripts/figures/
 tutorials/scripts/odes/
 tutorials/notebooks/odes/

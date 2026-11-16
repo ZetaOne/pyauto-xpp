@@ -12,7 +12,7 @@ platforms = ["linux-64", "osx-64", "osx-arm64", "win-64"]
 
 [dependencies]
 python = "3.11.*"
-c-compiler = "*"        # builds XPP's C library once, at install (until prebuilt wheels exist)
+c-compiler = "*"        # only needed to build XPP's C library from source
 pip = "*"
 setuptools = ">=64"
 numpy = "*"

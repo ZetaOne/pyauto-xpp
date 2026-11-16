@@ -1,40 +1,101 @@
 # pyauto-xpp
 
-XPPAUT 8.2 and its AUTO as a Python module (`import pyxpp`), with tutorials.
-No X11: every XPP button is a Python call, AUTO runs from Python, and models
-can be written in Python with `ModelBuilder`.
+<img src="site/icon-192.png" width="128" align="right" alt="The pyauto-xpp icon: an orange limit cycle around a blue cubic nullcline, with an unstable equilibrium in the middle, on a dark blue square">
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ZetaOne/pyauto-xpp/HEAD?urlpath=lab/tree/tutorials)
-← try it in your browser, nothing to install (starts in a minute or two; edits are not kept)
+[![Release](https://img.shields.io/github/v/release/ZetaOne/pyauto-xpp?label=release)](https://github.com/ZetaOne/pyauto-xpp/releases/latest)
+[![Python](https://img.shields.io/badge/python-3.9%E2%80%933.15-blue)](https://github.com/ZetaOne/pyauto-xpp/releases/latest)
+[![Platforms](https://img.shields.io/badge/wheels-Linux%20%7C%20macOS-lightgrey)](https://github.com/ZetaOne/pyauto-xpp/releases/latest)
+[![Licence](https://img.shields.io/badge/licence-GPL--3.0--or--later-green)](LICENSE)
 
-## On your own computer
+XPPAUT 8.2, the dynamical-systems tool by Bard Ermentrout, and its AUTO as a
+Python module. Same numerics, no windows: every XPP button is a Python call,
+AUTO runs from Python, and models can be written in Python.
 
-Install [pixi](https://pixi.sh) once, then in this folder:
+**→ https://zetaone.github.io/pyauto-xpp/**
 
+```python
+import pyxpp
+m = pyxpp.load("lecar.ode")
+tr = m.run(total=100)                       # Initialconds > Go
+br = m.auto.run("iapp", start="steady")     # AUTO, from the steady state
 ```
-pixi run lab        # JupyterLab opens in your browser, running on your computer
-pixi run scripts    # run all tutorial scripts, one line each
+
+<p>
+  <img src="site/gallery/2D-FLOWS_morris-lecar-bifurcation_ml-bifurcation.png" width="49%" alt="Bifurcation diagram of the Morris-Lecar model computed with AUTO from Python: equilibria in the applied current, two Hopf points and the branch of periodic orbits between them">
+  <img src="site/gallery/DELAYS_mackey-glass-period-doubling_orbit_diagram.png" width="49%" alt="Mackey-Glass delay equation: AUTO's periodic orbits and period doublings drawn over the maxima of simulations">
+</p>
+
+*Left: Morris–Lecar in AUTO, equilibria in the applied current i (red stable,
+black unstable), the two Hopf points and the periodic orbits between them
+(green stable, blue unstable). Right: the Mackey–Glass delay equation, AUTO's
+period doublings over the maxima of simulations. Both made by the tutorial
+scripts; more in the [gallery](https://zetaone.github.io/pyauto-xpp/#gallery).*
+
+## Features
+
+- **The real XPPAUT 8.2**: Bard Ermentrout's C sources (in `csrc/xppaut`),
+  built as a library without X11. Results are XPP's own.
+- **Every button is a call**: Initialconds, Sing pts, nullclines, Numerics
+  and the rest, as `m.buttons...`, with trajectories returned as NumPy arrays
+  and AUTO's diagrams also as pandas tables.
+- **AUTO from Python**: steady states, periodic orbits, one- and two-parameter
+  diagrams, special points (`HB`, `LP`, `PD`, ...), **also for delay
+  equations** (new in XPPAUT 8.2).
+- **Models in Python**: `ModelBuilder` writes the `.ode` file for you, or load
+  any existing `.ode` file.
+- **70 tutorials**: 39 scripts that check their numbers against exact or
+  published values, and 31 interactive notebooks with sliders, a direction
+  field menu, clickable phase planes and an AUTO panel.
+- **Prebuilt** for Linux (x86_64, ARM) and macOS (Intel 10.13+, Apple
+  Silicon 11+), Python 3.9 to 3.15. Windows support is in progress.
+
+## Quick start
+
+| | how | what you need |
+|---|---|---|
+| **In your browser** | [Open the tutorials in Binder](https://mybinder.org/v2/gh/ZetaOne/pyauto-xpp/HEAD?urlpath=lab/tree/tutorials) | nothing (starts in a minute or two; edits are not kept) |
+| **pixi** (recommended) | `pixi run lab` in this folder | [pixi](https://pixi.sh), installed once |
+| **pip, prebuilt** | `pip install` the wheel from [Releases](https://github.com/ZetaOne/pyauto-xpp/releases/latest) | Python 3.9 to 3.15 on Linux or macOS |
+| **pip, from source** | `pip install .` in this folder | a C compiler |
+
+### pixi
+
+Install [pixi](https://pixi.sh) once, then:
+
+```bash
+git clone https://github.com/ZetaOne/pyauto-xpp && cd pyauto-xpp
+pixi run lab        # JupyterLab with the tutorials opens in your browser
+pixi run scripts    # every tutorial script, one line each
 pixi run test       # the package's tests
 ```
 
 The first run downloads Python and the packages and builds XPP's C library;
-after that, an update downloads only what changed.
+after an update, only what changed is downloaded again. No git? Download
+[the .zip](https://github.com/ZetaOne/pyauto-xpp/archive/refs/heads/main.zip),
+unzip it and run the same commands in that folder.
 
-Without pixi: `pip install .` in this folder (needs a C compiler), or a
-prebuilt wheel from the Releases page once they are published.
+### pip
 
-Prebuilt for Linux (x86_64, ARM) and macOS (Intel 10.13+, Apple Silicon 11+), Python 3.9-3.15. Windows support is in progress.
+From the [Releases page](https://github.com/ZetaOne/pyauto-xpp/releases/latest),
+download the wheel that matches your system and your Python
+(`cp312` = Python 3.12), then:
 
-## Tutorials
+```bash
+python -m pip install pyauto_xpp-0.1.0-cp312-cp312-<your system>.whl
+python -m pip install matplotlib     # for the figures in the tutorials
+```
 
-- `tutorials/notebooks/`: 31 interactive notebooks with sliders, a direction-field
-  menu, clickable phase planes and an AUTO panel.
-- `tutorials/scripts/`: 39 plain Python scripts, one per model:
-  - grouped as 2D-FLOWS, EVENTS, MAPS, 3D-FLOWS, DELAYS, NOISE and SPACE;
-  - each builds its model in code, analyses it and checks its numbers against
-    exact or published values;
-  - in JupyterLab, right-click a script and choose *Open With > Jupytext
-    Notebook* to run it cell by cell.
+| system | the wheel's name ends in |
+|---|---|
+| Linux x86_64 | `x86_64.whl` |
+| Linux ARM | `aarch64.whl` |
+| macOS Intel (10.13 or newer) | `x86_64.whl` (with `macosx`) |
+| macOS Apple Silicon (11 or newer) | `arm64.whl` |
+| Windows | in progress: use Binder for now |
+
+Or build it yourself with `python -m pip install .` in this folder (needs a C
+compiler: gcc or clang).
 
 ## A first look
 
@@ -53,15 +114,62 @@ d = m.auto.run("i", start="steady", ds=0.01, parmin=0, parmax=2)   # AUTO
 d.special("HB")
 ```
 
+The full guide is [`docs/usage/USAGE.mdx`](docs/usage/USAGE.mdx).
+
+## Tutorials
+
+| group | scripts | notebooks | examples |
+|---|---:|---:|---|
+| 2D-FLOWS | 14 | 14 | FitzHugh–Nagumo, Morris–Lecar, Hodgkin–Huxley, toggle switch, forced Duffing |
+| EVENTS | 2 | 2 | bouncing ball, integrate-and-fire |
+| MAPS | 5 | 5 | logistic, Hénon, standard (Chirikov–Taylor) map |
+| 3D-FLOWS | 3 | 3 | Lorenz, Lorenz 84, Rössler |
+| DELAYS | 11 | 3 | Mackey–Glass, Hutchinson, delay-coupled Stuart–Landau, two delays |
+| NOISE | 2 | 2 | FitzHugh–Nagumo with white noise and with a Markov input |
+| SPACE | 2 | 2 | a chain of FitzHugh–Nagumo cells, the Nagumo front |
+
+- [`tutorials/scripts/`](tutorials/scripts): plain Python, one model each.
+  Each builds its model in code, analyses it, saves its figures to
+  `figures/<script>/` and ends with `N/M checks passed`. In JupyterLab,
+  right-click a script and choose *Open With > Jupytext Notebook* to run it
+  cell by cell.
+- [`tutorials/notebooks/`](tutorials/notebooks): interactive notebooks.
+  They use `xpptut.py` from the same folder.
+
+The [project page](https://zetaone.github.io/pyauto-xpp/#tutorials) lists
+them all with a search, and a View, Download and Open in Binder link for each.
+
+## Sister project
+
+[**XPPAUT-Web**](https://zetaone.github.io/XPPAUT-Web/): the same XPPAUT 8.2
+with its own windows, in the browser and as an Android app. Use it to click;
+use pyauto-xpp to script.
+
+## Report a bug or give feedback
+
+[Open an issue](https://github.com/ZetaOne/pyauto-xpp/issues) on GitHub.
+Please mention your system and Python version, and if a model misbehaves,
+attach the `.ode` file (or the `ModelBuilder` code) and any files it uses.
+
+## How it works
+
+XPP's C sources are compiled into a shared library without its X11 interface
+(`csrc/headless.c`, `csrc/nox11.c`), which Python loads with `ctypes`
+(`pyxpp/_lib.py`). The Python side (`pyxpp/`) presses XPP's buttons and
+answers its prompts for you, and reads back the trajectories, equilibria and
+AUTO's diagrams. Changes are listed in [`CHANGES.md`](CHANGES.md).
+
 ## Credits and licence
+
+**GNU General Public License, version 3 or later** (GPL-3.0-or-later). See
+[`LICENSE`](LICENSE).
 
 - **XPPAUT** is by G. Bard Ermentrout. The C sources in `csrc/xppaut` are his
   version 8.2, including AUTO for delay equations.
+  [Homepage](https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html).
 - **AUTO** is by E. Doedel and collaborators.
 - **pyxpp**, the headless Python bridge this package grew from, is by Youngmin
   Park.
 - **The tutorial models** come from the examples of XPP Studio (Peter Ashwin and
   Bard Ermentrout, GPL-3.0) and from the delay-equation examples that come with
   XPPAUT 8.2.
-
-GPL. See `LICENSE`.

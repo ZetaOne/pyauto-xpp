@@ -1,0 +1,35 @@
+{
+ "name": "pyauto-xpp",
+ "short_name": "pyauto-xpp",
+ "description": "XPPAUT 8.2 and its AUTO as a Python module, with tutorials.",
+ "start_url": "./",
+ "scope": "./",
+ "display": "browser",
+ "background_color": "#1d3150",
+ "theme_color": "#1d3150",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-maskable-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  },
+  {
+   "src": "icon.svg",
+   "sizes": "any",
+   "type": "image/svg+xml"
+  }
+ ]
+}

@@ -3,8 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>pyauto-xpp</title>
+<title>pyauto-xpp: XPPAUT and AUTO in Python</title>
+<meta name="description" content="XPPAUT 8.2 and its AUTO as a Python module (import pyxpp): simulations, phase planes, nullclines and bifurcation diagrams from Python, with 70 tutorials.">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta property="og:title" content="pyauto-xpp">
+<meta property="og:description" content="XPPAUT 8.2 and AUTO as a Python module, with 70 tutorials.">
+<meta property="og:image" content="https://zetaone.github.io/pyauto-xpp/gallery/2D-FLOWS_morris-lecar-bifurcation_ml-bifurcation.png">
 <script>
+  // apply the saved theme before the page is drawn (no flash of the wrong colours)
   try { var t = localStorage.getItem('pyauto-xpp-theme');
         if (t && t !== 'system') document.documentElement.dataset.theme = t } catch (e) {}
 </script>
@@ -250,126 +260,555 @@
   --term-fg: #f4eee4;
   --stripe: linear-gradient(90deg, #ff7edb, #36f9f6, #fede5d, #f97e72, #72f1b8);
 }
+/* ---- funky themes: a multi-coloured stripe under the toolbar (as XPPAUT-Web) */
+:root[data-theme^='funky'] .bar { border-bottom: 3px solid transparent; border-image: var(--stripe) 1 }
+:root[data-theme^='funky'] .hero { background: var(--desk) }
+
 * { box-sizing: border-box }
-body { margin: 0; background: var(--bg); color: var(--fg); }
-header { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--bar);
-         border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 2 }
-header .stripe { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--stripe, transparent) }
-header h1 { font-size: 17px; margin: 0 } header .sp { flex: 1 }
+html { scroll-behavior: smooth; scroll-padding-top: 64px; -webkit-text-size-adjust: 100% }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto } }
+body { margin: 0; background: var(--bg); color: var(--fg); font-size: 15px; line-height: 1.55; overflow-x: hidden }
 a { color: var(--accent) }
-.btn { display: inline-block; padding: 7px 12px; border-radius: 6px; background: var(--accent); color: var(--accent-fg);
-       text-decoration: none; border: 0; font: inherit; cursor: pointer }
-.btn.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line) }
-main { max-width: 1040px; margin: 0 auto; padding: 16px }
-section { margin: 22px 0 }
-h2 { font-size: 16px; border-bottom: 1px solid var(--line); padding-bottom: 4px }
+a.btn { color: var(--accent-fg) } a.btn.ghost { color: var(--fg) }
+code, pre, kbd, .mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.skip { position: absolute; left: -999px; top: 8px; z-index: 10; padding: 8px 12px; background: var(--bar); border: 1px solid var(--line); border-radius: 4px }
+.skip:focus { left: 8px }
 .muted { color: var(--muted) }
-pre { background: var(--term-bg); color: var(--term-fg); padding: 10px 12px; border-radius: 6px; overflow-x: auto }
-select, input[type=search] { font: inherit; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--line);
-       background: var(--bar); color: var(--fg) }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap }
+
+/* ---- top bar (XPPAUT-Web's .bar) ----------------------------------------- */
+.bar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 16px; padding: 6px 12px;
+       min-height: 48px; background: var(--bar); border-bottom: 1px solid var(--line); font-size: 14px }
+.brand { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; font-weight: 600; color: var(--fg); text-decoration: none; white-space: nowrap }
+.brand img { width: 22px; height: 22px; border-radius: 5px; flex: none }
+.ver { font: 12px ui-monospace, Menlo, Consolas, monospace; padding: 1px 6px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); text-decoration: none }
+.nav { display: flex; align-items: center; gap: 2px; flex-wrap: wrap }
+.nav a { color: var(--fg); text-decoration: none; padding: 5px 9px; border-radius: 4px }
+.nav a:hover, .nav a[aria-current='true'] { background: var(--panel-bar-active) }
+.right { margin-left: auto; display: flex; align-items: center; gap: 10px }
+.bar details { position: relative }
+.bar summary { list-style: none } .bar summary::-webkit-details-marker { display: none }
+summary.round { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--line);
+       border-radius: 50%; background: var(--bg); color: var(--fg); cursor: pointer }
+summary.round:hover, details[open] > summary.round { background: var(--panel-bar-active) }
+.panel { position: absolute; z-index: 100; top: calc(100% + 6px); right: 0; display: grid; gap: 2px; min-width: 220px;
+       max-height: calc(100vh - 70px); overflow: auto; padding: 6px; background: var(--bar); border: 1px solid var(--line);
+       border-radius: 6px; box-shadow: 0 6px 20px rgb(0 0 0 / 0.25) }
+.panel button, .panel a { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 8px; border: 0; border-radius: 4px;
+       background: transparent; color: var(--fg); font: inherit; text-align: left; text-decoration: none; cursor: pointer }
+.panel button:hover, .panel a:hover, .panel button[aria-checked='true'] { background: var(--panel-bar-active) }
+.panel .head { padding: 4px 8px 2px; font-size: 12px; color: var(--muted) }
+.swatch { display: inline-flex; width: 34px; height: 18px; overflow: hidden; border: 1px solid rgb(127 127 127 / 0.5); border-radius: 3px; flex: none }
+.swatch i { flex: 1 }
+.menu { display: none }
+
+/* ---- buttons --------------------------------------------------------------- */
+.btn { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 7px 14px; border-radius: 6px;
+       background: var(--accent); color: var(--accent-fg); border: 1px solid var(--accent); text-decoration: none;
+       font: inherit; font-size: 14px; font-weight: 600; cursor: pointer }
+.btn:hover { filter: brightness(1.08) }
+.btn.ghost { background: var(--bar); color: var(--fg); border-color: var(--line); font-weight: 500 }
+.btn.ghost:hover { background: var(--panel-bar-active); filter: none }
+.btn svg { flex: none }
+
+/* ---- layout ---------------------------------------------------------------- */
+main { display: block }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px }
+section { padding: 30px 0 6px }
+h2 { font-size: 20px; margin: 0 0 6px; display: flex; align-items: baseline; gap: 10px }
+h2 a.anchor { font-size: 14px; color: var(--muted); text-decoration: none; opacity: 0 }
+h2:hover a.anchor, h2 a.anchor:focus { opacity: 1 }
+h3 { font-size: 15px; margin: 0 0 4px }
+.lead { margin: 0 0 14px; color: var(--muted); max-width: 70ch }
 .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; margin-top: 10px }
-.card { background: var(--bar); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px }
-.card .k { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted) }
-.card h3 { font-size: 14px; margin: 3px 0 } .card p { margin: 4px 0 8px; font-size: 13px; color: var(--muted) }
-.card .links a { margin-right: 10px; font-size: 13px }
-details.themes { position: relative } details.themes summary { list-style: none; cursor: pointer }
-details.themes summary::-webkit-details-marker { display: none }
-.themes-panel { position: absolute; right: 0; top: 36px; background: var(--bar); border: 1px solid var(--line);
-       border-radius: 8px; padding: 6px; width: 240px; box-shadow: 0 6px 24px #0004 }
-.themes-panel button { display: flex; width: 100%; align-items: center; gap: 8px; padding: 6px; border: 0;
-       background: transparent; color: var(--fg); font: inherit; border-radius: 5px; cursor: pointer; text-align: left }
-.themes-panel button:hover, .themes-panel button[aria-checked=true] { background: var(--panel-bar-active) }
-.sw { display: inline-flex } .sw i { width: 11px; height: 16px; display: inline-block }
-.round { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--line) }
-@media (max-width: 600px) { header h1 { font-size: 15px } }
+
+.hero { background: var(--panel-bar); border-bottom: 1px solid var(--line) }
+.hero .wrap { display: grid; grid-template-columns: auto 1fr; gap: 22px; align-items: center; padding-top: 30px; padding-bottom: 28px }
+.hero img.mark { width: 96px; height: 96px; border-radius: 20px; box-shadow: 0 6px 22px rgb(0 0 0 / 0.25) }
+.hero h1 { margin: 0; font-size: 30px; line-height: 1.15 }
+.hero p { margin: 8px 0 14px; max-width: 64ch }
+.facts { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 16px; padding: 0; list-style: none; font-size: 13px; color: var(--muted) }
+.facts li::before { content: '\25CF'; color: var(--accent); margin-right: 6px; font-size: 9px; vertical-align: 2px }
+
+/* ---- gallery --------------------------------------------------------------- */
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px }
+.shot { margin: 0; background: var(--bar); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column }
+.shot button { display: block; padding: 0; border: 0; background: #ffffff; cursor: zoom-in; aspect-ratio: 16 / 10; width: 100% }
+.shot img { width: 100%; height: 100%; object-fit: contain; display: block }
+.shot figcaption { padding: 8px 12px 10px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); flex: 1 }
+.shot figcaption b { display: block; color: var(--fg); font-size: 14px }
+dialog.lightbox { width: min(1200px, calc(100vw - 24px)); max-height: calc(100vh - 24px); padding: 0; border: 1px solid var(--line);
+       border-radius: 8px; background: var(--bar); color: var(--fg) }
+dialog.lightbox::backdrop { background: rgb(0 0 0 / 0.7) }
+dialog.lightbox img { display: block; width: 100%; height: auto; max-height: calc(100vh - 140px); object-fit: contain; background: #ffffff }
+.lb-bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; flex-wrap: wrap }
+.lb-bar .t { flex: 1 1 220px; font-size: 13px; color: var(--muted) } .lb-bar .t b { color: var(--fg) }
+.iconbtn { min-width: 38px; min-height: 38px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); font: inherit; font-size: 18px; cursor: pointer }
+.iconbtn:hover { background: var(--panel-bar-active) }
+
+/* ---- quick start ------------------------------------------------------------ */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none }
+.tabs button { flex: none; padding: 9px 14px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--muted);
+       font: inherit; font-size: 14px; cursor: pointer; margin-bottom: -1px }
+.tabs button[aria-selected='true'] { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600 }
+.tabs button:hover { color: var(--fg) }
+.tabpanel { padding: 14px 0 0 }
+.tabpanel p { margin: 0 0 10px; max-width: 75ch }
+.os { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin-bottom: 10px }
+.os button { padding: 6px 12px; border: 0; background: var(--bar); color: var(--fg); font: inherit; font-size: 13px; cursor: pointer; min-height: 34px }
+.os button + button { border-left: 1px solid var(--line) }
+.os button[aria-pressed='true'] { background: var(--accent); color: var(--accent-fg) }
+.code { position: relative; margin: 0 0 12px }
+.code pre { margin: 0; background: var(--term-bg); color: var(--term-fg); padding: 12px 14px; padding-right: 64px; border-radius: 6px;
+       overflow-x: auto; line-height: 1.5; border: 1px solid var(--line) }
+.code pre .c { color: #8f9aa5 }
+.copy { position: absolute; top: 7px; right: 7px; padding: 3px 9px; min-height: 28px; border: 1px solid #ffffff33; border-radius: 4px;
+       background: var(--term-head); color: var(--term-fg); font: 12px system-ui, sans-serif; cursor: pointer }
+.copy:hover { background: #ffffff22 }
+.note { padding: 9px 12px; border-left: 3px solid var(--accent); background: var(--panel-bar); border-radius: 0 6px 6px 0; font-size: 14px; max-width: 80ch }
+
+/* ---- downloads -------------------------------------------------------------- */
+.dl { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px }
+.dl a.box { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; min-height: 64px; background: var(--bar); border: 1px solid var(--line);
+       border-radius: 8px; color: var(--fg); text-decoration: none }
+.dl a.box:hover { border-color: var(--accent); background: var(--panel-bar-active) }
+.dl a.box b { display: flex; align-items: center; gap: 8px; font-size: 14px }
+.dl a.box span { font-size: 12.5px; color: var(--muted) }
+.dl a.box .mono { font-size: 12px }
+.dl a.box.soon { opacity: 0.75; border-style: dashed }
+
+/* ---- tutorials -------------------------------------------------------------- */
+.filters { display: grid; gap: 10px; margin: 6px 0 12px; position: sticky; top: 48px; z-index: 3; background: var(--bg); padding: 8px 0;
+       border-bottom: 1px solid var(--line) }
+.search { position: relative; flex: 1 1 260px; max-width: 420px }
+.search input { width: 100%; font: inherit; font-size: 15px; min-height: 38px; padding: 6px 10px 6px 34px; border-radius: 6px;
+       border: 1px solid var(--line); background: var(--bar); color: var(--fg) }
+.search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted) }
+.chips { display: flex; gap: 6px; flex-wrap: wrap }
+.chip { padding: 4px 11px; min-height: 32px; border: 1px solid var(--line); border-radius: 16px; background: var(--bar); color: var(--fg);
+       font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap }
+.chip:hover { background: var(--panel-bar-active) }
+.chip[aria-pressed='true'] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent) }
+.chip small { opacity: 0.75; margin-left: 3px }
+.count { font-size: 13px; color: var(--muted) }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px }
+.card { display: flex; flex-direction: column; background: var(--bar); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px 8px }
+.card .k { display: flex; gap: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted) }
+.card .k .nb { color: var(--accent) }
+.card h3 { margin: 4px 0 2px; font-size: 14.5px }
+.card p { margin: 2px 0 6px; font-size: 13px; color: var(--muted); flex: 1 }
+.card .f { font-size: 11.5px; color: var(--muted); overflow-wrap: anywhere }
+.card .links { display: flex; gap: 2px; margin: 6px -6px 0; flex-wrap: wrap }
+.card .links a { padding: 5px 6px; font-size: 13px; border-radius: 4px; text-decoration: none }
+.card .links a:hover { background: var(--panel-bar-active) }
+.empty { padding: 20px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 8px }
+.empty button { font: inherit; color: var(--accent); background: none; border: 0; text-decoration: underline; cursor: pointer }
+
+/* ---- sister project, footer --------------------------------------------------- */
+.sister { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; padding: 14px 16px; background: var(--bar);
+       border: 1px solid var(--line); border-radius: 8px }
+.sister p { margin: 2px 0 0; color: var(--muted); font-size: 14px }
+.sister .logo { width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center; background: var(--panel-bar); font-weight: 700; color: var(--accent) }
+footer { margin-top: 36px; padding: 22px 0 30px; border-top: 1px solid var(--line); background: var(--bar); font-size: 13.5px; color: var(--muted) }
+footer ul { margin: 6px 0 12px; padding-left: 18px }
+footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
+
+/* ---- phones (as XPPAUT-Web: the toolbar folds into a menu) -------------------- */
+@media (max-width: 760px) {
+  .nav, .bar .ver { display: none }
+  .menu { display: block }
+  .bar { gap: 8px }
+  .hero .wrap { grid-template-columns: 1fr; gap: 12px; padding-top: 20px; padding-bottom: 20px }
+  .hero img.mark { width: 64px; height: 64px; border-radius: 14px }
+  .hero h1 { font-size: 25px }
+  .sister { grid-template-columns: auto 1fr }
+  .sister .btn { grid-column: 1 / -1; justify-content: center }
+  .gallery { grid-template-columns: 1fr }
+  .filters { top: 48px }
+  .search { max-width: none }
+  .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px }
+  .chips::-webkit-scrollbar, .tabs::-webkit-scrollbar { display: none }
+  .cards { grid-template-columns: 1fr }
+  h2 a.anchor { display: none }
+}
+/* comfortable touch targets */
+@media (pointer: coarse) {
+  .nav a, .panel button, .panel a { min-height: 44px }
+  summary.round { width: 40px; height: 40px }
+  .chip { min-height: 40px; padding: 6px 14px }
+  .card .links a { padding: 10px 8px }
+  .os button, .tabs button { min-height: 44px }
+  .btn { min-height: 44px }
+  .copy { min-height: 34px; padding: 4px 12px }
+}
+/* landscape phones: little height, so the bar scrolls away */
+@media (max-height: 500px) and (orientation: landscape) {
+  .bar { position: static }
+  .filters { position: static }
+  html { scroll-padding-top: 8px }
+}
 </style>
 </head>
 <body>
-<header>
-  <h1>pyauto-xpp</h1><span class="muted">XPPAUT 8.2 + AUTO in Python</span><span class="sp"></span>
-  <a class="btn ghost" href="https://github.com/ZetaOne/pyauto-xpp">GitHub</a>
-  <details class="themes">
-    <summary class="round" title="Theme" aria-label="Theme">
-      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none"
-        stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg>
-    </summary>
-    <div class="themes-panel" id="themelist" role="menu"></div>
-  </details>
-  <div class="stripe"></div>
+<a class="skip" href="#main">Skip to content</a>
+<header class="bar">
+  <a class="brand" href="#top"><img src="icon.svg" alt="" width="22" height="22">pyauto-xpp</a>
+  <a class="ver" href="https://github.com/ZetaOne/pyauto-xpp/releases/tag/v0.1.0" title="Latest release">v0.1.0</a>
+  <nav class="nav" aria-label="Sections"><a href="#gallery">Gallery</a><a href="#install">Quick start</a><a href="#downloads">Downloads</a><a href="#tutorials">Tutorials</a><a href="#xpp-web">XPPAUT-Web</a></nav>
+  <div class="right">
+    <details class="menu" id="menu">
+      <summary class="round" title="Menu" aria-label="Menu">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </summary>
+      <div class="panel" role="menu"><a role="menuitem" href="#gallery">Gallery</a><a role="menuitem" href="#install">Quick start</a><a role="menuitem" href="#downloads">Downloads</a><a role="menuitem" href="#tutorials">Tutorials</a><a role="menuitem" href="#xpp-web">XPPAUT-Web</a><a role="menuitem" href="https://github.com/ZetaOne/pyauto-xpp">GitHub</a></div>
+    </details>
+    <details class="themes" id="themes">
+      <summary class="round" title="Theme" aria-label="Theme">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none"
+          stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg>
+      </summary>
+      <div class="panel" id="themelist" role="menu" aria-label="Theme"><div class="head">Theme (as XPPAUT-Web)</div></div>
+    </details>
+  </div>
 </header>
-<main>
-  <section>
-    <p>XPPAUT and its AUTO as a Python module: every XPP button is a Python call, AUTO runs from Python
-       (including delay equations), and models can be written in Python. With 70 tutorials.</p>
-    <div class="row">
-      <a class="btn" href="https://mybinder.org/v2/gh/ZetaOne/pyauto-xpp/HEAD?urlpath=lab/tree/tutorials">Try it in your browser (Binder)</a>
-      <a class="btn ghost" href="https://github.com/ZetaOne/pyauto-xpp/archive/refs/heads/main.zip">Download everything (.zip)</a>
-      <a class="btn ghost" href="https://github.com/ZetaOne/pyauto-xpp/releases/latest">Prebuilt packages (Releases)</a>
+
+<main id="main">
+<div class="hero" id="top">
+  <div class="wrap">
+    <img class="mark" src="icon.svg" alt="" width="96" height="96">
+    <div>
+      <h1>pyauto-xpp</h1>
+      <p>XPPAUT 8.2 and its AUTO as a Python module. Every XPP button is a Python call, AUTO runs from Python
+         (also for delay equations), and models can be written in Python. No X11, no windows to click.</p>
+      <ul class="facts">
+        <li><code>import pyxpp</code></li><li>70 tutorials</li><li>Linux and macOS wheels, Python 3.9-3.15</li><li>GPL-3.0-or-later</li>
+      </ul>
+      <div class="row">
+        <a class="btn" href="https://mybinder.org/v2/gh/ZetaOne/pyauto-xpp/HEAD?urlpath=lab/tree/tutorials"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>Try it in your browser</a>
+        <a class="btn ghost" href="#install">Install</a>
+        <a class="btn ghost" href="#tutorials">Tutorials</a>
+        <a class="btn ghost" href="https://github.com/ZetaOne/pyauto-xpp"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
+      </div>
     </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <section id="gallery" aria-labelledby="h-gallery">
+    <h2 id="h-gallery">Gallery <a class="anchor" href="#gallery" aria-label="Link to Gallery">#</a></h2>
+    <p class="lead">Figures made by the tutorial scripts, with XPP's integrators and AUTO called from Python. Click one to enlarge it.</p>
+    <div class="gallery"><figure class="shot"><button type="button" data-i="0" aria-label="Enlarge: Morris-Lecar in AUTO"><img src="gallery/2D-FLOWS_morris-lecar-bifurcation_ml-bifurcation.png" width="845" height="585" loading="lazy" alt="Morris-Lecar in AUTO: Equilibria in the applied current i (red stable, black unstable), the two Hopf points, and the periodic orbits between them (green stable, blue unstable)."></button><figcaption><b>Morris-Lecar in AUTO</b>Equilibria in the applied current i (red stable, black unstable), the two Hopf points, and the periodic orbits between them (green stable, blue unstable). <a href="https://github.com/ZetaOne/pyauto-xpp/blob/main/tutorials/scripts/2D-FLOWS_morris-lecar-bifurcation.py">Script</a></figcaption></figure><figure class="shot"><button type="button" data-i="1" aria-label="Enlarge: FitzHugh-Nagumo phase plane"><img src="gallery/2D-FLOWS_fitzhugh-nagumo_phase_plane.png" width="845" height="650" loading="lazy" alt="FitzHugh-Nagumo phase plane: Nullclines, direction field and trajectories that all end on the stable equilibrium."></button><figcaption><b>FitzHugh-Nagumo phase plane</b>Nullclines, direction field and trajectories that all end on the stable equilibrium. <a href="https://github.com/ZetaOne/pyauto-xpp/blob/main/tutorials/scripts/2D-FLOWS_fitzhugh-nagumo.py">Script</a></figcaption></figure><figure class="shot"><button type="button" data-i="2" aria-label="Enlarge: Mackey-Glass, a delay equation"><img src="gallery/DELAYS_mackey-glass-period-doubling_orbit_diagram.png" width="1040" height="624" loading="lazy" alt="Mackey-Glass, a delay equation: AUTO&#x27;s periodic orbits and period doublings, drawn over the maxima of simulations: the route to chaos."></button><figcaption><b>Mackey-Glass, a delay equation</b>AUTO&#x27;s periodic orbits and period doublings, drawn over the maxima of simulations: the route to chaos. <a href="https://github.com/ZetaOne/pyauto-xpp/blob/main/tutorials/scripts/DELAYS_mackey-glass-period-doubling.py">Script</a></figcaption></figure><figure class="shot"><button type="button" data-i="3" aria-label="Enlarge: The Lorenz attractor"><img src="gallery/3D-FLOWS_lorenz_attractor.png" width="1200" height="524" loading="lazy" alt="The Lorenz attractor: r = 27, in 3-D and projected on (x, z), with the two unstable equilibria."></button><figcaption><b>The Lorenz attractor</b>r = 27, in 3-D and projected on (x, z), with the two unstable equilibria. <a href="https://github.com/ZetaOne/pyauto-xpp/blob/main/tutorials/scripts/3D-FLOWS_lorenz.py">Script</a></figcaption></figure><figure class="shot"><button type="button" data-i="4" aria-label="Enlarge: Waves along a chain"><img src="gallery/SPACE_fhn-chain-arrays_space_time.png" width="975" height="494" loading="lazy" alt="Waves along a chain: A chain of 20 FitzHugh-Nagumo cells driven at one end: voltage against cell and time."></button><figcaption><b>Waves along a chain</b>A chain of 20 FitzHugh-Nagumo cells driven at one end: voltage against cell and time. <a href="https://github.com/ZetaOne/pyauto-xpp/blob/main/tutorials/scripts/SPACE_fhn-chain-arrays.py">Script</a></figcaption></figure><figure class="shot"><button type="button" data-i="5" aria-label="Enlarge: The Henon map"><img src="gallery/MAPS_henon-map_attractor.png" width="1200" height="460" loading="lazy" alt="The Henon map: Its strange attractor and the layers seen when zooming in near a fixed point."></button><figcaption><b>The Henon map</b>Its strange attractor and the layers seen when zooming in near a fixed point. <a href="https://github.com/ZetaOne/pyauto-xpp/blob/main/tutorials/scripts/MAPS_henon-map.py">Script</a></figcaption></figure></div>
   </section>
-  <section>
-    <h2>Install on your computer</h2>
-    <div class="row"><label>System <select id="os">
-      <option value="unix">Linux / macOS</option><option value="win">Windows (in progress)</option></select></label></div>
-    <pre id="cmd-unix">curl -fsSL https://pixi.sh/install.sh | bash      # once
+
+  <section id="install" aria-labelledby="h-install">
+    <h2 id="h-install">Quick start <a class="anchor" href="#install" aria-label="Link to Quick start">#</a></h2>
+    <p class="lead">Three ways to get it: nothing to install (Binder), one tool that sets up everything (pixi), or pip.</p>
+    <div class="tabs" role="tablist" aria-label="Ways to install">
+      <button role="tab" id="tab-pixi" aria-controls="p-pixi" aria-selected="true">pixi (recommended)</button>
+      <button role="tab" id="tab-pip" aria-controls="p-pip" aria-selected="false" tabindex="-1">pip: prebuilt wheel</button>
+      <button role="tab" id="tab-src" aria-controls="p-src" aria-selected="false" tabindex="-1">pip: from source</button>
+      <button role="tab" id="tab-binder" aria-controls="p-binder" aria-selected="false" tabindex="-1">Binder</button>
+    </div>
+    <div class="tabpanel" role="tabpanel" id="p-pixi" aria-labelledby="tab-pixi">
+      <div class="os" role="group" aria-label="Your system">
+        <button data-os="unix" aria-pressed="true">Linux / macOS</button><button data-os="win" aria-pressed="false">Windows</button>
+      </div>
+      <div data-for="unix">
+        <div class="code"><pre><code>curl -fsSL https://pixi.sh/install.sh | bash   <span class="c"># once, then open a new terminal</span>
 git clone https://github.com/ZetaOne/pyauto-xpp &amp;&amp; cd pyauto-xpp
-pixi run lab        # JupyterLab opens in your browser
-pixi run scripts    # all tutorial scripts, one line each</pre>
-    <pre id="cmd-win" hidden>powershell -c "irm -useb https://pixi.sh/install.ps1 | iex"     # once
+pixi run lab        <span class="c"># JupyterLab with the tutorials opens in your browser</span>
+pixi run scripts    <span class="c"># every tutorial script, one line each</span>
+pixi run test       <span class="c"># the package's tests</span></code></pre></div>
+      </div>
+      <div data-for="win" hidden>
+        <div class="code"><pre><code>powershell -c "irm -useb https://pixi.sh/install.ps1 | iex"   <span class="c"># once</span>
 git clone https://github.com/ZetaOne/pyauto-xpp ; cd pyauto-xpp
-pixi run lab
-# Windows support of the C library is still being ported.</pre>
-    <p class="muted">After an update, only what changed is downloaded again.</p>
+pixi run lab</code></pre></div>
+        <p class="note">Windows support of XPP's C library is still in progress. Until it is ready, use Binder.</p>
+      </div>
+      <p>The first run downloads Python and the packages and builds XPP's C library; after an update only what changed
+         is downloaded again. No git? Take <a href="https://github.com/ZetaOne/pyauto-xpp/archive/refs/heads/main.zip">the .zip</a>, unzip it and run
+         <code>pixi run lab</code> in that folder.</p>
+    </div>
+    <div class="tabpanel" role="tabpanel" id="p-pip" aria-labelledby="tab-pip" hidden>
+      <p>Download the wheel for your system and Python version from the <a href="https://github.com/ZetaOne/pyauto-xpp/releases/latest">Releases page</a>
+         (see <a href="#downloads">Downloads</a> below), then:</p>
+      <div class="code"><pre><code>python -m pip install pyauto_xpp-0.1.0-cp312-cp312-<span class="c">&lt;your system&gt;</span>.whl
+python -m pip install matplotlib    <span class="c"># for the figures in the tutorials</span>
+python -c "import pyxpp; print(pyxpp.__file__)"</code></pre></div>
+      <p class="muted"><code>cp312</code> is Python 3.12: pick the wheel whose tag matches <code>python --version</code>
+         (cp39 to cp315). Linux x86_64 and ARM, macOS Intel (10.13+) and Apple Silicon (11+).</p>
+    </div>
+    <div class="tabpanel" role="tabpanel" id="p-src" aria-labelledby="tab-src" hidden>
+      <p>Builds XPP's C library on your computer, so it needs a C compiler (gcc or clang).</p>
+      <div class="code"><pre><code>git clone https://github.com/ZetaOne/pyauto-xpp &amp;&amp; cd pyauto-xpp
+python -m pip install .            <span class="c"># or: pip install ".[plot]" for matplotlib too</span>
+python -m pytest -q tests          <span class="c"># optional: the tests (needs pytest)</span></code></pre></div>
+    </div>
+    <div class="tabpanel" role="tabpanel" id="p-binder" aria-labelledby="tab-binder" hidden>
+      <p>Runs JupyterLab with pyauto-xpp and all tutorials on mybinder.org, in your browser. It starts in a minute or two;
+         edits are not kept, so download what you change.</p>
+      <p><a class="btn" href="https://mybinder.org/v2/gh/ZetaOne/pyauto-xpp/HEAD?urlpath=lab/tree/tutorials"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>Open the tutorials in Binder</a></p>
+      <p class="muted">Every tutorial card below also has its own <b>Open in Binder</b> link.</p>
+    </div>
+
+    <h3 style="margin-top:22px">A first look</h3>
+    <div class="code"><pre><code>import pyxpp
+from pyxpp.builder import ModelBuilder
+
+mb = (ModelBuilder("fhn")
+      .ode("v", "v-v^3/3-w+i").ode("w", "eps*(v+a-b*w)")
+      .parameter(i=0.2, a=0.7, b=0.8, eps=0.08).initial(v=-1.2, w=-0.6))
+m = mb.load()
+tr = m.run(total=200)                         <span class="c"># Initialconds &gt; Go</span>
+m.equilibrium({"v": -1.2, "w": -0.6})         <span class="c"># Newton + eigenvalues</span>
+m.run(total=300); m.run_last()
+d = m.auto.run("i", start="steady", ds=0.01, parmin=0, parmax=2)   <span class="c"># AUTO</span>
+d.special("HB")</code></pre></div>
   </section>
-  <section>
-    <h2>Tutorials</h2>
-    <div class="row">
-      <label>Group <select id="group"><option value="">all</option><option>2D-FLOWS</option><option>EVENTS</option><option>MAPS</option><option>3D-FLOWS</option><option>DELAYS</option><option>NOISE</option><option>SPACE</option></select></label>
-      <label>Kind <select id="kind"><option value="">both</option><option value="script">scripts</option>
-        <option value="notebook">notebooks</option></select></label>
-      <input type="search" id="q" placeholder="search…">
-      <span class="muted" id="count"></span>
+
+  <section id="downloads" aria-labelledby="h-downloads">
+    <h2 id="h-downloads">Downloads <a class="anchor" href="#downloads" aria-label="Link to Downloads">#</a></h2>
+    <p class="lead">Prebuilt wheels of v0.1.0 are on the Releases page, one per system and Python version (3.9 to 3.15).</p>
+    <div class="dl"><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/releases/latest"><b>Linux x86_64</b><span>ends in <span class=mono>x86_64.whl</span></span></a><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/releases/latest"><b>Linux ARM</b><span>ends in <span class=mono>aarch64.whl</span></span></a><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/releases/latest"><b>macOS Intel</b><span>10.13 or newer, <span class=mono>x86_64.whl</span></span></a><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/releases/latest"><b>macOS Apple Silicon</b><span>11 or newer, <span class=mono>arm64.whl</span></span></a><a class="box soon" href="https://mybinder.org/v2/gh/ZetaOne/pyauto-xpp/HEAD?urlpath=lab/tree/tutorials"><b>Windows</b><span>in progress: use Binder for now</span></a><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/archive/refs/heads/main.zip"><b>Everything (.zip)</b><span>package, C sources, tutorials, tests</span></a><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/releases"><b>Release notes and all files</b><span>Releases page on GitHub</span></a></div>
+  </section>
+
+  <section id="tutorials" aria-labelledby="h-tutorials">
+    <h2 id="h-tutorials">Tutorials <a class="anchor" href="#tutorials" aria-label="Link to Tutorials">#</a></h2>
+    <p class="lead">39 Python scripts, one per model, that check their numbers against exact or published values, and
+      31 interactive notebooks with sliders and an AUTO panel. Notebooks use <a href="https://raw.githubusercontent.com/ZetaOne/pyauto-xpp/main/tutorials/notebooks/xpptut.py" data-dl>xpptut.py</a>
+      from their folder: download it with them, or take <a href="https://github.com/ZetaOne/pyauto-xpp/archive/refs/heads/main.zip">everything (.zip)</a>.</p>
+    <div class="filters" role="search">
+      <div class="row">
+        <label class="search"><span class="vh">Search tutorials</span>
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input type="search" id="q" placeholder="Search: Hopf, delay, map, Lorenz..." autocomplete="off"></label>
+        <div class="chips" role="group" aria-label="Kind" id="kinds"></div>
+        <span class="count" id="count" aria-live="polite"></span>
+      </div>
+      <div class="chips" role="group" aria-label="Group" id="groups"></div>
     </div>
     <div class="cards" id="cards"></div>
   </section>
-  <section class="muted">
-    XPPAUT by G. Bard Ermentrout; AUTO by E. Doedel and collaborators; pyxpp by Youngmin Park; tutorial models
-    from XPP Studio (Peter Ashwin and Bard Ermentrout) and the XPPAUT 8.2 delay examples. GPL.
+
+  <section id="xpp-web" aria-labelledby="h-sister">
+    <h2 id="h-sister">Sister project <a class="anchor" href="#xpp-web" aria-label="Link to Sister project">#</a></h2>
+    <div class="sister">
+      <div class="logo" aria-hidden="true">X</div>
+      <div><b>XPPAUT-Web</b><p>The same XPPAUT 8.2 with its own windows, in the browser and as an Android app:
+        nothing to install, for when you would rather click than script.</p></div>
+      <a class="btn ghost" href="https://zetaone.github.io/XPPAUT-Web/">Open XPPAUT-Web</a>
+    </div>
   </section>
+</div>
 </main>
+
+<footer>
+  <div class="wrap">
+    <b style="color:var(--fg)">Credits</b>
+    <ul>
+      <li><b>XPPAUT</b> is by G. Bard Ermentrout; the C sources are his version 8.2, including AUTO for delay equations.</li>
+      <li><b>AUTO</b> is by E. Doedel and collaborators.</li>
+      <li><b>pyxpp</b>, the headless Python bridge this package grew from, is by Youngmin Park.</li>
+      <li><b>The tutorial models</b> come from the examples of XPP Studio (Peter Ashwin and Bard Ermentrout, GPL-3.0) and from
+        the delay-equation examples that come with XPPAUT 8.2.</li>
+    </ul>
+    <div class="row">
+      <span>Licence: GPL-3.0-or-later.</span>
+      <a href="https://github.com/ZetaOne/pyauto-xpp">Source</a><a href="https://github.com/ZetaOne/pyauto-xpp/releases">Releases</a><a href="https://github.com/ZetaOne/pyauto-xpp/blob/main/CHANGES.md">Changes</a>
+      <a href="https://github.com/ZetaOne/pyauto-xpp/issues">Report a problem</a><a href="https://zetaone.github.io/XPPAUT-Web/">XPPAUT-Web</a>
+    </div>
+  </div>
+</footer>
+
+<dialog class="lightbox" id="lightbox" aria-labelledby="lb-title">
+  <img id="lb-img" alt="">
+  <div class="lb-bar">
+    <button class="iconbtn" id="lb-prev" aria-label="Previous figure">&#8249;</button>
+    <button class="iconbtn" id="lb-next" aria-label="Next figure">&#8250;</button>
+    <div class="t"><b id="lb-title"></b> <span id="lb-cap"></span></div>
+    <a class="btn ghost" id="lb-src">The script</a>
+    <button class="iconbtn" id="lb-close" aria-label="Close">&#215;</button>
+  </div>
+</dialog>
+
 <script>
-const THEMES = [{"id": "system", "name": "System (light/dark)", "swatch": ["#ffffff", "#5c6670", "#222326", "#2a3038"]}, {"id": "light", "name": "Light", "swatch": ["#ffffff", "#e6e6e1", "#5c6670", "#2f5d8a"]}, {"id": "dark", "name": "Dark", "swatch": ["#222326", "#34363a", "#2a3038", "#4b7fb3"]}, {"id": "midnight", "name": "Midnight Blue", "swatch": ["#101d36", "#1c3158", "#14274a", "#3d7bd9"]}, {"id": "solarized-light", "name": "Solarized Light", "swatch": ["#fdf6e3", "#eee8d5", "#586e75", "#268bd2"]}, {"id": "solarized-dark", "name": "Solarized Dark", "swatch": ["#002b36", "#073642", "#0a3a47", "#268bd2"]}, {"id": "nord", "name": "Nord", "swatch": ["#3b4252", "#4c566a", "#434c5e", "#5e81ac"]}, {"id": "dracula", "name": "Dracula", "swatch": ["#282a36", "#44475a", "#343746", "#bd93f9"]}, {"id": "sepia", "name": "Sepia", "swatch": ["#faf4e6", "#ebdfc4", "#7a6344", "#8b5a2b"]}, {"id": "contrast", "name": "High Contrast", "swatch": ["#000000", "#ffffff", "#000000", "#ffff00"]}, {"id": "funky1", "name": "Funky 1 (Fairy Floss)", "swatch": ["#5a5475", "#ffb8d1", "#c2ffdf", "#c5a3ff"]}, {"id": "funky2", "name": "Funky 2 (Night Owl)", "swatch": ["#011627", "#82aaff", "#c792ea", "#addb67"]}, {"id": "funky3", "name": "Funky 3 (Synthwave)", "swatch": ["#241b2f", "#ff7edb", "#36f9f6", "#fede5d"]}], ITEMS = [{"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_fitzhugh-nagumo.py", "title": "FitzHugh-Nagumo", "what": "phase plane, excitability, Hopf points (exact), periodic orbits"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_toggle-switch.py", "title": "genetic toggle switch", "what": "bistability, basins, folds and the cusp in (a1, a2)"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_wilson-cowan.py", "title": "Wilson-Cowan", "what": "S-shaped branch with folds, Hopf in the inhibitory time constant"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_morris-lecar.py", "title": "Morris-Lecar (Hopf regime)", "what": "f-I curve, class II onset, hysteresis"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_morris-lecar-bifurcation.py", "title": "Morris-Lecar", "what": "one- and two-parameter diagrams, GH points"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_morris-lecar-homoclinic.py", "title": "Morris-Lecar with a saddle", "what": "period blow-up at a homoclinic orbit"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_hodgkin-huxley.py", "title": "Hodgkin-Huxley", "what": "period, Hopf points, fold of orbits, bistability"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_interacting-saddle-nodes.py", "title": "interacting saddle-nodes", "what": "equilibria from a quartic, folds, Hopf at mu = 0"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_stiff-van-der-pol.py", "title": "van der Pol, mu = 1000", "what": "stiff solvers, relaxation-oscillation period"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_driven-pendulum.py", "title": "driven pendulum", "what": "rest vs rotation, hysteresis, Melnikov onset"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_forced-duffing.py", "title": "forced Duffing", "what": "stroboscopic map, period doubling to chaos"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_forced-phase-oscillator.py", "title": "forced phase oscillator", "what": "devil's staircase, Arnold tongues"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_phase-oscillators-table.py", "title": "phase oscillators with a table", "what": "locking band from the tabulated coupling"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_coupled-ginzburg-landau.py", "title": "Ginzburg-Landau oscillator", "what": "adjoint, H and H2 against exact formulas"}, {"kind": "script", "group": "EVENTS", "file": "tutorials/scripts/EVENTS_bouncing-ball.py", "title": "bouncing ball", "what": "event times, restitution, Zeno time"}, {"kind": "script", "group": "EVENTS", "file": "tutorials/scripts/EVENTS_integrate-and-fire.py", "title": "integrate-and-fire with adaptation", "what": "exact intervals, f-I curves, rheobase"}, {"kind": "script", "group": "MAPS", "file": "tutorials/scripts/MAPS_logistic-map.py", "title": "logistic map", "what": "orbit diagram, Liapunov exponent, period doubling (exact points)"}, {"kind": "script", "group": "MAPS", "file": "tutorials/scripts/MAPS_delayed-logistic-map.py", "title": "delayed logistic map", "what": "Neimark-Sacker at a = 2, invariant curve"}, {"kind": "script", "group": "MAPS", "file": "tutorials/scripts/MAPS_henon-map.py", "title": "H\u00e9non map", "what": "strange attractor, both Liapunov exponents"}, {"kind": "script", "group": "MAPS", "file": "tutorials/scripts/MAPS_chirikov-taylor-map.py", "title": "standard map", "what": "invariant curves vs chaos, area preservation"}, {"kind": "script", "group": "MAPS", "file": "tutorials/scripts/MAPS_piecewise-affine-map.py", "title": "piecewise affine map", "what": "periods and islands at the golden mean"}, {"kind": "script", "group": "3D-FLOWS", "file": "tutorials/scripts/3D-FLOWS_lorenz.py", "title": "Lorenz", "what": "pitchfork and Hopf (exact), Liapunov exponent, Lorenz map"}, {"kind": "script", "group": "3D-FLOWS", "file": "tutorials/scripts/3D-FLOWS_rossler.py", "title": "R\u00f6ssler", "what": "equilibria, period doubling in c"}, {"kind": "script", "group": "3D-FLOWS", "file": "tutorials/scripts/3D-FLOWS_lorenz-84.py", "title": "Lorenz 84", "what": "folds and Hopf of the westerly flow, Hadley state"}, {"kind": "script", "group": "DELAYS", "file": "tutorials/scripts/DELAYS_delayed-logistic.py", "title": "Hutchinson equation", "what": "Hopf at r tau = pi/2 from simulations"}, {"kind": "script", "group": "DELAYS", "file": "tutorials/scripts/DELAYS_mackey-glass.py", "title": "Mackey-Glass", "what": "maxima against tau, delay embedding"}, {"kind": "script", "group": "DELAYS", "file": "tutorials/scripts/DELAYS_distributed-delay-volterra.py", "title": "gamma-kernel Volterra equation", "what": "Volterra vs linear-chain ODE, onset at r tau = 2"}, {"kind": "script", "group": "DELAYS", "file": "tutorials/scripts/DELAYS_hutchinson-periodic-orbits.py", "title": "Hutchinson equation", "what": "AUTO on a delay equation: Hopf and periodic orbits (XPP 8.2)"}, {"kind": "script", "group": "DELAYS", "file": "tutorials/scripts/DELAYS_mackey-glass-period-doubling.py", "title": "Mackey-Glass", "what": "period-doubling cascade with AUTO (XPP 8.2)"}, {"kind": "script", "group": "DELAYS", "file": "tutorials/scripts/DELAYS_cusp-delay.py", "title": "cusp with a delay", "what": "folds and delay-induced Hopf points (XPP 8.2)"}, {"kind": "script", "group": "DELAYS", "file": "tutorials/scripts/DELAYS_marcus-westervelt.py", "title": "two delay-coupled neurons", "what": "Hopf points and the (a, tau) Hopf curve (XPP 8.2)"}, {"kind": "script", "group": "DELAYS", "file": "tutorials/scripts/DELAYS_two-delays.py", "title": "equation with two delays", "what": "Hopf points with two delays (XPP 8.2)"}, {"kind": "script", "group": "DELAYS", "file": "tutorials/scripts/DELAYS_wilson-cowan-delay.py", "title": "Wilson-Cowan with delay", "what": "(P, tau) Hopf curve (XPP 8.2)"}, {"kind": "script", "group": "DELAYS", "file": "tutorials/scripts/DELAYS_stuart-landau-single.py", "title": "delayed Stuart-Landau", "what": "rotating waves and their folds (XPP 8.2)"}, {"kind": "script", "group": "DELAYS", "file": "tutorials/scripts/DELAYS_stuart-landau-pair.py", "title": "two delay-coupled Stuart-Landau", "what": "torus bifurcations of the in-phase wave (XPP 8.2)"}, {"kind": "script", "group": "NOISE", "file": "tutorials/scripts/NOISE_noisy-fhn-sde.py", "title": "FitzHugh-Nagumo with white noise", "what": "coherence resonance (seeded, reproducible)"}, {"kind": "script", "group": "NOISE", "file": "tutorials/scripts/NOISE_telegraph-fhn-markov.py", "title": "FitzHugh-Nagumo with a Markov input", "what": "dwell times, fraction on, firing only when on"}, {"kind": "script", "group": "SPACE", "file": "tutorials/scripts/SPACE_fhn-chain-arrays.py", "title": "chain of 20 FitzHugh-Nagumo cells", "what": "travelling spikes, speed ~ sqrt(d)"}, {"kind": "script", "group": "SPACE", "file": "tutorials/scripts/SPACE_nagumo-front.py", "title": "Nagumo front", "what": "front speed by shooting vs (1 - 2a)/sqrt(2)"}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/01_fitzhugh_nagumo.ipynb", "title": "FitzHugh-Nagumo: an excitable membrane", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/02_toggle_switch.ipynb", "title": "Genetic toggle switch: bistability", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/03_wilson_cowan.ipynb", "title": "Wilson-Cowan: excitatory and inhibitory populations", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/04_morris_lecar.ipynb", "title": "Morris-Lecar: a neuron with a Hopf onset", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/05_morris_lecar_bifurcation.ipynb", "title": "Morris-Lecar: one- and two-parameter diagrams", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/06_morris_lecar_homoclinic.ipynb", "title": "Morris-Lecar with a saddle: a homoclinic orbit", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/07_hodgkin_huxley.ipynb", "title": "Hodgkin-Huxley: the squid giant axon", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/08_interacting_saddle_nodes.ipynb", "title": "Interacting saddle-nodes", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/09_stiff_van_der_pol.ipynb", "title": "Stiff van der Pol: when to use a stiff solver", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/10_driven_pendulum.ipynb", "title": "Damped driven pendulum on a cylinder", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/11_forced_duffing.ipynb", "title": "Periodically forced Duffing oscillator", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/12_forced_phase_oscillator.ipynb", "title": "Forced phase oscillator on a torus: Arnold tongues", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/13_phase_oscillators_table.ipynb", "title": "Two phase oscillators with a tabulated coupling", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/14_coupled_ginzburg_landau.ipynb", "title": "Ginzburg-Landau oscillator: phase reduction", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "EVENTS", "file": "tutorials/notebooks/15_bouncing_ball.ipynb", "title": "Bouncing ball: global events", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "EVENTS", "file": "tutorials/notebooks/16_integrate_and_fire.ipynb", "title": "Integrate-and-fire neuron with adaptation", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "MAPS", "file": "tutorials/notebooks/17_logistic_map.ipynb", "title": "The logistic map: period doubling to chaos", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "MAPS", "file": "tutorials/notebooks/18_delayed_logistic_map.ipynb", "title": "Delayed logistic map: a Neimark-Sacker bifurcation", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "MAPS", "file": "tutorials/notebooks/19_henon_map.ipynb", "title": "The H\u00e9non map: a strange attractor", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "MAPS", "file": "tutorials/notebooks/20_chirikov_taylor_map.ipynb", "title": "Chirikov-Taylor (standard) map", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "MAPS", "file": "tutorials/notebooks/21_piecewise_affine_map.ipynb", "title": "A piecewise affine map on the unit square", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "3D-FLOWS", "file": "tutorials/notebooks/22_lorenz.ipynb", "title": "The Lorenz equations", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "3D-FLOWS", "file": "tutorials/notebooks/23_rossler.ipynb", "title": "The R\u00f6ssler system: period doubling in c", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "3D-FLOWS", "file": "tutorials/notebooks/24_lorenz_84.ipynb", "title": "Lorenz 84: a model of the atmosphere", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "DELAYS", "file": "tutorials/notebooks/25_delayed_logistic.ipynb", "title": "Hutchinson's delayed logistic equation", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "DELAYS", "file": "tutorials/notebooks/26_mackey_glass.ipynb", "title": "Mackey-Glass: delay-induced chaos", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "DELAYS", "file": "tutorials/notebooks/27_distributed_delay_volterra.ipynb", "title": "Distributed delay as a Volterra integral", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "NOISE", "file": "tutorials/notebooks/28_noisy_fhn_sde.ipynb", "title": "Noisy FitzHugh-Nagumo: coherence from noise", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "NOISE", "file": "tutorials/notebooks/29_telegraph_fhn_markov.ipynb", "title": "FitzHugh-Nagumo with a random on/off input", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "SPACE", "file": "tutorials/notebooks/30_fhn_chain_arrays.ipynb", "title": "A chain of FitzHugh-Nagumo cells: waves", "what": "interactive notebook: sliders, direction field, AUTO panel"}, {"kind": "notebook", "group": "SPACE", "file": "tutorials/notebooks/31_nagumo_front.ipynb", "title": "Nagumo travelling front: a heteroclinic orbit", "what": "interactive notebook: sliders, direction field, AUTO panel"}], GH = "https://github.com/ZetaOne/pyauto-xpp", BINDER = "https://mybinder.org/v2/gh/ZetaOne/pyauto-xpp/HEAD?urlpath=lab/tree/";
-const root = document.documentElement, list = document.getElementById('themelist');
-function setTheme(id) {
+const THEMES = [{"id": "system", "name": "System (light/dark)", "swatch": ["#ffffff", "#5c6670", "#222326", "#2a3038"]}, {"id": "light", "name": "Light", "swatch": ["#ffffff", "#e6e6e1", "#5c6670", "#2f5d8a"]}, {"id": "dark", "name": "Dark", "swatch": ["#222326", "#34363a", "#2a3038", "#4b7fb3"]}, {"id": "midnight", "name": "Midnight Blue", "swatch": ["#101d36", "#1c3158", "#14274a", "#3d7bd9"]}, {"id": "solarized-light", "name": "Solarized Light", "swatch": ["#fdf6e3", "#eee8d5", "#586e75", "#268bd2"]}, {"id": "solarized-dark", "name": "Solarized Dark", "swatch": ["#002b36", "#073642", "#0a3a47", "#268bd2"]}, {"id": "nord", "name": "Nord", "swatch": ["#3b4252", "#4c566a", "#434c5e", "#5e81ac"]}, {"id": "dracula", "name": "Dracula", "swatch": ["#282a36", "#44475a", "#343746", "#bd93f9"]}, {"id": "sepia", "name": "Sepia", "swatch": ["#faf4e6", "#ebdfc4", "#7a6344", "#8b5a2b"]}, {"id": "contrast", "name": "High Contrast", "swatch": ["#000000", "#ffffff", "#000000", "#ffff00"]}, {"id": "funky1", "name": "Funky 1 (Fairy Floss)", "swatch": ["#5a5475", "#ffb8d1", "#c2ffdf", "#c5a3ff"]}, {"id": "funky2", "name": "Funky 2 (Night Owl)", "swatch": ["#011627", "#82aaff", "#c792ea", "#addb67"]}, {"id": "funky3", "name": "Funky 3 (Synthwave)", "swatch": ["#241b2f", "#ff7edb", "#36f9f6", "#fede5d"]}], ITEMS = [{"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_fitzhugh-nagumo.py", "title": "FitzHugh-Nagumo", "what": "phase plane, excitability, Hopf points (exact), periodic orbits"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_toggle-switch.py", "title": "genetic toggle switch", "what": "bistability, basins, folds and the cusp in (a1, a2)"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_wilson-cowan.py", "title": "Wilson-Cowan", "what": "S-shaped branch with folds, Hopf in the inhibitory time constant"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_morris-lecar.py", "title": "Morris-Lecar (Hopf regime)", "what": "f-I curve, class II onset, hysteresis"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_morris-lecar-bifurcation.py", "title": "Morris-Lecar", "what": "one- and two-parameter diagrams, GH points"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_morris-lecar-homoclinic.py", "title": "Morris-Lecar with a saddle", "what": "period blow-up at a homoclinic orbit"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_hodgkin-huxley.py", "title": "Hodgkin-Huxley", "what": "period, Hopf points, fold of orbits, bistability"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_interacting-saddle-nodes.py", "title": "interacting saddle-nodes", "what": "equilibria from a quartic, folds, Hopf at mu = 0"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_stiff-van-der-pol.py", "title": "van der Pol, mu = 1000", "what": "stiff solvers, relaxation-oscillation period"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_driven-pendulum.py", "title": "driven pendulum", "what": "rest vs rotation, hysteresis, Melnikov onset"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_forced-duffing.py", "title": "forced Duffing", "what": "stroboscopic map, period doubling to chaos"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_forced-phase-oscillator.py", "title": "forced phase oscillator", "what": "devil's staircase, Arnold tongues"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_phase-oscillators-table.py", "title": "phase oscillators with a table", "what": "locking band from the tabulated coupling"}, {"kind": "script", "group": "2D-FLOWS", "file": "tutorials/scripts/2D-FLOWS_coupled-ginzburg-landau.py", "title": "Ginzburg-Landau oscillator", "what": "adjoint, H and H2 against exact formulas"}, {"kind": "script", "group": "EVENTS", "file": "tutorials/scripts/EVENTS_bouncing-ball.py", "title": "bouncing ball", "what": "event times, restitution, Zeno time"}, {"kind": "script", "group": "EVENTS", "file": "tutorials/scripts/EVENTS_integrate-and-fire.py", "title": "integrate-and-fire with adaptation", "what": "exact intervals, f-I curves, rheobase"}, {"kind": "script", "group": "MAPS", "file": "tutorials/scripts/MAPS_logistic-map.py", "title": "logistic map", "what": "orbit diagram, Liapunov exponent, period doubling (exact points)"}, {"kind": "script", "group": "MAPS", "file": "tutorials/scripts/MAPS_delayed-logistic-map.py", "title": "delayed logistic map", "what": "Neimark-Sacker at a = 2, invariant curve"}, {"kind": "script", "group": "MAPS", "file": "tutorials/scripts/MAPS_henon-map.py", "title": "H\u00e9non map", "what": "strange attractor, both Liapunov exponents"}, {"kind": "script", "group": "MAPS", "file": "tutorials/scripts/MAPS_chirikov-taylor-map.py", "title": "standard map", "what": "invariant curves vs chaos, area preservation"}, {"kind": "script", "group": "MAPS", "file": "tutorials/scripts/MAPS_piecewise-affine-map.py", "title": "piecewise affine map", "what": "periods and islands at the golden mean"}, {"kind": "script", "group": "3D-FLOWS", "file": "tutorials/scripts/3D-FLOWS_lorenz.py", "title": "Lorenz", "what": "pitchfork and Hopf (exact), Liapunov exponent, Lorenz map"}, {"kind": "script", "group": "3D-FLOWS", "file": "tutorials/scripts/3D-FLOWS_rossler.py", "title": "R\u00f6ssler", "what": "equilibria, period doubling in c"}, {"kind": "script", "group": "3D-FLOWS", "file": "tutorials/scripts/3D-FLOWS_lorenz-84.py", "title": "Lorenz 84", "what": "folds and Hopf of the westerly flow, Hadley state"}, {"kind": "script", "group": "DELAYS", "file": "tutorials/scripts/DELAYS_delayed-logistic.py", "title": "Hutchinson equation", "what": "Hopf at r tau = pi/2 from simulations"}, {"kind": "script", "group": "DELAYS", "file": "tutorials/scripts/DELAYS_mackey-glass.py", "title": "Mackey-Glass", "what": "maxima against tau, delay embedding"}, {"kind": "script", "group": "DELAYS", "file": "tutorials/scripts/DELAYS_distributed-delay-volterra.py", "title": "gamma-kernel Volterra equation", "what": "Volterra vs linear-chain ODE, onset at r tau = 2"}, {"kind": "script", "group": "DELAYS", "file": "tutorials/scripts/DELAYS_hutchinson-periodic-orbits.py", "title": "Hutchinson equation", "what": "AUTO on a delay equation: Hopf and periodic orbits (XPP 8.2)"}, {"kind": "script", "group": "DELAYS", "file": "tutorials/scripts/DELAYS_mackey-glass-period-doubling.py", "title": "Mackey-Glass", "what": "period-doubling cascade with AUTO (XPP 8.2)"}, {"kind": "script", "group": "DELAYS", "file": "tutorials/scripts/DELAYS_cusp-delay.py", "title": "cusp with a delay", "what": "folds and delay-induced Hopf points (XPP 8.2)"}, {"kind": "script", "group": "DELAYS", "file": "tutorials/scripts/DELAYS_marcus-westervelt.py", "title": "two delay-coupled neurons", "what": "Hopf points and the (a, tau) Hopf curve (XPP 8.2)"}, {"kind": "script", "group": "DELAYS", "file": "tutorials/scripts/DELAYS_two-delays.py", "title": "equation with two delays", "what": "Hopf points with two delays (XPP 8.2)"}, {"kind": "script", "group": "DELAYS", "file": "tutorials/scripts/DELAYS_wilson-cowan-delay.py", "title": "Wilson-Cowan with delay", "what": "(P, tau) Hopf curve (XPP 8.2)"}, {"kind": "script", "group": "DELAYS", "file": "tutorials/scripts/DELAYS_stuart-landau-single.py", "title": "delayed Stuart-Landau", "what": "rotating waves and their folds (XPP 8.2)"}, {"kind": "script", "group": "DELAYS", "file": "tutorials/scripts/DELAYS_stuart-landau-pair.py", "title": "two delay-coupled Stuart-Landau", "what": "torus bifurcations of the in-phase wave (XPP 8.2)"}, {"kind": "script", "group": "NOISE", "file": "tutorials/scripts/NOISE_noisy-fhn-sde.py", "title": "FitzHugh-Nagumo with white noise", "what": "coherence resonance (seeded, reproducible)"}, {"kind": "script", "group": "NOISE", "file": "tutorials/scripts/NOISE_telegraph-fhn-markov.py", "title": "FitzHugh-Nagumo with a Markov input", "what": "dwell times, fraction on, firing only when on"}, {"kind": "script", "group": "SPACE", "file": "tutorials/scripts/SPACE_fhn-chain-arrays.py", "title": "chain of 20 FitzHugh-Nagumo cells", "what": "travelling spikes, speed ~ sqrt(d)"}, {"kind": "script", "group": "SPACE", "file": "tutorials/scripts/SPACE_nagumo-front.py", "title": "Nagumo front", "what": "front speed by shooting vs (1 - 2a)/sqrt(2)"}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/01_fitzhugh_nagumo.ipynb", "title": "FitzHugh-Nagumo: an excitable membrane", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/02_toggle_switch.ipynb", "title": "Genetic toggle switch: bistability", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/03_wilson_cowan.ipynb", "title": "Wilson-Cowan: excitatory and inhibitory populations", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/04_morris_lecar.ipynb", "title": "Morris-Lecar: a neuron with a Hopf onset", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/05_morris_lecar_bifurcation.ipynb", "title": "Morris-Lecar: one- and two-parameter diagrams", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/06_morris_lecar_homoclinic.ipynb", "title": "Morris-Lecar with a saddle: a homoclinic orbit", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/07_hodgkin_huxley.ipynb", "title": "Hodgkin-Huxley: the squid giant axon", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/08_interacting_saddle_nodes.ipynb", "title": "Interacting saddle-nodes", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/09_stiff_van_der_pol.ipynb", "title": "Stiff van der Pol: when to use a stiff solver", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/10_driven_pendulum.ipynb", "title": "Damped driven pendulum on a cylinder", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/11_forced_duffing.ipynb", "title": "Periodically forced Duffing oscillator", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/12_forced_phase_oscillator.ipynb", "title": "Forced phase oscillator on a torus: Arnold tongues", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/13_phase_oscillators_table.ipynb", "title": "Two phase oscillators with a tabulated coupling", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "2D-FLOWS", "file": "tutorials/notebooks/14_coupled_ginzburg_landau.ipynb", "title": "Ginzburg-Landau oscillator: phase reduction", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "EVENTS", "file": "tutorials/notebooks/15_bouncing_ball.ipynb", "title": "Bouncing ball: global events", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "EVENTS", "file": "tutorials/notebooks/16_integrate_and_fire.ipynb", "title": "Integrate-and-fire neuron with adaptation", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "MAPS", "file": "tutorials/notebooks/17_logistic_map.ipynb", "title": "The logistic map: period doubling to chaos", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "MAPS", "file": "tutorials/notebooks/18_delayed_logistic_map.ipynb", "title": "Delayed logistic map: a Neimark-Sacker bifurcation", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "MAPS", "file": "tutorials/notebooks/19_henon_map.ipynb", "title": "The H\u00e9non map: a strange attractor", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "MAPS", "file": "tutorials/notebooks/20_chirikov_taylor_map.ipynb", "title": "Chirikov-Taylor (standard) map", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "MAPS", "file": "tutorials/notebooks/21_piecewise_affine_map.ipynb", "title": "A piecewise affine map on the unit square", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "3D-FLOWS", "file": "tutorials/notebooks/22_lorenz.ipynb", "title": "The Lorenz equations", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "3D-FLOWS", "file": "tutorials/notebooks/23_rossler.ipynb", "title": "The R\u00f6ssler system: period doubling in c", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "3D-FLOWS", "file": "tutorials/notebooks/24_lorenz_84.ipynb", "title": "Lorenz 84: a model of the atmosphere", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "DELAYS", "file": "tutorials/notebooks/25_delayed_logistic.ipynb", "title": "Hutchinson's delayed logistic equation", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "DELAYS", "file": "tutorials/notebooks/26_mackey_glass.ipynb", "title": "Mackey-Glass: delay-induced chaos", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "DELAYS", "file": "tutorials/notebooks/27_distributed_delay_volterra.ipynb", "title": "Distributed delay as a Volterra integral", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "NOISE", "file": "tutorials/notebooks/28_noisy_fhn_sde.ipynb", "title": "Noisy FitzHugh-Nagumo: coherence from noise", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "NOISE", "file": "tutorials/notebooks/29_telegraph_fhn_markov.ipynb", "title": "FitzHugh-Nagumo with a random on/off input", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "SPACE", "file": "tutorials/notebooks/30_fhn_chain_arrays.ipynb", "title": "A chain of FitzHugh-Nagumo cells: waves", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "SPACE", "file": "tutorials/notebooks/31_nagumo_front.ipynb", "title": "Nagumo travelling front: a heteroclinic orbit", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}], SHOTS = [{"src": "gallery/2D-FLOWS_morris-lecar-bifurcation_ml-bifurcation.png", "w": 845, "h": 585, "title": "Morris-Lecar in AUTO", "cap": "Equilibria in the applied current i (red stable, black unstable), the two Hopf points, and the periodic orbits between them (green stable, blue unstable).", "file": "tutorials/scripts/2D-FLOWS_morris-lecar-bifurcation.py"}, {"src": "gallery/2D-FLOWS_fitzhugh-nagumo_phase_plane.png", "w": 845, "h": 650, "title": "FitzHugh-Nagumo phase plane", "cap": "Nullclines, direction field and trajectories that all end on the stable equilibrium.", "file": "tutorials/scripts/2D-FLOWS_fitzhugh-nagumo.py"}, {"src": "gallery/DELAYS_mackey-glass-period-doubling_orbit_diagram.png", "w": 1040, "h": 624, "title": "Mackey-Glass, a delay equation", "cap": "AUTO's periodic orbits and period doublings, drawn over the maxima of simulations: the route to chaos.", "file": "tutorials/scripts/DELAYS_mackey-glass-period-doubling.py"}, {"src": "gallery/3D-FLOWS_lorenz_attractor.png", "w": 1200, "h": 524, "title": "The Lorenz attractor", "cap": "r = 27, in 3-D and projected on (x, z), with the two unstable equilibria.", "file": "tutorials/scripts/3D-FLOWS_lorenz.py"}, {"src": "gallery/SPACE_fhn-chain-arrays_space_time.png", "w": 975, "h": 494, "title": "Waves along a chain", "cap": "A chain of 20 FitzHugh-Nagumo cells driven at one end: voltage against cell and time.", "file": "tutorials/scripts/SPACE_fhn-chain-arrays.py"}, {"src": "gallery/MAPS_henon-map_attractor.png", "w": 1200, "h": 460, "title": "The Henon map", "cap": "Its strange attractor and the layers seen when zooming in near a fixed point.", "file": "tutorials/scripts/MAPS_henon-map.py"}];
+const GH = "https://github.com/ZetaOne/pyauto-xpp", RAW = "https://raw.githubusercontent.com/ZetaOne/pyauto-xpp/main/", BINDER = "https://mybinder.org/v2/gh/ZetaOne/pyauto-xpp/HEAD?urlpath=lab/tree/";
+const $ = id => document.getElementById(id);
+const root = document.documentElement;
+const store = {
+  get(k) { try { return localStorage.getItem(k) } catch (e) { return null } },
+  set(k, v) { try { localStorage.setItem(k, v) } catch (e) {} },
+};
+
+// ---- themes (XPPAUT-Web's list; the choice is remembered) --------------------
+function applyTheme(id) {
   if (id === 'system') delete root.dataset.theme; else root.dataset.theme = id;
-  try { localStorage.setItem('pyauto-xpp-theme', id) } catch (e) {}
-  for (const b of list.querySelectorAll('button')) b.setAttribute('aria-checked', b.dataset.id === id);
+  for (const b of $('themelist').querySelectorAll('button')) b.setAttribute('aria-checked', String(b.dataset.theme === id));
+  // the phone's status bar takes the toolbar's colour
+  const bar = getComputedStyle(root).getPropertyValue('--bar').trim();
+  if (bar) document.querySelector('meta[name="theme-color"]').setAttribute('content', bar);
 }
-for (const t of [{id: 'system', name: 'System', swatch: []}, ...THEMES]) {
-  const b = document.createElement('button'); b.dataset.id = t.id; b.setAttribute('role', 'menuitemradio');
-  b.innerHTML = '<span class="sw">' + t.swatch.map(c => '<i style="background:' + c + '"></i>').join('') + '</span>' + t.name;
-  b.onclick = () => { setTheme(t.id); b.closest('details').open = false }; list.appendChild(b);
+for (const t of THEMES) {
+  const b = document.createElement('button');
+  b.type = 'button'; b.setAttribute('role', 'menuitemradio'); b.dataset.theme = t.id;
+  b.innerHTML = '<span class="swatch">' + t.swatch.map(c => '<i style="background:' + c + '"></i>').join('') + '</span>';
+  b.append(t.name);
+  b.addEventListener('click', () => { applyTheme(t.id); store.set('pyauto-xpp-theme', t.id); closeMenus(true) });
+  $('themelist').append(b);
 }
-setTheme((() => { try { return localStorage.getItem('pyauto-xpp-theme') || 'system' } catch (e) { return 'system' } })());
-document.getElementById('os').onchange = e => {
-  document.getElementById('cmd-unix').hidden = e.target.value !== 'unix';
-  document.getElementById('cmd-win').hidden = e.target.value !== 'win'; };
-const esc = s => s.replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+applyTheme(store.get('pyauto-xpp-theme') || 'system');
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => applyTheme(store.get('pyauto-xpp-theme') || 'system'));
+
+// ---- toolbar menus: Esc or a click elsewhere closes them; arrows move inside --
+const menus = () => [...document.querySelectorAll('header details')];
+function closeMenus(refocus) {
+  for (const d of menus()) if (d.open) { d.open = false; if (refocus) d.querySelector('summary').focus() }
+}
+for (const d of menus()) {
+  d.addEventListener('toggle', () => {
+    if (!d.open) return;
+    for (const o of menus()) if (o !== d) o.open = false;
+    const items = [...d.querySelectorAll('.panel button, .panel a')];
+    (items.find(b => b.getAttribute('aria-checked') === 'true') || items[0])?.focus();
+  });
+  d.addEventListener('keydown', e => {
+    const items = [...d.querySelectorAll('.panel button, .panel a')], i = items.indexOf(document.activeElement);
+    if (!d.open || i < 0) return;
+    const go = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: items.length - 1 }[e.key];
+    if (go === undefined) return;
+    e.preventDefault(); items[(go + items.length) % items.length].focus();
+  });
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && menus().some(d => d.open)) { e.preventDefault(); closeMenus(true) } });
+document.addEventListener('pointerdown', e => { for (const d of menus()) if (d.open && !d.contains(e.target)) d.open = false });
+for (const a of document.querySelectorAll('#menu .panel a')) a.addEventListener('click', () => { $('menu').open = false });
+
+// the section in view is marked in the toolbar
+{
+  const links = [...document.querySelectorAll('.nav a[href^="#"]')];
+  const obs = new IntersectionObserver(es => {
+    for (const e of es) if (e.isIntersecting)
+      for (const a of links) a.setAttribute('aria-current', String(a.getAttribute('href') === '#' + e.target.id));
+  }, { rootMargin: '-45% 0px -50% 0px' });
+  for (const a of links) { const s = document.querySelector(a.getAttribute('href')); if (s) obs.observe(s) }
+}
+
+// ---- quick start: tabs (arrow keys as in a tab list) and the system choice ----
+{
+  const tabs = [...document.querySelectorAll('[role=tab]')];
+  const pick = (t, focus) => {
+    for (const o of tabs) {
+      const on = o === t;
+      o.setAttribute('aria-selected', String(on)); o.tabIndex = on ? 0 : -1;
+      $(o.getAttribute('aria-controls')).hidden = !on;
+    }
+    if (focus) t.focus();
+  };
+  tabs.forEach((t, i) => {
+    t.addEventListener('click', () => pick(t));
+    t.addEventListener('keydown', e => {
+      const j = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
+      if (j !== undefined) { e.preventDefault(); pick(tabs[(j + tabs.length) % tabs.length], true) }
+    });
+  });
+  const setOs = os => {
+    for (const b of document.querySelectorAll('.os button')) b.setAttribute('aria-pressed', String(b.dataset.os === os));
+    for (const el of document.querySelectorAll('[data-for]')) el.hidden = el.dataset.for !== os;
+  };
+  for (const b of document.querySelectorAll('.os button')) b.addEventListener('click', () => setOs(b.dataset.os));
+  const plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+  setOs(/win/i.test(plat) ? 'win' : 'unix');
+}
+
+// ---- copy buttons on the commands ------------------------------------------------
+for (const pre of document.querySelectorAll('.code pre')) {
+  const b = document.createElement('button');
+  b.className = 'copy'; b.type = 'button'; b.textContent = 'Copy';
+  b.setAttribute('aria-label', 'Copy these commands');
+  b.addEventListener('click', async () => {
+    const text = pre.innerText.replace(/[ \t]+#[^\n]*/g, '').replace(/[ \t]+$/gm, '');
+    try { await navigator.clipboard.writeText(text); b.textContent = 'Copied' }
+    catch (e) { b.textContent = 'Select and copy' }
+    setTimeout(() => { b.textContent = 'Copy' }, 1600);
+  });
+  pre.parentNode.append(b);
+}
+
+// ---- downloads of single files (GitHub would show them as text) ---------------
+async function download(a, e) {
+  e.preventDefault();
+  const name = a.href.split('/').pop();
+  try {
+    const r = await fetch(a.href);
+    if (!r.ok) throw new Error(r.status);
+    const url = URL.createObjectURL(await r.blob());
+    const t = document.createElement('a'); t.href = url; t.download = name; document.body.append(t); t.click(); t.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  } catch (err) { location.href = a.href }
+}
+document.addEventListener('click', e => { const a = e.target.closest('a[data-dl]'); if (a) download(a, e) });
+
+// ---- tutorials: kind and group chips, search ---------------------------------------
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const state = { kind: '', group: '' };
+function chips(box, key, opts) {
+  box.innerHTML = opts.map(([v, label]) => '<button type="button" class="chip" data-v="' + esc(v) + '" aria-pressed="' +
+    (state[key] === v) + '">' + esc(label) + ' <small>' + ITEMS.filter(i => !v || i[key] === v).length + '</small></button>').join('');
+  for (const b of box.querySelectorAll('button')) b.addEventListener('click', () => {
+    state[key] = b.dataset.v;
+    for (const o of box.querySelectorAll('button')) o.setAttribute('aria-pressed', String(o === b));
+    draw();
+  });
+}
+chips($('kinds'), 'kind', [['', 'All'], ['script', 'Scripts'], ['notebook', 'Notebooks']]);
+chips($('groups'), 'group', [['', 'All groups'], ...[...new Set(ITEMS.map(i => i.group))].map(g => [g, g])]);
+function card(i) {
+  const name = i.file.split('/').pop();
+  return '<article class="card"><div class="k"><span class="' + (i.kind === 'notebook' ? 'nb' : '') + '">' + i.kind +
+    '</span><span>&middot;</span><span>' + esc(i.group) + '</span></div><h3>' + esc(i.title) + '</h3><p>' + esc(i.what) +
+    '</p><div class="f mono">' + esc(name) + '</div><div class="links">' +
+    '<a href="' + GH + '/blob/main/' + i.file + '" aria-label="View ' + esc(name) + ' on GitHub">View</a>' +
+    '<a href="' + RAW + i.file + '" data-dl aria-label="Download ' + esc(name) + '">Download</a>' +
+    '<a href="' + BINDER + i.file + '" aria-label="Open ' + esc(name) + ' in Binder">Open in Binder</a></div></article>';
+}
 function draw() {
-  const g = group.value, k = kind.value, q = document.getElementById('q').value.toLowerCase();
-  const sel = ITEMS.filter(i => (!g || i.group === g) && (!k || i.kind === k) &&
-                           (!q || (i.title + i.what + i.file).toLowerCase().includes(q)));
-  document.getElementById('count').textContent = sel.length + ' of ' + ITEMS.length;
-  document.getElementById('cards').innerHTML = sel.map(i =>
-    '<div class="card"><div class="k">' + esc(i.group) + ' · ' + i.kind + '</div><h3>' + esc(i.title) + '</h3><p>' +
-    esc(i.what) + '</p><div class="links"><a href="' + GH + '/blob/main/' + i.file + '">View</a>' +
-    '<a href="' + GH + '/raw/main/' + i.file + '" download>Download</a>' +
-    '<a href="' + BINDER + i.file + '">Open in Binder</a></div></div>').join('');
+  const words = $('q').value.toLowerCase().split(/\s+/).filter(Boolean);
+  const sel = ITEMS.filter(i => (!state.kind || i.kind === state.kind) && (!state.group || i.group === state.group) &&
+    words.every(w => (i.title + ' ' + i.what + ' ' + i.file + ' ' + i.group).toLowerCase().includes(w)));
+  $('count').textContent = sel.length + ' of ' + ITEMS.length;
+  $('cards').innerHTML = sel.length ? sel.map(card).join('')
+    : '<div class="empty">No tutorial matches. <button type="button" id="clear">Show all</button></div>';
+  $('clear')?.addEventListener('click', () => {
+    $('q').value = ''; state.kind = state.group = '';
+    for (const b of document.querySelectorAll('.chips button')) b.setAttribute('aria-pressed', String(b.dataset.v === ''));
+    draw();
+  });
 }
-const group = document.getElementById('group'), kind = document.getElementById('kind');
-for (const el of [group, kind, document.getElementById('q')]) el.oninput = draw;
+$('q').addEventListener('input', draw);
 draw();
+
+// ---- gallery lightbox (Esc closes, arrows step) ------------------------------------
+{
+  const dlg = $('lightbox'); let at = 0;
+  const show = k => {
+    at = (k + SHOTS.length) % SHOTS.length; const s = SHOTS[at];
+    $('lb-img').src = s.src; $('lb-img').alt = s.title + ': ' + s.cap;
+    $('lb-title').textContent = s.title; $('lb-cap').textContent = s.cap;
+    $('lb-src').href = GH + '/blob/main/' + s.file;
+  };
+  for (const b of document.querySelectorAll('.shot button')) b.addEventListener('click', () => {
+    show(+b.dataset.i); if (dlg.showModal) dlg.showModal(); else location.href = SHOTS[at].src;
+  });
+  $('lb-prev').onclick = () => show(at - 1); $('lb-next').onclick = () => show(at + 1);
+  $('lb-close').onclick = () => dlg.close();
+  dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close() });
+  dlg.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') show(at - 1); else if (e.key === 'ArrowRight') show(at + 1);
+  });
+}
 </script>
 </body>
 </html>
