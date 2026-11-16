@@ -1,0 +1,20 @@
+// GitHub Codespaces (or VS Code Dev Containers): pyxpp built from source, the
+// tutorials, and JupyterLab, which opens in a browser tab when the codespace starts.
+// 2 cores is plenty; it uses the free monthly hours of whoever opens it.
+{
+  "name": "pyauto-xpp",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "hostRequirements": { "cpus": 2 },
+  "postCreateCommand": "python -m pip install -e . matplotlib pandas plotly ipywidgets anywidget jupyterlab jupytext ipykernel pytest && python tools/jupytext_default.py",
+  "postStartCommand": "nohup jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --ServerApp.token='' --ServerApp.password='' --ServerApp.root_dir=tutorials > /tmp/jupyterlab.log 2>&1 &",
+  "forwardPorts": [8888],
+  "portsAttributes": {
+    "8888": { "label": "JupyterLab", "onAutoForward": "openBrowser" }
+  },
+  "customizations": {
+    "codespaces": { "openFiles": ["tutorials/scripts/README.md"] },
+    "vscode": {
+      "extensions": ["ms-python.python", "ms-toolsai.jupyter"]
+    }
+  }
+}

@@ -3,6 +3,7 @@
 <img src="site/icon-192.png" width="128" align="right" alt="The pyauto-xpp icon: an orange limit cycle around a blue cubic nullcline, with an unstable equilibrium in the middle, on a dark blue square">
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ZetaOne/pyauto-xpp/HEAD?urlpath=lab/tree/tutorials)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/ZetaOne/pyauto-xpp?quickstart=1)
 [![Release](https://img.shields.io/github/v/release/ZetaOne/pyauto-xpp?label=release)](https://github.com/ZetaOne/pyauto-xpp/releases/latest)
 [![Python](https://img.shields.io/badge/python-3.9%E2%80%933.15-blue)](https://github.com/ZetaOne/pyauto-xpp/releases/latest)
 [![Platforms](https://img.shields.io/badge/wheels-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](https://github.com/ZetaOne/pyauto-xpp/releases/latest)
@@ -56,6 +57,7 @@ scripts; more in the [gallery](https://zetaone.github.io/pyauto-xpp/#gallery).*
 | | how | what you need |
 |---|---|---|
 | **In your browser** | [Open the tutorials in Binder](https://mybinder.org/v2/gh/ZetaOne/pyauto-xpp/HEAD?urlpath=lab/tree/tutorials) | nothing (starts in a minute or two; edits are not kept) |
+| **In your browser, with GitHub** | [Open in GitHub Codespaces](https://codespaces.new/ZetaOne/pyauto-xpp?quickstart=1) | a GitHub account; uses its free monthly Codespaces hours. JupyterLab opens by itself; your work is kept until you delete the codespace |
 | **pixi** (recommended) | `pixi run lab` in this folder | [pixi](https://pixi.sh), installed once |
 | **pip, prebuilt** | `pip install` the wheel from [Releases](https://github.com/ZetaOne/pyauto-xpp/releases/latest) | Python 3.9 to 3.15 on Linux or macOS |
 | **pip, from source** | `pip install .` in this folder | a C compiler |
@@ -132,7 +134,7 @@ The full guide is [`docs/usage/USAGE.mdx`](docs/usage/USAGE.mdx).
 - [`tutorials/scripts/`](tutorials/scripts): plain Python, one model each.
   Each builds its model in code, analyses it, saves its figures to
   `figures/<script>/` and ends with `N/M checks passed`. In JupyterLab
-  (`pixi run lab` or Binder), double-click a script: it opens as a notebook,
+  (`pixi run lab`, Binder or Codespaces), double-click a script: it opens as a notebook,
   one cell per `# %%`, with the figures inline; edits are saved back into the
   `.py` file.
 - [`tutorials/notebooks/`](tutorials/notebooks): interactive notebooks.
