@@ -454,7 +454,7 @@ footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
 <a class="skip" href="#main">Skip to content</a>
 <header class="bar">
   <a class="brand" href="#top"><img src="icon.svg" alt="" width="22" height="22">pyauto-xpp</a>
-  <a class="ver" href="https://github.com/ZetaOne/pyauto-xpp/releases/tag/v0.1.0" title="Latest release">v0.1.0</a>
+  <a class="ver" href="https://github.com/ZetaOne/pyauto-xpp/releases/tag/v0.2.0" title="Latest release">v0.2.0</a>
   <nav class="nav" aria-label="Sections"><a href="#gallery">Gallery</a><a href="#install">Quick start</a><a href="#downloads">Downloads</a><a href="#tutorials">Tutorials</a><a href="#xpp-web">XPPAUT-Web</a></nav>
   <div class="right">
     <details class="menu" id="menu">
@@ -522,10 +522,11 @@ pixi run scripts    <span class="c"># every tutorial script, one line each</span
 pixi run test       <span class="c"># the package's tests</span></code></pre></div>
       </div>
       <div data-for="win" hidden>
-        <div class="code"><pre><code>powershell -c "irm -useb https://pixi.sh/install.ps1 | iex"   <span class="c"># once</span>
-git clone https://github.com/ZetaOne/pyauto-xpp ; cd pyauto-xpp
-pixi run lab</code></pre></div>
-        <p class="note">Windows support of XPP's C library is still in progress. Until it is ready, use Binder.</p>
+        <div class="code"><pre><code>python -m pip install pyauto_xpp-0.2.0-cp312-cp312-win_amd64.whl   <span class="c"># the wheel for your Python, from Releases</span>
+python -m pip install matplotlib jupyterlab ipywidgets plotly anywidget jupytext
+jupyter lab         <span class="c"># in the unzipped repository folder</span></code></pre></div>
+        <p class="note">On Windows use the prebuilt wheel (Releases) or Binder: building from source there needs
+           the MinGW-w64 compiler (MSYS2), not Microsoft's.</p>
       </div>
       <p>The first run downloads Python and the packages and builds XPP's C library; after an update only what changed
          is downloaded again. No git? Take <a href="https://github.com/ZetaOne/pyauto-xpp/archive/refs/heads/main.zip">the .zip</a>, unzip it and run
@@ -534,11 +535,12 @@ pixi run lab</code></pre></div>
     <div class="tabpanel" role="tabpanel" id="p-pip" aria-labelledby="tab-pip" hidden>
       <p>Download the wheel for your system and Python version from the <a href="https://github.com/ZetaOne/pyauto-xpp/releases/latest">Releases page</a>
          (see <a href="#downloads">Downloads</a> below), then:</p>
-      <div class="code"><pre><code>python -m pip install pyauto_xpp-0.1.0-cp312-cp312-<span class="c">&lt;your system&gt;</span>.whl
+      <div class="code"><pre><code>python -m pip install pyauto_xpp-0.2.0-cp312-cp312-<span class="c">&lt;your system&gt;</span>.whl
 python -m pip install matplotlib    <span class="c"># for the figures in the tutorials</span>
 python -c "import pyxpp; print(pyxpp.__file__)"</code></pre></div>
       <p class="muted"><code>cp312</code> is Python 3.12: pick the wheel whose tag matches <code>python --version</code>
-         (cp39 to cp315). Linux x86_64 and ARM, macOS Intel (10.13+) and Apple Silicon (11+).</p>
+         (cp39 to cp315). Linux x86_64 and ARM (glibc 2.28+), macOS Apple Silicon (11+) and Intel (10.9+ up to
+         Python 3.11, 10.13+ for 3.12-3.13, 10.15+ for 3.14-3.15), Windows x86_64.</p>
     </div>
     <div class="tabpanel" role="tabpanel" id="p-src" aria-labelledby="tab-src" hidden>
       <p>Builds XPP's C library on your computer, so it needs a C compiler (gcc or clang).</p>
@@ -570,8 +572,8 @@ d.special("HB")</code></pre></div>
 
   <section id="downloads" aria-labelledby="h-downloads">
     <h2 id="h-downloads">Downloads <a class="anchor" href="#downloads" aria-label="Link to Downloads">#</a></h2>
-    <p class="lead">Prebuilt wheels of v0.1.0 are on the Releases page, one per system and Python version (3.9 to 3.15).</p>
-    <div class="dl"><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/releases/latest"><b>Linux x86_64</b><span>ends in <span class=mono>x86_64.whl</span></span></a><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/releases/latest"><b>Linux ARM</b><span>ends in <span class=mono>aarch64.whl</span></span></a><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/releases/latest"><b>macOS Intel</b><span>10.13 or newer, <span class=mono>x86_64.whl</span></span></a><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/releases/latest"><b>macOS Apple Silicon</b><span>11 or newer, <span class=mono>arm64.whl</span></span></a><a class="box soon" href="https://mybinder.org/v2/gh/ZetaOne/pyauto-xpp/HEAD?urlpath=lab/tree/tutorials"><b>Windows</b><span>in progress: use Binder for now</span></a><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/archive/refs/heads/main.zip"><b>Everything (.zip)</b><span>package, C sources, tutorials, tests</span></a><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/releases"><b>Release notes and all files</b><span>Releases page on GitHub</span></a></div>
+    <p class="lead">Prebuilt wheels of v0.2.0 are on the Releases page, one per system and Python version (3.9 to 3.15).</p>
+    <div class="dl"><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/releases/latest"><b>Linux x86_64</b><span>ends in <span class=mono>x86_64.whl</span></span></a><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/releases/latest"><b>Linux ARM</b><span>ends in <span class=mono>aarch64.whl</span></span></a><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/releases/latest"><b>macOS Intel</b><span>10.9+ (10.13+ / 10.15+ for newer Pythons), <span class=mono>x86_64.whl</span></span></a><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/releases/latest"><b>macOS Apple Silicon</b><span>11 or newer, <span class=mono>arm64.whl</span></span></a><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/releases/latest"><b>Windows x86_64</b><span>ends in <span class=mono>win_amd64.whl</span></span></a><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/archive/refs/heads/main.zip"><b>Everything (.zip)</b><span>package, C sources, tutorials, tests</span></a><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/releases"><b>Release notes and all files</b><span>Releases page on GitHub</span></a></div>
   </section>
 
   <section id="tutorials" aria-labelledby="h-tutorials">

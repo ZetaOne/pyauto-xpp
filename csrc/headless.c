@@ -565,6 +565,9 @@ EXPORT void pyxpp_set_auto_dir(const char *d) { snprintf(autodir, sizeof autodir
 /* ------------------------------------------------------------------ */
 /* wincompat.h routes XPP's getenv() here: HOME is not set on Windows */
 #undef getenv
+/* wincompat.h renamed getenv before <stdlib.h> was read, so the real one is not
+   declared: without this, its result is truncated to a 32-bit int (crash on Windows) */
+char *getenv(const char *name);
 char *pyxpp_getenv(const char *name) {
   char *v = getenv(name);
   if (v == NULL && name && strcmp(name, "HOME") == 0) {

@@ -154,6 +154,8 @@ def main():
     opt += arch
     cflags = [
         *opt, *([] if windows else ["-fPIC"]), "-fcommon", "-std=gnu99", "-w",
+        # Windows (LLP64): an undeclared function returning a pointer is truncated to 32 bits
+        *(["-Werror=implicit-function-declaration", "-Werror=int-conversion"] if windows else []),
         # old K&R code relies on implicit declarations
         "-Wno-implicit-function-declaration", "-Wno-int-conversion",
         "-Wno-incompatible-pointer-types", "-Wno-return-mismatch",

@@ -5,7 +5,7 @@
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ZetaOne/pyauto-xpp/HEAD?urlpath=lab/tree/tutorials)
 [![Release](https://img.shields.io/github/v/release/ZetaOne/pyauto-xpp?label=release)](https://github.com/ZetaOne/pyauto-xpp/releases/latest)
 [![Python](https://img.shields.io/badge/python-3.9%E2%80%933.15-blue)](https://github.com/ZetaOne/pyauto-xpp/releases/latest)
-[![Platforms](https://img.shields.io/badge/wheels-Linux%20%7C%20macOS-lightgrey)](https://github.com/ZetaOne/pyauto-xpp/releases/latest)
+[![Platforms](https://img.shields.io/badge/wheels-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](https://github.com/ZetaOne/pyauto-xpp/releases/latest)
 [![Licence](https://img.shields.io/badge/licence-GPL--3.0--or--later-green)](LICENSE)
 
 XPPAUT 8.2, the dynamical-systems tool by Bard Ermentrout, and its AUTO as a
@@ -47,8 +47,9 @@ scripts; more in the [gallery](https://zetaone.github.io/pyauto-xpp/#gallery).*
 - **70 tutorials**: 39 scripts that check their numbers against exact or
   published values, and 31 interactive notebooks with sliders, a direction
   field menu, clickable phase planes and an AUTO panel.
-- **Prebuilt** for Linux (x86_64, ARM) and macOS (Intel 10.13+, Apple
-  Silicon 11+), Python 3.9 to 3.15. Windows support is in progress.
+- **Prebuilt** for Python 3.9 to 3.15 on Linux (x86_64, ARM; glibc 2.28+),
+  macOS (Apple Silicon 11+; Intel 10.9+ with Python 3.9-3.11, 10.13+ with
+  3.12-3.13, 10.15+ with 3.14-3.15) and Windows (x86_64).
 
 ## Quick start
 
@@ -90,9 +91,9 @@ python -m pip install matplotlib     # for the figures in the tutorials
 |---|---|
 | Linux x86_64 | `x86_64.whl` |
 | Linux ARM | `aarch64.whl` |
-| macOS Intel (10.13 or newer) | `x86_64.whl` (with `macosx`) |
+| macOS Intel (10.9+, 10.13+ or 10.15+ by Python version) | `x86_64.whl` (with `macosx`) |
 | macOS Apple Silicon (11 or newer) | `arm64.whl` |
-| Windows | in progress: use Binder for now |
+| Windows x86_64 | `win_amd64.whl` |
 
 Or build it yourself with `python -m pip install .` in this folder (needs a C
 compiler: gcc or clang).
