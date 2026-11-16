@@ -2,7 +2,7 @@
 Run every tutorial script and print one line each: ok/FAILED, time, checks.
 
     python run_all.py              # all
-    python run_all.py MAPS 2D      # only names starting with these
+    python run_all.py MAPS 01 02   # only a group, or numbers
 """
 import os
 import re
@@ -16,14 +16,13 @@ ORDER = ["2D-FLOWS", "EVENTS", "MAPS", "3D-FLOWS", "DELAYS", "NOISE", "SPACE"]
 
 
 def key(p):
-    group = p.stem.split("_")[0]
-    return (ORDER.index(group) if group in ORDER else 99, p.stem)
+    return p.stem          # NN_GROUP_name: the number gives the order
 
 
 def main(want):
-    scripts = sorted((p for p in HERE.glob("*_*.py") if p.stem.split("_")[0] in ORDER), key=key)
+    scripts = sorted((p for p in HERE.glob("*_*.py") if len(p.stem.split("_")) > 2 and p.stem.split("_")[1] in ORDER), key=key)
     if want:
-        scripts = [p for p in scripts if any(p.stem.startswith(w) for w in want)]
+        scripts = [p for p in scripts if any(p.stem.startswith(w) or p.stem.split("_")[1] == w for w in want)]
     total_ok = total = failed = 0
     for p in scripts:
         t0 = time.time()

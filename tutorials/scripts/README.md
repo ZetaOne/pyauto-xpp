@@ -6,7 +6,7 @@ pyauto-xpp (`pyxpp`). No widgets: each script builds its model in code with
 numbers against exact or published values.
 
 ```
-python 2D-FLOWS_fitzhugh-nagumo.py      # one script
+python 01_2D-FLOWS_fitzhugh-nagumo.py      # one script
 python run_all.py                        # all of them, one line each
 python run_all.py MAPS DELAYS            # only some groups
 ```
@@ -25,79 +25,88 @@ The models come from two sources:
 - the examples of XPP Studio (Peter Ashwin and Bard Ermentrout, GPL-3.0);
 - the delay-equation examples that come with XPPAUT 8.2.
 
-## 2D-FLOWS
+Work through them in number order: each level builds on the one before.
+
+## Level 1 — First steps
+
+Simulate, read a phase plane, find equilibria, handle events, iterate simple maps, meet chaos.
 
 | script | model | what it shows |
 |---|---|---|
-| `2D-FLOWS_fitzhugh-nagumo.py` | FitzHugh-Nagumo | phase plane, excitability, Hopf points (exact), periodic orbits |
-| `2D-FLOWS_toggle-switch.py` | genetic toggle switch | bistability, basins, folds and the cusp in (a1, a2) |
-| `2D-FLOWS_wilson-cowan.py` | Wilson-Cowan | S-shaped branch with folds, Hopf in the inhibitory time constant |
-| `2D-FLOWS_morris-lecar.py` | Morris-Lecar (Hopf regime) | f-I curve, class II onset, hysteresis |
-| `2D-FLOWS_morris-lecar-bifurcation.py` | Morris-Lecar | one- and two-parameter diagrams, GH points |
-| `2D-FLOWS_morris-lecar-homoclinic.py` | Morris-Lecar with a saddle | period blow-up at a homoclinic orbit |
-| `2D-FLOWS_hodgkin-huxley.py` | Hodgkin-Huxley | period, Hopf points, fold of orbits, bistability |
-| `2D-FLOWS_interacting-saddle-nodes.py` | interacting saddle-nodes | equilibria from a quartic, folds, Hopf at mu = 0 |
-| `2D-FLOWS_stiff-van-der-pol.py` | van der Pol, mu = 1000 | stiff solvers, relaxation-oscillation period |
-| `2D-FLOWS_driven-pendulum.py` | driven pendulum | rest vs rotation, hysteresis, Melnikov onset |
-| `2D-FLOWS_forced-duffing.py` | forced Duffing | stroboscopic map, period doubling to chaos |
-| `2D-FLOWS_forced-phase-oscillator.py` | forced phase oscillator | devil's staircase, Arnold tongues |
-| `2D-FLOWS_phase-oscillators-table.py` | phase oscillators with a table | locking band from the tabulated coupling |
-| `2D-FLOWS_coupled-ginzburg-landau.py` | Ginzburg-Landau oscillator | adjoint, H and H2 against exact formulas |
+| `01_2D-FLOWS_fitzhugh-nagumo.py` | FitzHugh-Nagumo | phase plane, excitability, Hopf points (exact), periodic orbits |
+| `02_2D-FLOWS_toggle-switch.py` | genetic toggle switch | bistability, basins, folds and the cusp in (a1, a2) |
+| `03_EVENTS_bouncing-ball.py` | bouncing ball | event times, restitution, Zeno time |
+| `04_EVENTS_integrate-and-fire.py` | integrate-and-fire with adaptation | exact intervals, f-I curves, rheobase |
+| `05_MAPS_logistic-map.py` | logistic map | orbit diagram, Liapunov exponent, period doubling (exact points) |
+| `06_MAPS_henon-map.py` | Hénon map | strange attractor, both Liapunov exponents |
+| `07_3D-FLOWS_lorenz.py` | Lorenz | pitchfork and Hopf (exact), Liapunov exponent, Lorenz map |
 
-## EVENTS
+## Level 2 — Bifurcations with AUTO
+
+Follow equilibria and periodic orbits in one parameter: Hopf, folds, period doubling.
 
 | script | model | what it shows |
 |---|---|---|
-| `EVENTS_bouncing-ball.py` | bouncing ball | event times, restitution, Zeno time |
-| `EVENTS_integrate-and-fire.py` | integrate-and-fire with adaptation | exact intervals, f-I curves, rheobase |
+| `08_2D-FLOWS_wilson-cowan.py` | Wilson-Cowan | S-shaped branch with folds, Hopf in the inhibitory time constant |
+| `09_2D-FLOWS_morris-lecar.py` | Morris-Lecar (Hopf regime) | f-I curve, class II onset, hysteresis |
+| `10_2D-FLOWS_hodgkin-huxley.py` | Hodgkin-Huxley | period, Hopf points, fold of orbits, bistability |
+| `11_2D-FLOWS_stiff-van-der-pol.py` | van der Pol, mu = 1000 | stiff solvers, relaxation-oscillation period |
+| `12_2D-FLOWS_driven-pendulum.py` | driven pendulum | rest vs rotation, hysteresis, Melnikov onset |
+| `13_MAPS_delayed-logistic-map.py` | delayed logistic map | Neimark-Sacker at a = 2, invariant curve |
+| `14_3D-FLOWS_rossler.py` | Rössler | equilibria, period doubling in c |
+| `15_3D-FLOWS_lorenz-84.py` | Lorenz 84 | folds and Hopf of the westerly flow, Hadley state |
 
-## MAPS
+## Level 3 — Two parameters and global bifurcations
 
-| script | model | what it shows |
-|---|---|---|
-| `MAPS_logistic-map.py` | logistic map | orbit diagram, Liapunov exponent, period doubling (exact points) |
-| `MAPS_delayed-logistic-map.py` | delayed logistic map | Neimark-Sacker at a = 2, invariant curve |
-| `MAPS_henon-map.py` | Hénon map | strange attractor, both Liapunov exponents |
-| `MAPS_chirikov-taylor-map.py` | standard map | invariant curves vs chaos, area preservation |
-| `MAPS_piecewise-affine-map.py` | piecewise affine map | periods and islands at the golden mean |
-
-## 3D-FLOWS
+Curves of Hopf and fold points; homoclinic and heteroclinic orbits.
 
 | script | model | what it shows |
 |---|---|---|
-| `3D-FLOWS_lorenz.py` | Lorenz | pitchfork and Hopf (exact), Liapunov exponent, Lorenz map |
-| `3D-FLOWS_rossler.py` | Rössler | equilibria, period doubling in c |
-| `3D-FLOWS_lorenz-84.py` | Lorenz 84 | folds and Hopf of the westerly flow, Hadley state |
+| `16_2D-FLOWS_morris-lecar-bifurcation.py` | Morris-Lecar | one- and two-parameter diagrams, GH points |
+| `17_2D-FLOWS_morris-lecar-homoclinic.py` | Morris-Lecar with a saddle | period blow-up at a homoclinic orbit |
+| `18_2D-FLOWS_interacting-saddle-nodes.py` | interacting saddle-nodes | equilibria from a quartic, folds, Hopf at mu = 0 |
+| `19_SPACE_nagumo-front.py` | Nagumo front | front speed by shooting vs (1 - 2a)/sqrt(2) |
 
-## DELAYS
+## Level 4 — Forcing, tori and phase
 
-| script | model | what it shows |
-|---|---|---|
-| `DELAYS_delayed-logistic.py` | Hutchinson equation | Hopf at r tau = pi/2 from simulations |
-| `DELAYS_mackey-glass.py` | Mackey-Glass | maxima against tau, delay embedding |
-| `DELAYS_distributed-delay-volterra.py` | gamma-kernel Volterra equation | Volterra vs linear-chain ODE, onset at r tau = 2 |
-| `DELAYS_hutchinson-periodic-orbits.py` | Hutchinson equation | AUTO on a delay equation: Hopf and periodic orbits (XPP 8.2) |
-| `DELAYS_mackey-glass-period-doubling.py` | Mackey-Glass | period-doubling cascade with AUTO (XPP 8.2) |
-| `DELAYS_cusp-delay.py` | cusp with a delay | folds and delay-induced Hopf points (XPP 8.2) |
-| `DELAYS_marcus-westervelt.py` | two delay-coupled neurons | Hopf points and the (a, tau) Hopf curve (XPP 8.2) |
-| `DELAYS_two-delays.py` | equation with two delays | Hopf points with two delays (XPP 8.2) |
-| `DELAYS_wilson-cowan-delay.py` | Wilson-Cowan with delay | (P, tau) Hopf curve (XPP 8.2) |
-| `DELAYS_stuart-landau-single.py` | delayed Stuart-Landau | rotating waves and their folds (XPP 8.2) |
-| `DELAYS_stuart-landau-pair.py` | two delay-coupled Stuart-Landau | torus bifurcations of the in-phase wave (XPP 8.2) |
-
-## NOISE
+Forced oscillators, maps on a torus, locking, phase reduction.
 
 | script | model | what it shows |
 |---|---|---|
-| `NOISE_noisy-fhn-sde.py` | FitzHugh-Nagumo with white noise | coherence resonance (seeded, reproducible) |
-| `NOISE_telegraph-fhn-markov.py` | FitzHugh-Nagumo with a Markov input | dwell times, fraction on, firing only when on |
+| `20_2D-FLOWS_forced-duffing.py` | forced Duffing | stroboscopic map, period doubling to chaos |
+| `21_2D-FLOWS_forced-phase-oscillator.py` | forced phase oscillator | devil's staircase, Arnold tongues |
+| `22_2D-FLOWS_phase-oscillators-table.py` | phase oscillators with a table | locking band from the tabulated coupling |
+| `23_MAPS_chirikov-taylor-map.py` | standard map | invariant curves vs chaos, area preservation |
+| `24_MAPS_piecewise-affine-map.py` | piecewise affine map | periods and islands at the golden mean |
+| `25_2D-FLOWS_coupled-ginzburg-landau.py` | Ginzburg-Landau oscillator | adjoint, H and H2 against exact formulas |
 
-## SPACE
+## Level 5 — Noise and space
+
+Stochastic and Markov inputs; chains of coupled cells.
 
 | script | model | what it shows |
 |---|---|---|
-| `SPACE_fhn-chain-arrays.py` | chain of 20 FitzHugh-Nagumo cells | travelling spikes, speed ~ sqrt(d) |
-| `SPACE_nagumo-front.py` | Nagumo front | front speed by shooting vs (1 - 2a)/sqrt(2) |
+| `26_NOISE_noisy-fhn-sde.py` | FitzHugh-Nagumo with white noise | coherence resonance (seeded, reproducible) |
+| `27_NOISE_telegraph-fhn-markov.py` | FitzHugh-Nagumo with a Markov input | dwell times, fraction on, firing only when on |
+| `28_SPACE_fhn-chain-arrays.py` | chain of 20 FitzHugh-Nagumo cells | travelling spikes, speed ~ sqrt(d) |
+
+## Level 6 — Delay equations
+
+From simulations of delay equations to AUTO on them (XPP 8.2).
+
+| script | model | what it shows |
+|---|---|---|
+| `29_DELAYS_delayed-logistic.py` | Hutchinson equation | Hopf at r tau = pi/2 from simulations |
+| `30_DELAYS_mackey-glass.py` | Mackey-Glass | maxima against tau, delay embedding |
+| `31_DELAYS_distributed-delay-volterra.py` | gamma-kernel Volterra equation | Volterra vs linear-chain ODE, onset at r tau = 2 |
+| `32_DELAYS_two-delays.py` | equation with two delays | Hopf points with two delays (XPP 8.2) |
+| `33_DELAYS_hutchinson-periodic-orbits.py` | Hutchinson equation | AUTO on a delay equation: Hopf and periodic orbits (XPP 8.2) |
+| `34_DELAYS_cusp-delay.py` | cusp with a delay | folds and delay-induced Hopf points (XPP 8.2) |
+| `35_DELAYS_marcus-westervelt.py` | two delay-coupled neurons | Hopf points and the (a, tau) Hopf curve (XPP 8.2) |
+| `36_DELAYS_wilson-cowan-delay.py` | Wilson-Cowan with delay | (P, tau) Hopf curve (XPP 8.2) |
+| `37_DELAYS_mackey-glass-period-doubling.py` | Mackey-Glass | period-doubling cascade with AUTO (XPP 8.2) |
+| `38_DELAYS_stuart-landau-single.py` | delayed Stuart-Landau | rotating waves and their folds (XPP 8.2) |
+| `39_DELAYS_stuart-landau-pair.py` | two delay-coupled Stuart-Landau | torus bifurcations of the in-phase wave (XPP 8.2) |
 
 ## Things worth knowing (learned while writing these)
 

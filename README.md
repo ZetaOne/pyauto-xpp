@@ -23,8 +23,8 @@ br = m.auto.run("iapp", start="steady")     # AUTO, from the steady state
 ```
 
 <p>
-  <img src="site/gallery/2D-FLOWS_morris-lecar-bifurcation_ml-bifurcation.png" width="49%" alt="Bifurcation diagram of the Morris-Lecar model computed with AUTO from Python: equilibria in the applied current, two Hopf points and the branch of periodic orbits between them">
-  <img src="site/gallery/DELAYS_mackey-glass-period-doubling_orbit_diagram.png" width="49%" alt="Mackey-Glass delay equation: AUTO's periodic orbits and period doublings drawn over the maxima of simulations">
+  <img src="site/gallery/16_2D-FLOWS_morris-lecar-bifurcation_ml-bifurcation.png" width="49%" alt="Bifurcation diagram of the Morris-Lecar model computed with AUTO from Python: equilibria in the applied current, two Hopf points and the branch of periodic orbits between them">
+  <img src="site/gallery/37_DELAYS_mackey-glass-period-doubling_orbit_diagram.png" width="49%" alt="Mackey-Glass delay equation: AUTO's periodic orbits and period doublings drawn over the maxima of simulations">
 </p>
 
 *Left: Morris–Lecar in AUTO, equilibria in the applied current i (red stable,
