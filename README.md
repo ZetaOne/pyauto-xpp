@@ -1,6 +1,6 @@
 # pyauto-xpp
 
-<img src="site/icon-192.png" width="128" align="right" alt="The pyauto-xpp icon: an orange limit cycle around a blue cubic nullcline, with an unstable equilibrium in the middle, on a dark blue square">
+<img src="site/icon-192.png" width="128" align="right" alt="The pyauto-xpp icon: an auto-rickshaw with Python-coloured wheels doing a wheelie on the stable firing branch of the Hodgkin-Huxley bifurcation diagram, over its direction field">
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ZetaOne/pyauto-xpp/HEAD?urlpath=lab/tree/tutorials)
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/ZetaOne/pyauto-xpp?quickstart=1)
@@ -12,8 +12,8 @@
 XPPAUT 8.2, the dynamical-systems tool by Bard Ermentrout, and its AUTO,
 made available to Python. It is meant for batch work and Python workflows:
 every XPP command is a Python call, AUTO runs from scripts, and models can be
-written in Python. For interactive exploration XPPAUT itself (or XPPAUT-Web)
-remains the place to go; both use the same numerics.
+written in Python. For interactive exploration XPPAUT itself remains the place
+to go; both use the same numerics.
 
 **→ https://zetaone.github.io/pyauto-xpp/**
 
@@ -165,16 +165,16 @@ XPP's C sources are compiled into a shared library without its X11 interface
 answers its prompts for you, and reads back the trajectories, equilibria and
 AUTO's diagrams. Changes are listed in [`CHANGES.md`](CHANGES.md).
 
-## Thank you, Bard
+## Thank you, Prof. Ermentrout
 
-XPPAUT is the work of G. Bard Ermentrout, developed and shared freely for more
+[XPPAUT](https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html) is the work of G. Bard Ermentrout, developed and shared freely for more
 than three decades. In one small, fast and remarkably capable program it puts
 simulation, phase planes, nullclines, equilibria and AUTO's bifurcation
-analysis side by side, and with his book *Simulating, Analyzing, and Animating
-Dynamical Systems* (SIAM, 2002) it has taught generations of students and
+analysis side by side, and with his book [*Simulating, Analyzing, and Animating
+Dynamical Systems*](https://doi.org/10.1137/1.9780898718195) (SIAM, 2002) it has taught generations of students and
 researchers how to explore dynamical systems. Every simulation, equilibrium
 and bifurcation diagram in pyauto-xpp is computed by XPPAUT's own code; this
-project exists because of it. Thank you, Bard.
+project exists because of it. Thank you, Prof. Ermentrout.
 
 ## Credits and licence
 
