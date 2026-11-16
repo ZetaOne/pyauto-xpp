@@ -1,5 +1,6 @@
-# Prebuilt wheels for Linux, macOS and Windows on every version tag (v*).
-# Not run until the repository is pushed and a tag is made.
+# Prebuilt wheels on every version tag (v*): Linux (x86_64, aarch64) and macOS
+# (Intel, Apple Silicon), CPython 3.9-3.15, each built and tested on its own hardware.
+# Also runnable by hand (Actions > wheels > Run workflow): builds and tests, no release.
 name: wheels
 on:
   push:
@@ -13,20 +14,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    # Windows: the headless layer still uses POSIX calls; this job is expected to
-    # fail until that port is done (it does not block the others).
-    continue-on-error: ${{ matrix.os == 'windows-latest' }}
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-15-intel, macos-latest]
     steps:
       - uses: actions/checkout@v4
-      - uses: pypa/cibuildwheel@v2.21.3
+      - uses: pypa/cibuildwheel@v4.3.5
         env:
-          CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-* cp313-*"
-          CIBW_SKIP: "*-musllinux_* *-win32 *-manylinux_i686"
-          # macOS: Intel and Apple Silicon wheels from the Apple Silicon runner; the Intel
-          # library cannot be loaded there, so its tests are skipped
-          CIBW_ARCHS_MACOS: "x86_64 arm64"
-          CIBW_TEST_SKIP: "*-macosx_x86_64"
+          CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-* cp313-* cp314-* cp315-*"
+          CIBW_SKIP: "*t-* *-musllinux_* *-manylinux_i686"
+          CIBW_ARCHS: native
+          CIBW_ENVIRONMENT: PIP_PREFER_BINARY=1   # test packages: an older wheel rather than a source build
           CIBW_TEST_REQUIRES: "pytest matplotlib"
           CIBW_TEST_COMMAND: "python -m pytest -q {project}/tests"
       - uses: actions/upload-artifact@v4

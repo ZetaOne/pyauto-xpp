@@ -23,7 +23,7 @@ after that, an update downloads only what changed.
 Without pixi: `pip install .` in this folder (needs a C compiler), or a
 prebuilt wheel from the Releases page once they are published.
 
-Linux and macOS are supported. Windows support is in progress.
+Prebuilt for Linux (x86_64, ARM) and macOS (Intel 10.13+, Apple Silicon 11+), Python 3.9-3.15. Windows support is in progress.
 
 ## Tutorials
 
