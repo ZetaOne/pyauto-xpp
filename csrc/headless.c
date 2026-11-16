@@ -559,6 +559,62 @@ char *pyxpp_auto_home(void) {
 }
 EXPORT void pyxpp_set_auto_dir(const char *d) { snprintf(autodir, sizeof autodir, "%s", d); }
 
+#ifdef _WIN32
+/* ------------------------------------------------------------------ */
+/* Windows only                                                         */
+/* ------------------------------------------------------------------ */
+/* wincompat.h routes XPP's getenv() here: HOME is not set on Windows */
+#undef getenv
+char *pyxpp_getenv(const char *name) {
+  char *v = getenv(name);
+  if (v == NULL && name && strcmp(name, "HOME") == 0) {
+    v = getenv("USERPROFILE");
+    if (v == NULL) v = getenv("TEMP");
+    if (v == NULL) v = ".";
+  }
+  return v;
+}
+#define getenv pyxpp_getenv
+
+/* see win/wincompat.h: binary mode for written files and for AUTO's own files */
+#undef fopen
+FILE *pyxpp_fopen(const char *path, const char *mode) {
+  char m[16];
+  size_t n = strlen(autodir);
+  int bin = !strchr(mode, 'b') && !strchr(mode, 't') &&
+            (strchr(mode, 'w') || strchr(mode, 'a') || strchr(mode, '+') ||
+             (n && path && strncmp(path, autodir, n) == 0));
+  if (bin && strlen(mode) + 2 <= sizeof m) {
+    snprintf(m, sizeof m, "%sb", mode);
+    mode = m;
+  }
+  return fopen(path, mode);
+}
+#define fopen pyxpp_fopen
+
+/* stdout/stderr capture (see win/wincompat.h).  The log FILE stays open
+ * until pyxpp_shutdown(): XPP may have stored stdout in a variable during a
+ * captured call. */
+static FILE *cap_file = NULL;
+static int cap_on = 0;
+FILE *pyxpp_out(int which) {
+  if (cap_on && cap_file) return cap_file;
+  return pyxpp_crt_stream(which);
+}
+EXPORT int pyxpp_capture_begin(const char *path) {
+  fflush(pyxpp_crt_stream(1)); fflush(pyxpp_crt_stream(2));
+  if (cap_file == NULL) cap_file = fopen(path, "ab");
+  if (cap_file == NULL) return -1;
+  cap_on = 1;
+  return 0;
+}
+EXPORT void pyxpp_capture_end(void) {
+  if (cap_file) fflush(cap_file);
+  if (logfile) fflush(logfile);
+  cap_on = 0;
+}
+#endif
+
 /* ------------------------------------------------------------------ */
 /* API                                                                  */
 /* ------------------------------------------------------------------ */
@@ -584,6 +640,19 @@ EXPORT int pyxpp_set_log(const char *logpath) {
   if (!f) return -1;
   logfile = f;
   return 0;
+}
+
+/* release what keeps files open, before Python removes the work folder
+ * (Windows cannot delete an open file).  The model is not usable afterwards. */
+EXPORT void pyxpp_shutdown(void) {
+#ifdef _WIN32
+  pyxpp_capture_end();
+  if (logfile == cap_file) logfile = NULL;
+  if (cap_file) fclose(cap_file);
+  cap_file = NULL;
+#endif
+  if (logfile && logfile != stdout && logfile != stderr) fclose(logfile);
+  logfile = stdout;
 }
 
 /* one key press in the main window, honouring XPP's menu state */

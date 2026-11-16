@@ -20,4 +20,4 @@ test = ["pytest", "matplotlib"]
 packages = ["pyxpp"]
 
 [tool.setuptools.package-data]
-pyxpp = ["_libxpp.so", "_libxpp.dylib"]
+pyxpp = ["_libxpp.so", "_libxpp.dylib", "_libxpp.dll"]

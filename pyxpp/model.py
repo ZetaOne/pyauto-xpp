@@ -155,9 +155,9 @@ class Model:
         if not workdir:
             # a temporary working folder is removed when the model is freed or Python exits;
             # give workdir= to keep XPP's files
-            import shutil
             import weakref
-            self._cleanup = weakref.finalize(self, shutil.rmtree, str(self.workdir), True)
+            self._libs = []     # released before the folder is removed (Windows: open files)
+            self._cleanup = weakref.finalize(self, _remove_workdir, str(self.workdir), self._libs)
         if text is not None:
             path = self.workdir / "model.ode"
             path.write_text(text if text.endswith("\n") else text + "\n")
@@ -166,6 +166,8 @@ class Model:
             raise FileNotFoundError(self.path)
         self.quiet = quiet
         self._lib = Lib(self.workdir / ".pyxpp")
+        if getattr(self, "_libs", None) is not None:
+            self._libs.append(self._lib)
         self._c = self._lib.c
         autodir = self.workdir / ".pyxpp" / "auto"
         autodir.mkdir(parents=True, exist_ok=True)
@@ -710,6 +712,13 @@ class Model:
     def __repr__(self):
         return (f"<pyxpp.Model {self.path.name}: vars={self.vars} aux={self.aux} "
                 f"pars={len(self.par_names)}>")
+
+
+def _remove_workdir(path, libs):
+    for lib in libs:
+        lib.close()
+    import shutil
+    shutil.rmtree(path, True)
 
 
 def canonical_method(value):

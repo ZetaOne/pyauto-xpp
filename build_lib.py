@@ -13,7 +13,12 @@ Steps
   4. link with csrc/nox11.c (no-op Xlib) and csrc/headless.c.  There is no
      -lX11: the result has no X11 runtime dependency at all.
 
-Usage:  python build_lib.py [--jobs N] [--debug]
+Windows: build with MinGW-w64 gcc, natively (sys.platform == "win32", gcc on
+PATH or CC=gcc) or cross-compiled from Linux (--cc x86_64-w64-mingw32-gcc, or
+--target windows).  The result is pyxpp/_libxpp.dll; csrc/win holds the few
+POSIX headers MinGW lacks and is only used for that build.
+
+Usage:  python build_lib.py [--jobs N] [--debug] [--cc CC] [--target windows]
 """
 import argparse
 import concurrent.futures as cf
@@ -69,6 +74,12 @@ PATCHES = [
     ("main.c", r"^  logfile=stdout;", "  if(logfile==NULL) logfile=stdout;"),
     # stop after initialisation instead of entering the X event loop
     ("main.c", r"^do_events\(min_wid,min_hgt\);", "/* pyxpp: event loop removed */"),
+    # AUTO never closes fort.8 (the fclose in close_auto() is commented out) and then
+    # renames it to <file>.s.  Linux allows renaming an open file and just leaks the
+    # descriptor; Windows refuses (sharing violation), the .s file is never written
+    # and the next run from a labelled point reads a NULL FILE*.  Close it first.
+    ("auto_nox.c", r"^  /\*    if\(fp8_is_open\)\{$",
+     "  if(fp8_is_open&&fp8!=NULL){fclose(fp8);fp8=NULL;}  /* pyxpp */\n  /*    if(fp8_is_open){"),
     # per-model AUTO scratch directory
     ("auto_nox.c", r'char\* HOME = getenv\("HOME"\);', 'char* HOME = pyxpp_auto_home();'),
 ]
@@ -119,8 +130,18 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--jobs", type=int, default=os.cpu_count() or 4)
     ap.add_argument("--debug", action="store_true")
-    ap.add_argument("--cc", default=os.environ.get("CC", "cc"))
+    ap.add_argument("--cc", default=os.environ.get("CC"))
+    ap.add_argument("--target", choices=["native", "windows"], default="native")
     a = ap.parse_args()
+    windows = (sys.platform == "win32" or a.target == "windows"
+               or "mingw" in os.path.basename(a.cc or ""))
+    if a.cc is None:
+        if sys.platform == "win32":
+            a.cc = "gcc"
+        elif windows:
+            a.cc = "x86_64-w64-mingw32-gcc"
+        else:
+            a.cc = "cc"
 
     apply_patches()
     OBJ.mkdir(parents=True, exist_ok=True)
@@ -132,7 +153,7 @@ def main():
     arch = os.environ.get("ARCHFLAGS", "").split() if sys.platform == "darwin" else []
     opt += arch
     cflags = [
-        *opt, "-fPIC", "-fcommon", "-std=gnu99", "-w",
+        *opt, *([] if windows else ["-fPIC"]), "-fcommon", "-std=gnu99", "-w",
         # old K&R code relies on implicit declarations
         "-Wno-implicit-function-declaration", "-Wno-int-conversion",
         "-Wno-incompatible-pointer-types", "-Wno-return-mismatch",
@@ -140,6 +161,12 @@ def main():
         f"-I{SRC}", f"-I{CSRC / 'include'}", "-include", str(CSRC / "force.h"),
         *DEFINES,
     ]
+    if windows:
+        # MinGW lacks <dlfcn.h>, <sys/wait.h>, <sys/resource.h>; HOME -> USERPROFILE
+        # (csrc/win goes first: its X11/Xos.h replaces the vendored one's WIN32 branch)
+        i = cflags.index(f"-I{CSRC / 'include'}")
+        cflags[i:i] = [f"-I{CSRC / 'win'}"]
+        cflags += ["-include", str(CSRC / "win" / "wincompat.h")]
     # some compilers do not know every -Wno flag; drop the unknown ones
     probe = subprocess.run([a.cc, "-Werror", "-Wno-return-mismatch", "-x", "c", "-c",
                             "-o", os.devnull, "-"], input="int x;", text=True,
@@ -158,7 +185,13 @@ def main():
             print(f"--- {n}\n{e}", file=sys.stderr)
         sys.exit(f"{len(errors)} files failed to compile")
 
-    if sys.platform == "darwin":
+    libs = ["-lm", "-ldl"]
+    if windows:
+        out = ROOT / "pyxpp" / "_libxpp.dll"
+        # no MinGW runtime DLLs needed next to the library (libgcc, winpthread)
+        ldflags = ["-shared", "-Wl,--no-undefined", "-static-libgcc", "-static"]
+        libs = ["-lm", "-lwinpthread"]     # clock_gettime()
+    elif sys.platform == "darwin":
         out = ROOT / "pyxpp" / "_libxpp.dylib"
         ldflags = ["-dynamiclib", "-undefined", "error", *arch]
     else:
@@ -166,7 +199,7 @@ def main():
         ldflags = ["-shared", "-Wl,--no-undefined"]
     objs = sorted(str(o) for o in OBJ.glob("*.o"))
     tmp = out.with_name(out.name + ".tmp")
-    cmd = [a.cc, *ldflags, "-o", str(tmp), *objs, "-lm", "-ldl"]
+    cmd = [a.cc, *ldflags, "-o", str(tmp), *objs, *libs]
     r = subprocess.run(cmd, capture_output=True, text=True, errors="replace")
     if r.returncode != 0:
         print(r.stderr, file=sys.stderr)

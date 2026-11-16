@@ -5,6 +5,11 @@ Each Model gets its *own copy* of the shared library (copied to a temporary
 file and dlopen'ed with RTLD_LOCAL).  XPP keeps all of its state in C
 globals, so a private copy is what lets several models live in one Python
 process without trampling each other.
+
+On Windows the library is _libxpp.dll (MinGW-w64).  A loaded DLL cannot be
+deleted, so each copy lives in a per-process folder under %TEMP% and is
+unloaded (FreeLibrary) and removed when the model is closed or freed; copies
+left behind by a crashed process are swept up the next time pyxpp starts.
 """
 import contextlib
 import numbers
@@ -16,12 +21,19 @@ import sys
 import tempfile
 from pathlib import Path
 
+_WINDOWS = sys.platform == "win32"
 _HERE = Path(__file__).resolve().parent
-_LIBNAME = "_libxpp.dylib" if sys.platform == "darwin" else "_libxpp.so"
+_LIBNAME = ("_libxpp.dll" if _WINDOWS else
+            "_libxpp.dylib" if sys.platform == "darwin" else "_libxpp.so")
 _LIBPATH = _HERE / _LIBNAME
 
-_libc = ctypes.CDLL(ctypes.util.find_library("c"))
-_libc.fflush.argtypes = [ctypes.c_void_p]
+if _WINDOWS:
+    # the DLL may use another C runtime than Python (msvcrt vs UCRT): stdout capture
+    # and flushing are done inside the DLL (pyxpp_capture_begin/end)
+    _libc = None
+else:
+    _libc = ctypes.CDLL(ctypes.util.find_library("c"))
+    _libc.fflush.argtypes = [ctypes.c_void_p]
 
 c_int, c_double, c_char_p = ctypes.c_int, ctypes.c_double, ctypes.c_char_p
 P_int = ctypes.POINTER(c_int)
@@ -73,7 +85,11 @@ _PROTOS = {
     "pyxpp_auto_par_name": (c_char_p, [c_int]),
     "pyxpp_set_auto_dir": (None, [c_char_p]),
     "pyxpp_real_to_pixel": (None, [c_double, c_double, P_int, P_int]),
+    "pyxpp_shutdown": (None, []),
 }
+if _WINDOWS:
+    _PROTOS["pyxpp_capture_begin"] = (c_int, [c_char_p])
+    _PROTOS["pyxpp_capture_end"] = (None, [])
 
 
 class XPPError(RuntimeError):
@@ -88,16 +104,60 @@ def library_path() -> Path:
     return _LIBPATH
 
 
+_DLLDIR = None
+_DLLDIR_LOCK = None
+
+
+def _dll_dir() -> Path:
+    """Windows: per-process folder for the DLL copies (and a sweep of old ones)."""
+    global _DLLDIR, _DLLDIR_LOCK
+    if _DLLDIR is None:
+        base = Path(tempfile.gettempdir()) / "pyxpp-dll"
+        base.mkdir(exist_ok=True)
+        for old in base.glob("p*"):
+            # left by an earlier process.  A live process keeps its "lock" file open,
+            # which Windows will not delete: then the folder is left alone.
+            try:
+                (old / "lock").unlink(missing_ok=True)
+            except OSError:
+                continue
+            shutil.rmtree(old, ignore_errors=True)
+        d = Path(tempfile.mkdtemp(prefix=f"p{os.getpid()}_", dir=base))
+        _DLLDIR_LOCK = open(d / "lock", "w")
+        _DLLDIR = d
+    return _DLLDIR
+
+
+def _release(copy, handle, c):
+    """Windows: unload a model's DLL copy and delete the file."""
+    if handle:
+        try:
+            c.pyxpp_shutdown()
+        except Exception:
+            pass
+        import _ctypes
+        try:
+            _ctypes.FreeLibrary(handle)
+        except OSError:
+            return
+    try:
+        os.unlink(copy)
+    except OSError:
+        pass
+
+
 class Lib:
     """A private instance of libxpp plus a scratch directory."""
 
     def __init__(self, workdir: Path):
         self.workdir = Path(workdir)
         self.workdir.mkdir(parents=True, exist_ok=True)
-        self._copy = self.workdir / f"libxpp_{os.getpid()}_{id(self)}{_LIBPATH.suffix}"
+        where = _dll_dir() if _WINDOWS else self.workdir
+        self._copy = where / f"libxpp_{os.getpid()}_{id(self)}{_LIBPATH.suffix}"
         shutil.copyfile(library_path(), self._copy)
         mode = getattr(os, "RTLD_LOCAL", 0) | getattr(os, "RTLD_NOW", 2)
         self.c = ctypes.CDLL(str(self._copy), mode=mode)
+        self._finalizer = None
         if os.name == "posix":
             # the loaded library stays usable; the 4.5 MB file is not needed any more
             try:
@@ -109,6 +169,10 @@ class Lib:
             f.restype = res
             f.argtypes = args
         self.logpath = self.workdir / "xpp.log"
+        if _WINDOWS:
+            import weakref
+            self._finalizer = weakref.finalize(self, _release, str(self._copy),
+                                               self.c._handle, self.c)
 
     # -- stdout capture -------------------------------------------------
     @contextlib.contextmanager
@@ -117,6 +181,15 @@ class Lib:
         file for the duration of a call."""
         if not enabled:
             yield
+            return
+        if _WINDOWS:
+            sys.stdout.flush()
+            sys.stderr.flush()
+            self.c.pyxpp_capture_begin(str(self.logpath).encode())
+            try:
+                yield
+            finally:
+                self.c.pyxpp_capture_end()
             return
         sys.stdout.flush()
         sys.stderr.flush()
@@ -154,6 +227,11 @@ class Lib:
         return self.c.pyxpp_tape_len()
 
     def close(self):
+        """Release the library copy.  On Windows this unloads the DLL, after
+        which the model's C functions must not be called again."""
+        if self._finalizer is not None:
+            self._finalizer()
+            return
         try:
             os.unlink(self._copy)
         except OSError:

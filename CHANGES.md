@@ -6,6 +6,20 @@ This folder starts from pyxpp by Youngmin Park
 
 ## 2026-11-16
 
+- **Windows.** `build_lib.py` builds `pyxpp/_libxpp.dll` with MinGW-w64 gcc
+  (natively, or `--target windows` to cross-compile from Linux); all tests
+  pass under Wine with python.org CPython 3.11. Windows-only code lives in
+  `csrc/win/` (missing POSIX headers; `wincompat.h`, force-included) and an
+  `#ifdef _WIN32` block in `headless.c`: `HOME` falls back to `USERPROFILE`;
+  XPP's terminal output is captured by redirecting its `stdout`/`stderr`
+  streams inside the DLL (the DLL's C runtime is not Python's, so `dup2` from
+  Python cannot do it); files XPP writes, and AUTO's scratch files, are opened
+  in binary mode (AUTO seeks backwards in `fort.3`, which text mode breaks).
+  `_lib.py` keeps each model's DLL copy in `%TEMP%\pyxpp-dll` and unloads and
+  deletes it when the model is closed or freed.
+- **Fixed: AUTO left `fort.8` open** and then renamed it (a file-descriptor
+  leak on Linux; on Windows the rename fails and the next run from a labelled
+  point crashed). It is now closed first (a `build_lib.py` patch).
 - **XPPAUT 8.2** (Bard's source of 2026-11-15) replaces 8.1 in `csrc/xppaut`.
   New in 8.2 and working through pyxpp unchanged: AUTO continuation of
   equilibria *and periodic orbits of delay equations* (`dde_po.c`), with

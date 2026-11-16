@@ -1,5 +1,7 @@
-# Prebuilt wheels on every version tag (v*): Linux (x86_64, aarch64) and macOS
-# (Intel, Apple Silicon), CPython 3.9-3.15, each built and tested on its own hardware.
+# Prebuilt wheels on every version tag (v*): Linux (x86_64, aarch64), macOS
+# (Intel, Apple Silicon) and Windows (x86_64), CPython 3.9-3.15, each built and
+# tested on its own hardware.  Windows builds the C library with MinGW-w64 gcc
+# from MSYS2 (MINGW64, msvcrt runtime) into pyxpp/_libxpp.dll.
 # Also runnable by hand (Actions > wheels > Run workflow): builds and tests, no release.
 name: wheels
 on:
@@ -14,14 +16,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, macos-15-intel, macos-latest]
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-15-intel, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
+      # Windows: MinGW-w64 gcc (build_lib.py calls "gcc"; the DLL links libgcc and
+      # winpthread statically, so it needs nothing from MSYS2 at run time)
+      - if: runner.os == 'Windows'
+        id: msys2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          release: false
+          install: mingw-w64-x86_64-gcc
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          "${{ steps.msys2.outputs.msys2-location }}\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          & "${{ steps.msys2.outputs.msys2-location }}\mingw64\bin\gcc.exe" --version
       - uses: pypa/cibuildwheel@v4.3.5
         env:
           CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-* cp313-* cp314-* cp315-*"
           CIBW_SKIP: "*t-* *-musllinux_* *-manylinux_i686"
           CIBW_ARCHS: native
+          CIBW_ENVIRONMENT_WINDOWS: PIP_PREFER_BINARY=1 CC=gcc
           CIBW_ENVIRONMENT: PIP_PREFER_BINARY=1   # test packages: an older wheel rather than a source build
           CIBW_TEST_REQUIRES: "pytest matplotlib"
           CIBW_TEST_COMMAND: "python -m pytest -q {project}/tests"
