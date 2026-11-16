@@ -33,8 +33,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pyxpp.builder import ModelBuilder
 
-HERE = Path(__file__).resolve().parent
-NAME = Path(__file__).stem
+try:
+    HERE = Path(__file__).resolve().parent
+    NAME = Path(__file__).stem
+except NameError:            # run as a notebook in Jupyter: the kernel starts in this folder
+    HERE = Path.cwd()
+    NAME = "2D-FLOWS_driven-pendulum"
 FIG = HERE / "figures" / NAME
 FIG.mkdir(parents=True, exist_ok=True)
 TWO_PI = 2 * np.pi

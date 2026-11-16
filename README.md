@@ -131,9 +131,10 @@ The full guide is [`docs/usage/USAGE.mdx`](docs/usage/USAGE.mdx).
 
 - [`tutorials/scripts/`](tutorials/scripts): plain Python, one model each.
   Each builds its model in code, analyses it, saves its figures to
-  `figures/<script>/` and ends with `N/M checks passed`. In JupyterLab,
-  right-click a script and choose *Open With > Jupytext Notebook* to run it
-  cell by cell.
+  `figures/<script>/` and ends with `N/M checks passed`. In JupyterLab
+  (`pixi run lab` or Binder), double-click a script: it opens as a notebook,
+  one cell per `# %%`, with the figures inline; edits are saved back into the
+  `.py` file.
 - [`tutorials/notebooks/`](tutorials/notebooks): interactive notebooks.
   They use `xpptut.py` from the same folder.
 

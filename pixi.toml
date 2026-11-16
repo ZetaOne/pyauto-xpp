@@ -30,6 +30,7 @@ pytest = "*"
 pyauto-xpp = { path = ".", editable = true }
 
 [tasks]
-lab = "jupyter lab tutorials"
+jupytext-default = "python tools/jupytext_default.py"    # .py scripts open as notebooks
+lab = { cmd = "jupyter lab tutorials", depends-on = ["jupytext-default"] }
 scripts = { cmd = "python run_all.py", cwd = "tutorials/scripts" }
 test = "python -m pytest -q tests"
