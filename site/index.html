@@ -406,10 +406,14 @@ dialog.lightbox img { display: block; width: 100%; height: auto; max-height: cal
 .empty button { font: inherit; color: var(--accent); background: none; border: 0; text-decoration: underline; cursor: pointer }
 
 /* ---- sister project, footer --------------------------------------------------- */
-.sister { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; padding: 14px 16px; background: var(--bar);
-       border: 1px solid var(--line); border-radius: 8px }
-.sister p { margin: 2px 0 0; color: var(--muted); font-size: 14px }
-.sister .logo { width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center; background: var(--panel-bar); font-weight: 700; color: var(--accent) }
+.sister { display: grid; grid-template-columns: auto 1fr auto; gap: 20px; align-items: center; padding: 20px 22px;
+  border-radius: 16px; text-decoration: none; color: var(--fg); border: 2px solid var(--accent);
+  background: linear-gradient(120deg, color-mix(in srgb, var(--accent) 16%, var(--bar)), var(--bar) 70%);
+  box-shadow: 0 8px 26px color-mix(in srgb, var(--accent) 22%, transparent); transition: transform .15s, box-shadow .15s }
+.sister:hover { transform: translateY(-2px); box-shadow: 0 12px 32px color-mix(in srgb, var(--accent) 32%, transparent) }
+.sister b { font-size: 21px }
+.sister p { margin: 4px 0 0; color: var(--muted); font-size: 15px }
+.sister .logo { width: 96px; height: 96px; border-radius: 20px; box-shadow: 0 4px 14px rgb(0 0 0 / 0.25) }
 footer { margin-top: 36px; padding: 22px 0 30px; border-top: 1px solid var(--line); background: var(--bar); font-size: 13.5px; color: var(--muted) }
 footer ul { margin: 6px 0 12px; padding-left: 18px }
 footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
@@ -424,6 +428,7 @@ footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
   .hero h1 { font-size: 25px }
   .sister { grid-template-columns: auto 1fr }
   .sister .btn { grid-column: 1 / -1; justify-content: center }
+  .sister .logo { width: 72px; height: 72px }
   .gallery { grid-template-columns: 1fr }
   .filters { top: 48px }
   .search { max-width: none }
@@ -537,11 +542,21 @@ jupyter lab         <span class="c"># in the unzipped repository folder</span></
          <code>pixi run lab</code> in that folder.</p>
     </div>
     <div class="tabpanel" role="tabpanel" id="p-pip" aria-labelledby="tab-pip" hidden>
-      <p>Download the wheel for your system and Python version from the <a href="https://github.com/ZetaOne/pyauto-xpp/releases/latest">Releases page</a>
-         (see <a href="#downloads">Downloads</a> below), then:</p>
+      <p>We suggest a fresh conda environment, so pyauto-xpp and its packages stay apart from everything else.
+         Install conda once, with either
+         <a href="https://www.anaconda.com/docs/getting-started/miniconda/install" target="_blank" rel="noopener">Miniconda</a>
+         (small: conda and Python only) or
+         <a href="https://www.anaconda.com/download" target="_blank" rel="noopener">Anaconda</a>
+         (large: with many scientific packages). The commands are the same for both; on Windows type them in the
+         <b>Anaconda Prompt</b>, on Linux and macOS in a terminal.</p>
+      <div class="code"><pre><code>conda create -n pyxpp python=3.12 -y      <span class="c"># once: a new environment called pyxpp</span>
+conda activate pyxpp                      <span class="c"># every time you use it</span></code></pre></div>
+      <p>Then download the wheel for your system and Python version from the <a href="https://github.com/ZetaOne/pyauto-xpp/releases/latest">Releases page</a>
+         (see <a href="#downloads">Downloads</a> below) and install it with the tutorial packages:</p>
       <div class="code"><pre><code>python -m pip install pyauto_xpp-0.2.0-cp312-cp312-<span class="c">&lt;your system&gt;</span>.whl
-python -m pip install matplotlib    <span class="c"># for the figures in the tutorials</span>
-python -c "import pyxpp; print(pyxpp.__file__)"</code></pre></div>
+python -m pip install matplotlib jupyterlab ipywidgets plotly anywidget jupytext
+python -c "import pyxpp; print(pyxpp.__file__)"   <span class="c"># check</span>
+jupyter lab                                       <span class="c"># open the tutorials</span></code></pre></div>
       <p class="muted"><code>cp312</code> is Python 3.12: pick the wheel whose tag matches <code>python --version</code>
          (cp39 to cp315). Linux x86_64 and ARM (glibc 2.28+), macOS Apple Silicon (11+) and Intel (10.9+ up to
          Python 3.11, 10.13+ for 3.12-3.13, 10.15+ for 3.14-3.15), Windows x86_64.</p>
@@ -600,22 +615,20 @@ d.special("HB")</code></pre></div>
 
   <section id="thanks" aria-labelledby="h-thanks">
     <h2 id="h-thanks">Thank you, Prof. Ermentrout <a class="anchor" href="#thanks" aria-label="Link to Thank you, Prof. Ermentrout">#</a></h2>
-    <p><a href="https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html" target="_blank" rel="noopener">XPPAUT</a> is the work of G. Bard Ermentrout, developed and shared freely for more than three decades. In one small,
-       fast and remarkably capable program it puts simulation, phase planes, nullclines, equilibria and AUTO's
-       bifurcation analysis side by side, and with his book <a href="https://doi.org/10.1137/1.9780898718195" target="_blank" rel="noopener"><i>Simulating, Analyzing, and Animating Dynamical Systems</i></a>
-       (SIAM, 2002) it has taught generations of students and researchers how to explore dynamical systems.
-       Every simulation, equilibrium and bifurcation diagram here is computed by XPPAUT's own code; this project
-       exists because of it. <b>Thank you, Prof. Ermentrout.</b></p>
+    <p><a href="https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html" target="_blank" rel="noopener">XPPAUT</a>
+       and his book <a href="https://doi.org/10.1137/1.9780898718195" target="_blank" rel="noopener"><i>Simulating,
+       Analyzing, and Animating Dynamical Systems</i></a> have taught many of us how to explore dynamical systems.
+       Every number on this page comes from his code. <b>Thank you, Prof. Ermentrout.</b></p>
   </section>
 
   <section id="xpp-web" aria-labelledby="h-sister">
     <h2 id="h-sister">Sister project <a class="anchor" href="#xpp-web" aria-label="Link to Sister project">#</a></h2>
-    <div class="sister">
-      <div class="logo" aria-hidden="true">X</div>
-      <div><b>XPPAUT-Web</b><p>The same XPPAUT 8.2 with its own windows, in the browser and as an Android app:
-        nothing to install, for when you would rather click than script.</p></div>
-      <a class="btn ghost" href="https://zetaone.github.io/XPPAUT-Web/" target="_blank" rel="noopener">Open XPPAUT-Web</a>
-    </div>
+    <a class="sister" href="https://zetaone.github.io/XPPAUT-Web/" target="_blank" rel="noopener">
+      <img class="logo" src="xppaut-web.png" alt="XPPAUT-Web logo" width="96" height="96">
+      <div><b>XPPAUT-Web</b><p>The full XPPAUT 8.2, with its own windows, menus and AUTO, right in your browser
+        and as an Android app. Nothing to install: open a model and start exploring.</p></div>
+      <span class="btn">Try XPPAUT-Web &rarr;</span>
+    </a>
   </section>
 </div>
 </main>

@@ -128,7 +128,7 @@ def compile_one(cc, cflags, c):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--jobs", type=int, default=os.cpu_count() or 4)
+    ap.add_argument("--jobs", type=int, default=min(16, os.cpu_count() or 4))   # at most 16: no bursts on big machines
     ap.add_argument("--debug", action="store_true")
     ap.add_argument("--cc", default=os.environ.get("CC"))
     ap.add_argument("--target", choices=["native", "windows"], default="native")

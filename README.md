@@ -167,14 +167,10 @@ AUTO's diagrams. Changes are listed in [`CHANGES.md`](CHANGES.md).
 
 ## Thank you, Prof. Ermentrout
 
-[XPPAUT](https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html) is the work of G. Bard Ermentrout, developed and shared freely for more
-than three decades. In one small, fast and remarkably capable program it puts
-simulation, phase planes, nullclines, equilibria and AUTO's bifurcation
-analysis side by side, and with his book [*Simulating, Analyzing, and Animating
-Dynamical Systems*](https://doi.org/10.1137/1.9780898718195) (SIAM, 2002) it has taught generations of students and
-researchers how to explore dynamical systems. Every simulation, equilibrium
-and bifurcation diagram in pyauto-xpp is computed by XPPAUT's own code; this
-project exists because of it. Thank you, Prof. Ermentrout.
+[XPPAUT](https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html) and his book
+[*Simulating, Analyzing, and Animating Dynamical Systems*](https://doi.org/10.1137/1.9780898718195)
+have taught many of us how to explore dynamical systems. Every number in
+pyauto-xpp comes from his code. Thank you, Prof. Ermentrout.
 
 ## Credits and licence
 
