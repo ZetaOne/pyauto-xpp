@@ -15,8 +15,10 @@
 <meta property="og:image" content="https://zetaone.github.io/pyauto-xpp/gallery/16_2D-FLOWS_morris-lecar-bifurcation_ml-bifurcation.png">
 <script>
   // apply the saved theme before the page is drawn (no flash of the wrong colours)
-  try { var t = localStorage.getItem('pyauto-xpp-theme');
-        if (t && t !== 'system') document.documentElement.dataset.theme = t } catch (e) {}
+  // new visitors get Funky 2 (Night Owl); a saved choice (also "system") wins
+  var t = 'funky2';
+  try { t = localStorage.getItem('pyauto-xpp-theme') || 'funky2' } catch (e) {}
+  if (t !== 'system') document.documentElement.dataset.theme = t;
 </script>
 <style>
 :root {
@@ -688,8 +690,8 @@ for (const t of THEMES) {
   b.addEventListener('click', () => { applyTheme(t.id); store.set('pyauto-xpp-theme', t.id); closeMenus(true) });
   $('themelist').append(b);
 }
-applyTheme(store.get('pyauto-xpp-theme') || 'system');
-matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => applyTheme(store.get('pyauto-xpp-theme') || 'system'));
+applyTheme(store.get('pyauto-xpp-theme') || 'funky2');
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => applyTheme(store.get('pyauto-xpp-theme') || 'funky2'));
 
 // ---- toolbar menus: Esc or a click elsewhere closes them; arrows move inside --
 const menus = () => [...document.querySelectorAll('header details')];
