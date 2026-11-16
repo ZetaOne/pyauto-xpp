@@ -1,0 +1,9 @@
+ sym 0 loaded .. times 0 loaded .. sym 1 loaded .. times 1 loaded .. sym 2 loaded .. times 2 loaded .. sym 3 loaded .. times 3 loaded .. sym 4 loaded .. times 4 loaded ..
+0:dX/dt=-X
+
+ Initial X(0)=1
+ All formulas are valid!!
+ nvar=1 naux=0 nfix=0 nmark=0 NEQ=1 NODE=1 
+Used 6 constants and 106 symbols 
+XPPAUT 8.1.1 Copyright (C) 2002-now  Bard Ermentrout 
+TrueColor visual:  no colormap needed

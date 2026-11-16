@@ -1,0 +1,5 @@
+par sig=0.3
+wiener w
+x'=-x+sig*w
+@ total=2000,dt=0.01,meth=euler
+done

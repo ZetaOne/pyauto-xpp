@@ -1,0 +1,3 @@
+volt u=1-int{exp(-t)#u}
+@ total=2,meth=volterra,dt=0.01
+done

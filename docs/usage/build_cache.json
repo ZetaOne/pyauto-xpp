@@ -1,0 +1,854 @@
+{
+ "01_start": [
+  {
+   "md": "## Getting started\n\n**Build and install.** The package compiles XPP 8.1 (with AUTO) into a\nshared library the first time it is built. Only a C compiler is needed;\nX11 is not.\n\n```bash\ncd pyauto-xpp\npython build_lib.py          # builds pyxpp/_libxpp.so\npip install -e .             # or: put pyauto-xpp on PYTHONPATH\npython -m pytest tests -q    # 20 tests\n```\n\n**Load a model.** `pyxpp.load` reads an `.ode` file exactly as XPP does,\nincluding its `@` options, `set` blocks and AUTO settings. The Morris-Lecar\nfile shipped with the package is used in many examples below."
+  },
+  {
+   "code": "from pathlib import Path\nimport pyxpp\n\nPKG = Path(pyxpp.__file__).resolve().parents[1]   # the pyauto-xpp folder (examples/lecar.ode is in it)\n\nLECAR = PKG / \"examples\" / \"lecar.ode\"\nm = pyxpp.load(LECAR)\nprint(m)\nprint(\"variables:\", m.vars)\nprint(\"auxiliary:\", m.aux)\nprint(\"columns of the data:\", m.columns)\nprint(\"parameters:\", m.par_names)",
+   "out": "<pyxpp.Model lecar.ode: vars=['V', 'W'] aux=['CUR', 'ICA', 'IK', 'RATE'] pars=12>\nvariables: ['V', 'W']\nauxiliary: ['CUR', 'ICA', 'IK', 'RATE']\ncolumns of the data: ['t', 'V', 'W', 'CUR', 'ICA', 'IK', 'RATE']\nparameters: ['iapp', 'phi', 'v1', 'v2', 'v3', 'v4', 'gca', 'vk', 'vl', 'gk', 'gl', 'om']",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "Names are kept as XPP stores them (upper case), but every lookup in the\npackage ignores case: `m.pars[\"iapp\"]`, `tr[\"v\"]` and `tr[\"V\"]` all work.\n\n**A model from text.** `text=` takes the contents of an `.ode` file; it is\nwritten into the model's working folder and loaded from there."
+  },
+  {
+   "code": "vdp = pyxpp.load(text=\"\"\"\n# van der Pol oscillator\nx'=y\ny'=-x+mu*(1-x^2)*y\npar mu=1\ninit x=2,y=0\n@ total=50,dt=0.01\ndone\n\"\"\")\nprint(vdp, vdp.path.name)",
+   "out": "<pyxpp.Model model.ode: vars=['X', 'Y'] aux=[] pars=1> model.ode",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Working folder.** Each model has a folder where XPP reads and writes its\nfiles (`.set` files, AUTO's files, SVGs, ...). By default it is a new\ntemporary folder; `workdir=` chooses it. Every call that writes files runs\nwith this folder as the current directory, so relative file names land\nthere."
+  },
+  {
+   "code": "from pathlib import Path\n\nw = pyxpp.load(LECAR, workdir=\"lecar_work\")\nprint(w.workdir.resolve().relative_to(Path.cwd()))\nprint(sorted(p.name for p in w.workdir.iterdir()))",
+   "out": "lecar_work\n['.pyxpp']",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Several models at once.** Each model runs in its own private copy of the\nXPP library (XPP keeps all its state in C global variables), so models in\none Python process do not interfere."
+  },
+  {
+   "code": "m.pars[\"iapp\"] = 0.05\nprint(\"lecar iapp =\", m.pars[\"iapp\"], \"  vdp has iapp?\", \"iapp\" in vdp.pars)\nprint(\"vdp mu =\", vdp.pars[\"mu\"], \"  lecar has mu?\", \"mu\" in m.pars)",
+   "out": "lecar iapp = 0.05   vdp has iapp? False\nvdp mu = 1.0   lecar has mu? False",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**XPP's messages.** By default (`quiet=True`) everything XPP and AUTO print\nis collected in `m.log` instead of the terminal. `quiet=False` lets it\nthrough."
+  },
+  {
+   "code": "vdp.run()\nprint(vdp.log.strip().splitlines()[-3:])",
+   "out": "['Used 7 constants and 109 symbols ', 'XPPAUT 8.1.1 Copyright (C) 2002-now  Bard Ermentrout ', 'TrueColor visual:  no colormap needed']",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Command-line options.** `args=` passes XPP's command-line flags, e.g.\n`-setfile` to read a `.set` file at start (parameters, initial data and\nnumerics saved by File > Write set)."
+  },
+  {
+   "code": "w.set(iapp=0.08, total=150)\nw.buttons.file.write_set(\"start.set\")   # save this state (see the buttons section)\nw2 = pyxpp.load(LECAR, workdir=\"lecar_work\", args=[\"-setfile\", \"start.set\"])\nprint(w2.pars[\"iapp\"], w2.numerics[\"total\"])",
+   "out": "0.08 150.0",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Closing.** `m.close()` unloads the library copy and frees its memory. A\nmodel that is no longer referenced is also freed."
+  },
+  {
+   "code": "for model in (w, w2):\n    model.close()\nprint(\"closed\")",
+   "out": "closed",
+   "figs": [],
+   "sec": 0.0
+  }
+ ],
+ "02_builder": [
+  {
+   "md": "## Writing models with ModelBuilder\n\n`ModelBuilder` writes an `.ode` file one statement at a time from Python.\nStatements come out in the order the methods are called, because order\nmatters in an `.ode` file. `render()` shows the text, `write()` saves it,\nand `load()` saves it and loads it into XPP in one step."
+  },
+  {
+   "code": "from pyxpp.builder import ModelBuilder\n\nml = (ModelBuilder(\"lecar\")\n      .comment(\"Morris-Lecar\")\n      .parameter(iapp=0.1, phi=0.333)\n      .parameter(v1=-0.01, v2=0.15, v3=0.1, v4=0.145, gca=1)\n      .parameter(vk=-0.7, vl=-0.5, gk=2.0, gl=0.5)\n      .function(\"minf(v)\", \".5*(1+tanh((v-v1)/v2))\")\n      .function(\"ninf(v)\", \".5*(1+tanh((v-v3)/v4))\")\n      .function(\"lamn(v)\", \"phi*cosh((v-v3)/(2*v4))\")\n      .fixed(\"ica\", \"gca*minf(v)*(v-1)\")\n      .ode(\"v\", \"iapp+gl*(vl-v)+gk*w*(vk-v)-ica\")\n      .ode(\"w\", \"lamn(v)*(ninf(v)-w)\")\n      .initial(v=-0.3, w=0)\n      .aux(\"ica\", \"ica\")\n      .option(total=100, dt=0.05, xp=\"v\", yp=\"w\", xlo=-0.6, xhi=0.6, ylo=-0.1, yhi=0.6)\n      .parameter_set(\"hopf\", v3=0, v4=0.3, gca=1.1, phi=0.2)\n      .tutorial(\"{iapp=0.1,total=200} Integrate and see the limit cycle.\")\n      .notes(\"Free text after done is ignored by XPP.\"))\nprint(ml.render())",
+   "out": "# Morris-Lecar\npar iapp=0.1,phi=0.333\npar v1=-0.01,v2=0.15,v3=0.1,v4=0.145,gca=1\npar vk=-0.7,vl=-0.5,gk=2.0,gl=0.5\nminf(v)=.5*(1+tanh((v-v1)/v2))\nninf(v)=.5*(1+tanh((v-v3)/v4))\nlamn(v)=phi*cosh((v-v3)/(2*v4))\nica=gca*minf(v)*(v-1)\nv'=iapp+gl*(vl-v)+gk*w*(vk-v)-ica\nw'=lamn(v)*(ninf(v)-w)\ninit v=-0.3,w=0\naux ica=ica\n@ total=100,dt=0.05,xp=v,yp=w,xlo=-0.6,xhi=0.6,ylo=-0.1,yhi=0.6\nset hopf {v3=0,v4=0.3,gca=1.1,phi=0.2}\n\" {iapp=0.1,total=200} Integrate and see the limit cycle.\ndone\nFree text after done is ignored by XPP.",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "code": "m = ml.load(\"lecar_built.ode\")         # write + pyxpp.load\ntr = m.run()\nprint(m, \" v at the end:\", round(tr[\"v\"][-1], 4))\nprint(\"the @ options written:\", ml.options())",
+   "out": "<pyxpp.Model lecar_built.ode: vars=['V', 'W'] aux=['ICA'] pars=11>  v at the end: -0.2687\nthe @ options written: {'total': '100', 'dt': '0.05', 'xp': 'v', 'yp': 'w', 'xlo': '-0.6', 'xhi': '0.6', 'ylo': '-0.1', 'yhi': '0.6'}",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Where the files go.** `ModelBuilder(name, outdir=\"output\")` puts the .ode\nfile (`output/<name>.ode`) and XPP's working folder (its .set files, SVGs,\nAUTO files) in one folder, created if missing. Without `outdir` the .ode\nfile goes to the current folder and each model gets a fresh temporary\nworking folder; `write(path)` / `load(path, workdir=...)` choose them\nyourself (missing folders are created)."
+  },
+  {
+   "code": "mo = ModelBuilder(\"decay_out\", outdir=\"output\").ode(\"x\", \"-x\").initial(x=1)\nmd_ = mo.load()\nmd_.buttons.file.write_set(\"run.set\")\nprint(md_.path.parent.name, \"/\", md_.path.name, \"  workdir:\", md_.workdir.name,\n      \"  files:\", sorted(p.name for p in md_.workdir.iterdir() if not p.name.startswith(\".\")))",
+   "out": "output / decay_out.ode   workdir: output   files: ['decay_out.ode', 'run.set']",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Numbers and derived quantities.** `number` is a constant that is not a\nparameter; `derived` (`!name=...`) is recomputed whenever a parameter\nchanges; `initial_value` writes `x(0)=...`. XPP 8.1 takes a number there\nfor a single variable (a formula such as `exp(1)` gives 0), and a formula\nin `[j]` for an array."
+  },
+  {
+   "code": "import math\n\nb = (ModelBuilder(\"decay\")\n     .number(k0=2)\n     .parameter(tau=5)\n     .derived(\"rate\", \"k0/tau\")\n     .ode(\"x\", \"-rate*x\")\n     .initial_value(\"x\", 2.5)\n     .ode(\"y[1..3]\", \"-y[j]\")\n     .initial_value(\"y[1..3]\", \"[j]*2\")\n     .option(total=5))\nprint(b.render())\nd = b.load(\"decay.ode\")\ntr = d.run()\nprint(\"x(0) =\", tr[\"x\"][0], \" x(5) =\", round(float(tr[\"x\"][-1]), 5), \" exact 2.5*exp(-2) =\", round(2.5 * math.exp(-2), 5))\nprint(\"y(0) =\", [float(tr[f\"y{i}\"][0]) for i in (1, 2, 3)])",
+   "out": "number k0=2\npar tau=5\n!rate=k0/tau\nx'=-rate*x\nx(0)=2.5\ny[1..3]'=-y[j]\ny[1..3](0)=[j]*2\n@ total=5\ndone\n\nx(0) = 2.5  x(5) = 0.33834  exact 2.5*exp(-2) = 0.33834\ny(0) = [2.0, 4.0, 6.0]",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Maps** (difference equations) use `map()` and the discrete method."
+  },
+  {
+   "code": "lm = (ModelBuilder(\"logistic\")\n      .parameter(r=3.2)\n      .map(\"x\", \"r*x*(1-x)\")\n      .initial(x=0.2)\n      .option(meth=\"discrete\", total=200))\ntr = lm.load(\"logistic.ode\").run()\nprint(\"last four iterates:\", [round(float(v), 4) for v in tr[\"x\"][-4:]], \" (a 2-cycle)\")",
+   "out": "last four iterates: [0.513, 0.7995, 0.513, 0.7995]  (a 2-cycle)",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Arrays.** XPP's `name[lo..hi]` notation expands to one equation per\nindex; `[j]` is the index as a number and `u[j]` the variable. Names that are not Python keywords are passed as\na dict."
+  },
+  {
+   "code": "chain = (ModelBuilder(\"chain\")\n         .parameter(d=0.5)\n         .ode(\"u[1..5]\", \"-u[j]+d*[j]\")\n         .initial({\"u[1..5]\": 1})\n         .option(total=3))\nprint(chain.render())\nc = chain.load(\"chain.ode\")\nprint(c.vars, \" u5(3) =\", round(float(c.run()[\"u5\"][-1]), 4), \" exact:\", round(2.5 + (1 - 2.5) * __import__(\"math\").exp(-3), 4))",
+   "out": "par d=0.5\nu[1..5]'=-u[j]+d*[j]\ninit u[1..5]=1\n@ total=3\ndone\n\n['U1', 'U2', 'U3', 'U4', 'U5']  u5(3) = 2.4253  exact: 2.4253",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Repeated blocks.** `begin_block(\"1..3\")` ... `end_block()` repeats the\nstatements between them with `[j]` replaced by 1, 2, 3."
+  },
+  {
+   "code": "blk = (ModelBuilder(\"blocks\")\n       .begin_block(\"1..3\")\n       .ode(\"x[j]\", \"-[j]*x[j]\")\n       .initial({\"x[j]\": 1})\n       .end_block()\n       .option(total=1))\nprint(blk.render())\ntr = blk.load(\"blocks.ode\").run()\nprint(\"x1, x2, x3 at t=1:\", [round(float(tr[f\"x{i}\"][-1]), 5) for i in (1, 2, 3)],\n      \" exact:\", [round(math.exp(-i), 5) for i in (1, 2, 3)])",
+   "out": "%[1..3]\nx[j]'=-[j]*x[j]\ninit x[j]=1\n%\n@ total=1\ndone\n\nx1, x2, x3 at t=1: [0.36788, 0.13534, 0.04979]  exact: [0.36788, 0.13534, 0.04979]",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Events.** `global_event(sign, condition, actions)` resets variables when\na quantity crosses zero (here an integrate-and-fire neuron)."
+  },
+  {
+   "code": "lif = (ModelBuilder(\"lif\")\n       .parameter(I=1.5, vth=1, vreset=0)\n       .ode(\"v\", \"-v+I\")\n       .global_event(1, \"v-vth\", {\"v\": \"vreset\"})\n       .aux(\"spike\", \"v\")\n       .option(total=10, dt=0.001))\ntr = lif.load(\"lif.ode\").run()\nresets = tr.t[1:][tr[\"v\"][1:] < tr[\"v\"][:-1] - 0.5]       # v drops at each reset\nprint(\"max v =\", round(float(tr[\"v\"].max()), 4), \" period:\", round(float(resets[1] - resets[0]), 3),\n      \" exact ln(1.5/0.5) =\", round(math.log(3), 3))",
+   "out": "max v = 1.0  period: 1.099  exact ln(1.5/0.5) = 1.099",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Noise and Markov chains.** `wiener` adds white noise; `markov` defines a\ndiscrete state with transition rates (row k: rates out of state k)."
+  },
+  {
+   "code": "sde = (ModelBuilder(\"ou\")\n       .parameter(sig=0.3)\n       .wiener(\"w\")\n       .ode(\"x\", \"-x+sig*w\")\n       .option(total=2000, dt=0.01, meth=\"euler\"))\ntr = sde.load(\"ou.ode\").run()\nprint(\"OU: variance of x =\", round(float(tr[\"x\"][2000:].var()), 4), \" theory sig^2/2 =\", 0.3 ** 2 / 2)\n\nchan = (ModelBuilder(\"channel\")\n        .parameter(a=1, b=2)\n        .markov(\"z\", [[\"0\", \"a\"], [\"b\", \"0\"]])\n        .ode(\"q\", \"z-q\")\n        .option(total=5000, dt=0.01))\ntr = chan.load(\"channel.ode\").run()\nprint(\"two-state channel: fraction open =\", round(float(tr[\"z\"].mean()), 3), \" theory a/(a+b) =\", round(1 / 3, 3))",
+   "out": "OU: variance of x = 0.047  theory sig^2/2 = 0.045\ntwo-state channel: fraction open = 0.336  theory a/(a+b) = 0.333",
+   "figs": [],
+   "sec": 0.2
+  },
+  {
+   "md": "**Tables, DAEs, integral equations, boundary conditions, special\noperators.** All are written as XPP expects them:\n\n- `table(name, n=, lo=, hi=, expr=)` a tabulated function (or `table(name, file)`);\n- `algebraic` + `solve` for a differential-algebraic system;\n- `volterra` for an integral equation (`int{...}`);\n- `boundary` for a boundary-value problem;\n- `special` for `conv`, `sparse`, `mmult`, ... ;\n- `export`, `only`, `raw` for the rest."
+  },
+  {
+   "code": "dae = (ModelBuilder(\"dae\")\n       .table(\"sq\", n=101, lo=0, hi=2, expr=\"t^2\")\n       .ode(\"x\", \"-x+y\")\n       .solve(\"y\", 1)\n       .algebraic(\"y^3+y-x-sq(1)\")\n       .aux(\"yy\", \"y\")                  # a solv variable is not stored; aux keeps it\n       .initial(x=0)\n       .option(total=2))\ntr = dae.load(\"dae.ode\").run()\ny, x = tr[\"yy\"][-1], tr[\"x\"][-1]\nprint(\"DAE: y^3+y-x-1 at the end =\", f\"{y**3 + y - x - 1:.1e}\")\n\nvolt = (ModelBuilder(\"volterra\")\n        .volterra(\"u\", \"1-int{exp(-t)#u}\")\n        .option(total=2, meth=\"volterra\", dt=0.01))\nprint(volt.render())\ntr = volt.load(\"volt.ode\").run()\nprint(\"Volterra: u(2) =\", round(tr[\"u\"][-1], 5), \" exact 1/2+exp(-4)/2 =\", round(0.5 + 0.5 * __import__(\"math\").exp(-4), 5))\n\nbvp = (ModelBuilder(\"bvp\")\n       .ode(\"x\", \"y\")\n       .ode(\"y\", \"-x\")\n       .boundary(\"x\")\n       .boundary(\"x'-1\")\n       .option(total=1.5707963))\nprint(bvp.render())\n\nconv = (ModelBuilder(\"conv\")\n        .table(\"w\", n=11, lo=-5, hi=5, expr=\"exp(-abs(t))\")\n        .ode(\"u[0..20]\", \"-u[j]+k([j])\")      # network values are k(0), k(1), ...\n        .special(\"k\", \"conv(even,21,5,w,u0)\")\n        .initial({\"u[0..20]\": 0.1})\n        .only(\"u0\", \"u10\")\n        .raw(\"# raw() writes any line as it is\")\n        .option(total=1))\nprint(conv.render())\nprint(\"loads:\", conv.load(\"conv.ode\").vars[:3], \"...\")",
+   "out": "DAE: y^3+y-x-1 at the end = 2.7e-06\nvolt u=1-int{exp(-t)#u}\n@ total=2,meth=volterra,dt=0.01\ndone\n\nVolterra: u(2) = 0.50916  exact 1/2+exp(-4)/2 = 0.50916\nx'=y\ny'=-x\nbndry x\nbndry x'-1\n@ total=1.5707963\ndone\n\ntable w % 11 -5 5 exp(-abs(t))\nu[0..20]'=-u[j]+k([j])\nspecial k=conv(even,21,5,w,u0)\ninit u[0..20]=0.1\nonly u0,u10\n# raw() writes any line as it is\n@ total=1\ndone\n\nloads: ['U0', 'U1', 'U2'] ...",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Statements written so far.** `lines` holds them; `raw_count` counts the\n`raw()` lines (a model that needs `raw()` shows a gap in the builder)."
+  },
+  {
+   "code": "print(len(conv.lines), \"lines, raw:\", conv.raw_count, \" \", repr(conv))",
+   "out": "7 lines, raw: 1   <ModelBuilder conv: 7 lines>",
+   "figs": [],
+   "sec": 0.0
+  }
+ ],
+ "03_state": [
+  {
+   "md": "## Parameters, initial conditions and options\n\n`m.pars` and `m.ics` behave like dictionaries (names in any case)."
+  },
+  {
+   "code": "from pathlib import Path\nimport pyxpp\n\nPKG = Path(pyxpp.__file__).resolve().parents[1]   # the pyauto-xpp folder (examples/lecar.ode is in it)\n\nm = pyxpp.load(PKG / \"examples\" / \"lecar.ode\")\nprint(m.pars)\nprint(m.ics)\nm.pars[\"iapp\"] = 0.08\nm.ics[\"v\"] = -0.3\nm.pars.update(gca=1.1, phi=0.25)\nprint(m.pars[\"IAPP\"], m.ics[\"V\"], \"gca\" in m.pars, list(m.ics.keys()))\nprint(m.pars.as_dict()[\"gca\"], dict(m.ics.items()))",
+   "out": "parameters(iapp=0, phi=0.333, v1=-0.01, v2=0.15, v3=0.1, v4=0.145, gca=1, vk=-0.7, vl=-0.5, gk=2, gl=0.5, om=1)\ninitial conditions(V=0, W=0)\n0.08 -0.3 True ['V', 'W']\n1.1 {'V': -0.3, 'W': 0.0}",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**`set()` does all three at once**: each name is tried as a parameter,\nthen as a variable (initial condition), then as an `@` option, exactly as\nit would be written on an `@` line."
+  },
+  {
+   "code": "m.set(iapp=0.1, v=-0.25, w=0.05, total=250, dt=0.02, meth=\"rk4\", maxstor=50000)\nprint(m.numerics)",
+   "out": "{'total': 250.0, 'dt': 0.02, 't0': 0.0, 'trans': 0.0, 'nout': 1, 'bound': 100.0, 'meth': 'rungekutta', 'tol': 0.001, 'atol': 0.001, 'dtmin': 1e-12, 'dtmax': 1.0, 'maxstor': 50000, 'delay': 0.0, 'newt_tol': 0.001, 'evec_tol': 0.001, 'newt_iter': 100, 'poimap': 0}",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "`set_option(name, value)` is the `@`-option part on its own; `get(name)`\nreads any parameter, initial condition or derived quantity."
+  },
+  {
+   "code": "m.set_option(\"bounds\", 1000)\nm.set_option(\"nout\", 2)\nprint(\"bound:\", m.numerics[\"bound\"], \" nout:\", m.numerics[\"nout\"], \" get('phi'):\", m.get(\"phi\"), \" get('v'):\", m.get(\"v\"))",
+   "out": "bound: 1000.0  nout: 2  get('phi'): 0.25  get('v'): -0.25",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Integration methods.** `meth=` takes XPP's names and some aliases:"
+  },
+  {
+   "code": "from pyxpp.model import METHODS, method_key\n\nprint(METHODS)\nfor name in (\"rk4\", \"cvode\", \"dopri5\", \"stiff\", \"euler\", \"discrete\", \"gear\", \"rosen23\", \"symplectic\"):\n    m.set(meth=name)\n    print(f\"{name:10s} -> key {method_key(name)!r} -> {m.numerics['meth']}\")",
+   "out": "['discrete', 'euler', 'modeuler', 'rungekutta', 'adams', 'gear', 'volterra', 'backeul', 'qualrk', 'stiff', 'cvode', '5dp', '83dp', '2rb', 'ymp']\nrk4        -> key 'r' -> rungekutta\ncvode      -> key 'c' -> cvode\ndopri5     -> key '5' -> 5dp\nstiff      -> key 's' -> stiff\neuler      -> key 'e' -> euler\ndiscrete   -> key 'd' -> discrete\ngear       -> key 'g' -> gear\nrosen23    -> key '2' -> 2rb\nsymplectic -> key 'y' -> ymp",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Parameter sets** written in the file as `set name {...}` are chosen with\nFile > Get par set (here `hopf` from `lecar.ode`)."
+  },
+  {
+   "code": "m.buttons.file.get_par_set(\"hopf\")\nprint({k: m.pars[k] for k in (\"v3\", \"v4\", \"gca\", \"phi\")})",
+   "out": "{'v3': 0.0, 'v4': 0.3, 'gca': 1.1, 'phi': 0.2}",
+   "figs": [],
+   "sec": 0.0
+  }
+ ],
+ "04_integrate": [
+  {
+   "md": "## Integrating and reading the data\n\n`m.run()` is Initialconds > Go: it integrates from the current initial\nconditions with the current numerics and returns the data browser as a\n`Trajectory`. Keyword arguments go through `set()` first."
+  },
+  {
+   "code": "import numpy as np\nimport matplotlib.pyplot as plt\nfrom pathlib import Path\nimport pyxpp\n\nPKG = Path(pyxpp.__file__).resolve().parents[1]   # the pyauto-xpp folder (examples/lecar.ode is in it)\n\nm = pyxpp.load(PKG / \"examples\" / \"lecar.ode\")\ntr = m.run(iapp=0.1, total=200, dt=0.05)\nprint(tr)\nprint(\"rows:\", len(tr), \" columns:\", tr.names)\nprint(\"t:\", tr.t[:3], \"...\", tr.t[-1])\nprint(\"v (any case):\", tr[\"v\"][:3], tr[\"V\"][:3])\nprint(\"as numpy:\", tr.array.shape, tr.array.dtype)\nprint(tr.to_pandas().describe().loc[[\"min\", \"max\"]].round(4))",
+   "out": "<Trajectory 4001 rows x ['t', 'V', 'W', 'CUR', 'ICA', 'IK', 'RATE']>\nrows: 4001  columns: ['t', 'V', 'W', 'CUR', 'ICA', 'IK', 'RATE']\nt: [0.   0.05 0.1 ] ... 200.0\nv (any case): [0.         0.02012537 0.0420657 ] [0.         0.02012537 0.0420657 ]\nas numpy: (4001, 7) float64\n         t       V       W  CUR     ICA      IK   RATE\nmin    0.0 -0.3817  0.0000  0.1 -0.7612  0.0000  0.333\nmax  200.0  0.2831  0.4274  0.1 -0.0097  0.6935  0.333",
+   "figs": [],
+   "sec": 0.2
+  },
+  {
+   "md": "Auxiliary quantities (`aux` lines) are columns too. The data are what XPP\nstored: single precision, every `nout`-th step, after `trans`."
+  },
+  {
+   "code": "fig, ax = plt.subplots(1, 2, figsize=(10, 3.2))\nax[0].plot(tr.t, tr[\"v\"], label=\"v\")\nax[0].plot(tr.t, tr[\"ik\"] / 10, label=\"ik / 10 (aux)\")\nax[0].set_xlabel(\"t\"); ax[0].legend()\nax[1].plot(tr[\"v\"], tr[\"w\"]); ax[1].set(xlabel=\"v\", ylabel=\"w\")\nfig.tight_layout(); fig.savefig(FIG / \"lecar_run.png\", dpi=110)",
+   "out": "",
+   "figs": [
+    "lecar_run.png"
+   ],
+   "sec": 0.2
+  },
+  {
+   "md": "**Carrying on.**\n\n- `run_last()`: Initialconds > Last, start again from the end of the last\n  run (time starts again at `t0`);\n- Initialconds > Shift: the same, but time carries on (it sets `t0`);\n- `continue_run(T)`: Continue, extend the current run until time T (the\n  data then hold the whole run);\n- `last_point()`: the final state as a dict."
+  },
+  {
+   "code": "a = m.run(total=50)\nb = m.run_last(total=50)\nprint(\"run_last starts at the end of the last run:\", np.allclose(b.array[0, 1:3], a.array[-1, 1:3]),\n      \" (b starts at t =\", b.t[0], \")\")\nm.buttons.initialconds.shift()\nprint(\"shift: t from\", m.data.t[0], \"to\", m.data.t[-1], \" t0 is now\", round(m.numerics[\"t0\"], 6))\nm.set(t0=0)\nc = m.continue_run(120)\nprint(\"continue_run: t from\", c.t[0], \"to\", c.t[-1])\nprint(\"last_point:\", m.last_point())",
+   "out": "run_last starts at the end of the last run: True  (b starts at t = 0.0 )\nshift: t from 50.0 to 100.0  t0 is now 50.0\ncontinue_run: t from 50.0 to 120.0\nlast_point: {'V': -0.37925341725349426, 'W': 0.09480996429920197}",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Transient, output step and start time.** `trans` drops the first part,\n`nout` stores every n-th step, `t0` sets the starting time."
+  },
+  {
+   "code": "tr = m.run(total=100, trans=80, nout=4, t0=0)\nprint(\"first stored t:\", tr.t[0], \" step between rows:\", tr.t[1] - tr.t[0], \" rows:\", len(tr))\nm.set(trans=0, nout=1)",
+   "out": "first stored t: 80.19999694824219  step between rows: 0.20000457763671875  rows: 100",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Sweeps.** `sweep(name, values)` runs once per value of a parameter or an\ninitial condition, and puts the old value back afterwards."
+  },
+  {
+   "code": "fig, ax = plt.subplots(figsize=(7, 3))\ncurrents = [0.06, 0.08, 0.1, 0.2]\nfor I, run in zip(currents, m.sweep(\"iapp\", currents, total=150)):\n    ax.plot(run.t, run[\"v\"], lw=1, label=f\"iapp={I}\")\nax.legend(fontsize=7); ax.set_xlabel(\"t\")\nfig.tight_layout(); fig.savefig(FIG / \"sweep.png\", dpi=110)\nprint(\"iapp after the sweep:\", m.pars[\"iapp\"])\nstarts = m.sweep(\"v\", [-0.4, 0.0, 0.3], total=30, iapp=0)\nprint(\"end v from three starts:\", [round(float(r[\"v\"][-1]), 4) for r in starts])",
+   "out": "iapp after the sweep: 0.1\nend v from three starts: [-0.4956, -0.4956, -0.4956]",
+   "figs": [
+    "sweep.png"
+   ],
+   "sec": 0.2
+  },
+  {
+   "md": "**XPP's own range integration.** Initialconds > Range (a dialog, answered\nwith a dict) integrates over a range in one go. With \"Reset storage\" = N\nthe runs are stored one after the other."
+  },
+  {
+   "code": "m.set(total=40, iapp=0.0)\nm.buttons.initialconds.range({\"Range over\": \"iapp\", \"Steps\": 4, \"Start\": 0.05,\n                              \"End\": 0.25, \"Reset storage (Y/N)\": \"N\"})\nprint(m.transcript)\nd = m.data\nprint(\"stored rows:\", len(d), \"= 5 runs x\", len(d) // 5)",
+   "out": "menu    Integrate -> (R)ange\nfield   Range Integrate.Range over = iapp (was V)\nfield   Range Integrate.Steps = 4 (was 20)\nfield   Range Integrate.Start = 0.05 (was 0)\nfield   Range Integrate.End = 0.25 (was 1)\nfield   Range Integrate.Reset storage (Y/N) = N (was Y)\n\nstored rows: 4005 = 5 runs x 801",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Other ways to start.** Initialconds > Periodic (XPP 8.1) gives exactly\none period of a stable orbit (see \"Analysis tools\"); New asks for each\ninitial value;\nBackward integrates backwards in time (here it stops when `ik` passes\nXPP's bound, as in the GUI)."
+  },
+  {
+   "code": "m.set(total=20, iapp=0.0)\nm.buttons.initialconds.new(-0.1, 0.02)\nprint(\"new ICs:\", m.ics.as_dict())\nback = m.buttons.initialconds.backward()\nprint(\"backward run: t from\", m.data.t[0], \"to\", m.data.t[-1])",
+   "out": "new ICs: {'V': -0.1, 'W': 0.02}\nbackward run: t from 0.0 to -8.449999809265137",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Methods compared.** A stiff solver with tolerances (CVODE through its\nbutton, which asks for the tolerances) against fixed-step RK4."
+  },
+  {
+   "code": "m.set(total=200, dt=0.05, iapp=0.1, v=-0.3, w=0)\nrk = m.run(meth=\"rk4\")\nm.buttons.numerics.method.cvode(1e-10, 1e-10)\ncv = m.run()\nprint(m.numerics[\"meth\"], \" largest |v_rk4 - v_cvode| =\", f\"{np.abs(rk['v'] - cv['v']).max():.2e}\")",
+   "out": "cvode  largest |v_rk4 - v_cvode| = 5.23e-06",
+   "figs": [],
+   "sec": 0.0
+  }
+ ],
+ "05_phaseplane": [
+  {
+   "md": "## Phase plane: nullclines, equilibria, direction fields\n\n`nullclines()` asks XPP to compute the nullclines in a 2D view and returns\nthem as arrays of (x, y) points, with NaN rows between separate pieces.\nThe key is the variable whose right-hand side is zero."
+  },
+  {
+   "code": "import numpy as np\nimport matplotlib.pyplot as plt\nfrom pathlib import Path\nimport pyxpp\n\nPKG = Path(pyxpp.__file__).resolve().parents[1]   # the pyauto-xpp folder (examples/lecar.ode is in it)\n\nm = pyxpp.load(PKG / \"examples\" / \"lecar.ode\")\nm.pars[\"iapp\"] = 0.05\nnc = m.nullclines(x=\"v\", y=\"w\", xlo=-0.6, xhi=0.5, ylo=-0.1, yhi=0.6)\nprint({k: a.shape for k, a in nc.items()})",
+   "out": "{'V': (317, 2), 'W': (180, 2)}",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "`view()` sets the 2D window on its own (Viewaxes > 2D); `mesh=` refines\nthe grid XPP uses for the nullclines (nUmerics > Ncline ctrl)."
+  },
+  {
+   "code": "m.view(x=\"v\", y=\"w\", xlo=-0.6, xhi=0.5, ylo=-0.1, yhi=0.6)\nfine = m.nullclines(mesh=200)\nprint(\"points with the default mesh:\", len(nc[\"V\"]), \"  with mesh=200:\", len(fine[\"V\"]))",
+   "out": "points with the default mesh: 317   with mesh=200: 1583",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Equilibria.** `equilibrium(guess)` is Newton's method (the core of\nSing pts > Go) from a guess (a dict, a sequence, or the current initial\nconditions). It returns the point, its eigenvalues and its stability.\nAt iapp = 0.05 Morris-Lecar has three equilibria."
+  },
+  {
+   "code": "eqs = []\nfor guess in ({\"v\": -0.4, \"w\": 0.0}, {\"v\": -0.15, \"w\": 0.03}, {\"v\": 0.0, \"w\": 0.3}):\n    e = m.equilibrium(guess)\n    eqs.append(e)\n    print(e, \" eigenvalues:\", np.round(e.eigenvalues, 4))",
+   "out": "<Equilibrium stable V=-0.382505, W=0.00128554>  eigenvalues: [-0.4028+0.j -0.8904+0.j]\n<Equilibrium unstable V=-0.142534, W=0.0340492>  eigenvalues: [ 1.03 +0.j -0.301+0.j]\n<Equilibrium unstable V=0.0276105, W=0.269241>  eigenvalues: [0.5204+0.7811j 0.5204-0.7811j]",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "The same with the button (Sing pts > Go): XPP asks whether to print the\neigenvalues, and puts the result in the log. Sing pts > Monte Carlo\nsearches from many random guesses."
+  },
+  {
+   "code": "m.ics.update(v=-0.15, w=0.03)\nn = len(m.log)\nm.buttons.sing_pts.go(True, False)        # print eigenvalues: yes; draw strong sets: no\nprint(m.transcript)\nprint(m.log[n:].strip())\nn = len(m.log)\nm.buttons.sing_pts.monte_carlo(0, 0, 200, 1e-3, -0.6, 0.5, -0.1, 0.6)\nprint(m.log[n:].strip())",
+   "out": "menu    Equilibria -> (G)o\nchoice  Print eigenvalues? (YES/NO) -> YES\nchoice  Draw Invariant Sets? (YES/NO) -> NO\n\nEigenvalues:\n 1.029978  +  i  0.000000 \n -0.301007  +  i  0.000000\nFound: 0\n x[0]= 0.0276102   eval= 0.520417 + I 0.781099 \n x[1]= 0.26924   eval= 0.520417 + I -0.781099 \nFound: 1\n x[0]= -0.382505   eval= -0.402765 + I 0 \n x[1]= 0.00128561   eval= -0.890364 + I 0 \nFound: 2\n x[0]= -0.142534   eval= 1.02998 + I 0 \n x[1]= 0.0340493   eval= -0.301007 + I 0",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Phase portrait** from these pieces, with trajectories from a few starts."
+  },
+  {
+   "code": "fig, ax = plt.subplots(figsize=(6, 4.5))\nax.plot(*fine[\"V\"].T, \"C1\", label=\"v' = 0\")\nax.plot(*fine[\"W\"].T, \"C2\", label=\"w' = 0\")\nfor v0 in (-0.5, -0.3, -0.1, 0.2, 0.4):\n    tr = m.run(total=150, v=v0, w=0.0)\n    ax.plot(tr[\"v\"], tr[\"w\"], \"k\", lw=0.6)\nfor e in eqs:\n    ax.plot(e.x[\"V\"], e.x[\"W\"], \"o\", color=\"k\" if e.stable else \"w\", mec=\"k\", ms=7)\nax.set(xlim=(-0.6, 0.5), ylim=(-0.1, 0.6), xlabel=\"v\", ylabel=\"w\", title=\"Morris-Lecar, iapp = 0.05\")\nax.legend(fontsize=8)\nfig.tight_layout(); fig.savefig(FIG / \"phase_plane.png\", dpi=110)",
+   "out": "",
+   "figs": [
+    "phase_plane.png"
+   ],
+   "sec": 0.1
+  },
+  {
+   "md": "**Direction field and XPP's own picture.** Dir.field/flow draws arrows on\na grid; Graphic stuff > SVG writes the window as XPP draws it."
+  },
+  {
+   "code": "m.buttons.dir_field.direct_field(12)\nm.buttons.nullcline.new()\nm.buttons.graphic_stuff.svg(\"pp.svg\")\nprint(\"XPP wrote\", (m.workdir / \"pp.svg\").stat().st_size, \"bytes:\", m.transcript.strip().splitlines()[-1])\nimport shutil\nshutil.copy(m.workdir / \"pp.svg\", FIG / \"xpp_phase_plane.svg\")",
+   "out": "XPP wrote 308675 bytes: file    Print svg (*.svg) -> pp.svg",
+   "figs": [
+    "xpp_phase_plane.svg"
+   ],
+   "sec": 0.1
+  },
+  {
+   "md": "**Equilibria along a parameter** without AUTO: Sing pts > Range follows\nthe equilibrium found from the current initial data as a parameter\nchanges, and stores the results in the data browser: column `t` holds the\nparameter, then the equilibrium."
+  },
+  {
+   "code": "m.ics.update(v=-0.4, w=0.0)\nm.buttons.sing_pts.range({\"Range over\": \"iapp\", \"Steps\": 20, \"Start\": 0, \"End\": 0.06})\nd = m.data\nprint(d)\nprint(\"iapp, v, w:\")\nprint(np.round(d.array[::5, :3], 5))",
+   "out": "<Trajectory 21 rows x ['t', 'V', 'W', 'CUR', 'ICA', 'IK', 'RATE']>\niapp, v, w:\n[[ 0.0000e+00 -4.9562e-01  2.7000e-04]\n [ 1.5000e-02 -4.6349e-01  4.2000e-04]\n [ 3.0000e-02 -4.3021e-01  6.7000e-04]\n [ 4.5000e-02 -3.9496e-01  1.0800e-03]\n [ 6.0000e-02 -3.5588e-01  1.8600e-03]]",
+   "figs": [],
+   "sec": 0.0
+  }
+ ],
+ "06_buttons": [
+  {
+   "md": "## Every XPP button from Python\n\n`m.buttons` mirrors XPP's main window menu by menu, with XPP's keyboard\nshortcuts; `m.auto.buttons` mirrors the AUTO window. `pyxpp.show` prints a\ntree (here the start of it; the whole tree has about 230 buttons)."
+  },
+  {
+   "code": "import io\nimport contextlib\nimport warnings\nfrom pathlib import Path\nimport pyxpp\n\nPKG = Path(pyxpp.__file__).resolve().parents[1]   # the pyauto-xpp folder (examples/lecar.ode is in it)\n\nm = pyxpp.load(PKG / \"examples\" / \"lecar.ode\")\nbuf = io.StringIO()\nwith contextlib.redirect_stdout(buf):\n    pyxpp.show(m.buttons)\ntree = buf.getvalue().splitlines()\nprint(\"\\n\".join(tree[:22]))\nprint(f\"... {len(tree)} lines in all\")\nprint(m.buttons.numerics.method, \" \", m.buttons.numerics.method.cvode)",
+   "out": "initialconds           [I]  Integrate the equations\n  range                  [R]  Integrate over a range of parameters, init data, etc\n  two_par_range          [2]  Integrate over range of 2 parameters, init data, etc\n  last                   [L]  Pick up from last step of previous solution\n  old                    [O]  Use current initial data\n  go                     [G]  Use current initial data\n  mouse                  [M]  Specify initial data with mouse (answer: 'ix,iy' pixels)\n  shift                  [S]  Pick up from last step and shift T to latest time\n  new                    [N]  Input new initial data, one prompt per variable\n  shoot                  [H]  Use the initial data from last shooting from fixed pt\n  file                   [F]  Read init data from file\n  formula                [U]  Type in function of 't' for t^th equation\n  mice                   [I]  Repeated ICs using mouse\n  dae_guess              [D]  Guess new values for DAE\n  backward               [B]  Integrate backwards\n  periodic               [P]  XPP 8.1: one period of the stable orbit, from its peak\ncontinue_              [C]  Continue integration for specified time\nnullcline              [N]  Draw nullclines\n  new                    [N]  Compute new nullclines\n  restore                [R]  Redraw last nullclines\n  auto                   [A]  Set automatic redraw\n  manual                 [M]  Only redraw when asked\n... 209 lines in all\n<menu 'Method': discrete, euler, mod_euler, runge_kutta, adams, gear, volterra, backeul, qualst_rk4, stiff, cvode, dopri5, dopri83, rosen23, symplectic>   <button '(C)Vode' keys=M C>",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Answers.** A button's positional arguments answer what XPP asks next, in\norder:\n\n| XPP asks | give |\n|---|---|\n| a number or text prompt | the value |\n| a menu | the key letter or (the start of) the entry's label |\n| a dialog with several fields | a dict `{field: value}` (fields not given keep their value) |\n| a file name | the name (relative to `m.workdir`) |\n| a yes/no question | `True` / `False` |\n\nAnything not answered takes XPP's default, as if Enter were pressed.\n`m.transcript` shows each question and the answer used."
+  },
+  {
+   "code": "m.buttons.numerics.total(300)                       # a prompt\nm.buttons.numerics.method(\"Runge\")                  # a menu, by label\nm.buttons.numerics.method(\"c\", 1e-9, 1e-9)          # by key; then CVODE's tolerance prompts\nprint(m.transcript)\nm.buttons.viewaxes.two_d({\"X-axis\": \"v\", \"Y-axis\": \"w\", \"Xmin\": -0.6, \"Xmax\": 0.5})\nprint(m.transcript)",
+   "out": "menu    Method -> (C)Vode\nprompt  Relative tol: [0.001] -> 1e-09\nprompt  Abs. Toler: [0.001] -> 1e-09\nprompt  Banded system(0/1)? [0] -> (default)\n\nmenu    Axes -> 2D\nfield   2D View.X-axis = v (was V)\nfield   2D View.Y-axis = w (was W)\nfield   2D View.Xmin = -0.6 (was -0.6)\nfield   2D View.Xmax = 0.5 (was 1.2)",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Finding out what a button asks.** Press it with no answers and read the\ntranscript; a dialog given a wrong field name lists its fields; a menu\ngiven a wrong entry lists its entries."
+  },
+  {
+   "code": "m.buttons.numerics.sing_pt_ctrl()\nprint(m.transcript)\nfor call in (lambda: m.buttons.numerics.poincare_map.section({\"?\": 0}),\n             lambda: m.buttons.numerics.method(\"nonsense\")):\n    try:\n        call()\n    except pyxpp.XPPError as e:\n        print(\"XPPError:\", str(e).splitlines()[0])\n# A button that fails half way keeps what XPP had already done: here the\n# Poincare dialog had already switched the map on, so switch it off again.\nm.buttons.numerics.poincare_map.none()",
+   "out": "prompt  Maximum iterates : [100] -> (default)\nprompt  Newton tolerance : [0.001] -> (default)\nprompt  Jacobian epsilon : [0.001] -> (default)\n\nXPPError: dialog 'Poincare map' has no field '?' (fields: 'Variable' 'Section' 'Direction (+1,-1,0)' 'Stop on sect(y/n)' )\nXPPError: menu 'Method' has no entry 'nonsense' (entries: '(D)iscrete' '(E)uler' '(M)od. Euler' '(R)unge-Kutta' '(A)dams' '(G)ear' '(V)olterra' '(B)ackEul' '(Q)ualst.RK4' '(S)tiff' '(C)Vode' 'DoPri(5)' 'DoPri(8)3' 'Rosen(2)3' 'sYmplectic')",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Answers that were not asked for** give an `AnswersNotUsed` warning (the\nbutton asked less than you thought)."
+  },
+  {
+   "code": "with warnings.catch_warnings(record=True) as w:\n    warnings.simplefilter(\"always\")\n    m.buttons.erase(\"not asked\")\nprint([str(x.category.__name__) for x in w])",
+   "out": "['AnswersNotUsed']",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Raw keys.** `m.press(key, *answers)` presses one key in the main window,\nas typed in XPP; `m.press(\"esc\")` goes back to the main menu.\n`m.command(id)` runs an internal command number (`M_*` in `menudrive.h`)."
+  },
+  {
+   "code": "m.press(\"u\")                       # open nUmerics\nm.press(\"esc\")\nm.press(\"i\", \"g\")                  # Initialconds > Go\nprint(m.transcript or \"(no questions)\", \" rows:\", len(m.data))",
+   "out": "menu    Integrate -> (G)o\n  rows: 6001",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**The File menu.** Save and read `.set` files (parameters, initial data,\nnumerics, graphics), print the source, write a readable summary, clone the\nfile, evaluate expressions with the calculator, change right-hand sides.\nEvery button that writes a file asks \"File Exists! Overwrite?\" when the\nfile is there already; without the answer `True` it keeps the old file."
+  },
+  {
+   "code": "m.set(iapp=0.07, total=120)\nm.buttons.file.write_set(\"run1.set\")                # a new file\nm.buttons.file.write_set(\"run1.set\", True)          # it exists now: XPP asks \"Overwrite?\" -> True\nm.set(iapp=0.0, total=30)\nm.buttons.file.read_set(\"run1.set\")\nprint(\"after read_set: iapp =\", m.pars[\"iapp\"], \" total =\", m.numerics[\"total\"])\n\nm.buttons.file.save_info(\"info.txt\")\nprint((m.workdir / \"info.txt\").read_text().splitlines()[:8])\n\nm.buttons.file.clone(\"copy_of_lecar.ode\")\nprint(\"clone written:\", (m.workdir / \"copy_of_lecar.ode\").exists())\n\nm.buttons.file.calculator(\"iapp*100\", \"exp(1)\", pyxpp.ESC)   # ESC ends the calculator\nprint(m.transcript)",
+   "out": "after read_set: iapp = 0.07  total = 120.0\n['File: pyauto-xpp/examples/lecar.ode ', '', ' Equations... ', 'dV/dT=(IAPP+GL*(VL-V)+GK*W*(VK-V)-ICA)', 'dW/dT=(LAMN(V)*(NINF(V)-W))', 'CUR=IAPP', 'ICA=ICA', 'IK=GK*W*(V-VK)']\nclone written: True\ncalc    iapp*100 = 7.000000000000001\ncalc    exp(1) = 2.718281828459045",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "code": "# Edit > RHS's: a dialog whose fields are dV/dT, dW/dT and the aux names;\n# the model changes in place\nm.buttons.file.edit.rhs({\"dW/dT\": \"0\"})\nprint(m.transcript.strip())\ntr = m.run(total=20, v=-0.3, w=0.1)\nprint(\"w stays at 0.1 after editing w' = 0:\", tr[\"w\"].min(), tr[\"w\"].max())",
+   "out": "menu    Edit Stuff -> RHS's\nfield   Right Hand Sides.dW/dT = 0 (was (LAMN(V)*(NINF(V)-W)))\nw stays at 0.1 after editing w' = 0: 0.10000000149011612 0.10000000149011612",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Transcript of anything.** `m.log` holds everything XPP and AUTO printed\nsince loading; `m.transcript` the questions of the last call only."
+  },
+  {
+   "code": "print(len(m.log.splitlines()), \"lines in the log; last:\", m.log.strip().splitlines()[-1])",
+   "out": "54 lines in the log; last: ICA is a duplicate name",
+   "figs": [],
+   "sec": 0.0
+  }
+ ],
+ "07_graphics": [
+  {
+   "md": "## XPP's own graphics, and checking them against the data\n\nXPP still draws everything (into an invisible window). Graphic stuff >\nSVG and Postscript write what it drew, so a figure can come from XPP\nitself; `pyxpp.plot` has helpers that make the matching matplotlib figure\nand check that XPP's curve and the data agree to the pixel."
+  },
+  {
+   "code": "import shutil\nimport matplotlib.pyplot as plt\nfrom pathlib import Path\nimport pyxpp\n\nPKG = Path(pyxpp.__file__).resolve().parents[1]   # the pyauto-xpp folder (examples/lecar.ode is in it)\nfrom pyxpp import plot as xplot\n\nm = pyxpp.load(PKG / \"examples\" / \"lecar.ode\")\ntr = m.run(iapp=0.1, total=150)\nm.buttons.xi_vs_t(\"v\")                              # Xi vs t: plot v against t\nm.buttons.window.fit()                              # Window > Fit\nm.buttons.graphic_stuff.svg(\"v_vs_t.svg\")\nm.buttons.graphic_stuff.postscript({\"BW-0/Color-1\": 1}, \"v_vs_t.ps\")\nprint(sorted(p.name for p in m.workdir.glob(\"v_vs_t.*\")))\nshutil.copy(m.workdir / \"v_vs_t.svg\", FIG / \"xpp_v_vs_t.svg\")",
+   "out": "['v_vs_t.ps', 'v_vs_t.svg']",
+   "figs": [
+    "xpp_v_vs_t.svg"
+   ],
+   "sec": 0.0
+  },
+  {
+   "md": "**More curves in one window.** Graphic stuff > Add curve adds a curve (any\ncolumns, colour and line type); Freeze keeps the current curve when the\nnext run is drawn; Export data writes the numbers of the curves on the\nscreen."
+  },
+  {
+   "code": "m.buttons.graphic_stuff.add_curve({\"X-axis\": \"t\", \"Y-axis\": \"w\", \"Color\": 2})\nm.buttons.window.window({\"Y Lo\": -0.45, \"Y Hi\": 0.5})\nm.buttons.graphic_stuff.export_data(\"curves.dat\")\nprint((m.workdir / \"curves.dat\").read_text().splitlines()[:3])\nm.buttons.graphic_stuff.svg(\"two_curves.svg\")\nshutil.copy(m.workdir / \"two_curves.svg\", FIG / \"xpp_two_curves.svg\")\nm.buttons.graphic_stuff.remove_all()",
+   "out": "['0 0 0 ', '0.05 0.0201254 0.00388237 ', '0.1 0.0420657 0.00855028 ']",
+   "figs": [
+    "xpp_two_curves.svg"
+   ],
+   "sec": 0.0
+  },
+  {
+   "md": "**3D views.** Viewaxes > 3D takes the axes, their ranges, and the 2D\nwindow the projected box is drawn in (`XLo`..`YHi`, about -2..2 for the\nwhole box), in one dialog; 3d-params sets the viewing angles."
+  },
+  {
+   "code": "r = pyxpp.load(text=\"\"\"\nx'=-y-z\ny'=x+a*y\nz'=b+z*(x-c)\npar a=0.2,b=0.2,c=5.7\ninit x=1,y=1,z=0\n@ total=200,dt=0.02,trans=100\ndone\n\"\"\")\nrt = r.run()\nr.buttons.viewaxes.three_d({\"X-axis\": \"x\", \"Y-axis\": \"y\", \"Z-axis\": \"z\", \"Xmin\": -12, \"Xmax\": 12,\n                            \"Ymin\": -12, \"Ymax\": 12, \"Zmin\": 0, \"Zmax\": 25,\n                            \"XLo\": -2, \"XHi\": 2, \"YLo\": -2, \"YHi\": 2})\nr.press(\"r\")                                        # Restore: redraw\nr.buttons.graphic_stuff.svg(\"roessler3d.svg\")\nshutil.copy(r.workdir / \"roessler3d.svg\", FIG / \"xpp_roessler3d.svg\")\nprint(r.transcript.strip().splitlines()[-1])",
+   "out": "file    Print svg (*.svg) -> roessler3d.svg",
+   "figs": [
+    "xpp_roessler3d.svg"
+   ],
+   "sec": 0.0
+  },
+  {
+   "md": "**The helpers in `pyxpp.plot`.** Each makes a matplotlib figure from XPP's\ndata; the `xpp_*` ones have XPP draw the same view as SVG; `compare_*`\nfit XPP's drawn curve to the data and report the largest distance in\npixels (rounding to whole pixels alone gives up to about 0.5-1 px).\n\n| helper | does |\n|---|---|\n| `window(tr, var)` | t range and y range with a margin |\n| `plot_x_vs_t(tr, var, lim)` | one variable against t |\n| `plot_all_vs_t(tr, names)` | a panel per variable |\n| `plot_projection(tr, x, y)` | y against x |\n| `plot_3d(tr, x, y, z)` | 3D trajectory |\n| `xpp_graph(m, var, lim, path)` | XPP's own var-vs-t SVG |\n| `xpp_graph2d(m, x, y, path)` / `xpp_graph3d(m, x, y, z, path)` | XPP's own 2D / 3D SVG |\n| `compare_with_xpp_graph(tr, var, svg)` | pixel check for var vs t |\n| `compare_curve(tr, cols, svg)` | pixel check for any 2D / 3D view |"
+  },
+  {
+   "code": "lim = xplot.window(tr, \"v\")\nfig, ax = xplot.plot_x_vs_t(tr, \"v\", lim, title=\"v against t (matplotlib)\")\nfig.savefig(FIG / \"mpl_v_vs_t.png\", dpi=100)\nsvg = xplot.xpp_graph(m, \"v\", lim, \"check_v.svg\")\nprint(\"v vs t:\", xplot.compare_with_xpp_graph(tr, \"v\", svg))\n\nfig = xplot.plot_all_vs_t(rt, [\"x\", \"y\", \"z\"], title=\"Roessler\")\nfig.savefig(FIG / \"mpl_all_vs_t.png\", dpi=90)\nfig, ax = xplot.plot_3d(rt, \"x\", \"y\", \"z\", title=\"Roessler\")\nfig.savefig(FIG / \"mpl_3d.png\", dpi=90)\nsvg2 = xplot.xpp_graph2d(r, \"x\", \"y\", \"check_xy.svg\", tr=rt)\nsvg3 = xplot.xpp_graph3d(r, \"x\", \"y\", \"z\", \"check_xyz.svg\", tr=rt)\nc2 = xplot.compare_curve(rt, [\"x\", \"y\"], svg2)\nc3 = xplot.compare_curve(rt, [\"x\", \"y\", \"z\"], svg3)\nprint(\"x-y view: max\", round(c2[\"max_px\"], 2), \"px;  3D view: max\", round(c3[\"max_px\"], 2), \"px\")",
+   "out": "v vs t: {'xpp_points': 3001, 'data_points': 3001, 'max_px': 0.5070497799249551, 'mean_px': 0.3334538358612596, 'ok': True}\nx-y view: max 0.51 px;  3D view: max 0.51 px",
+   "figs": [
+    "mpl_3d.png",
+    "mpl_all_vs_t.png",
+    "mpl_v_vs_t.png"
+   ],
+   "sec": 0.3
+  }
+ ],
+ "08_analysis": [
+  {
+   "md": "## Analysis tools in nUmerics\n\nThese buttons replace XPP's data browser with their result (a histogram,\na spectrum, an adjoint, ...). `m.data` always shows what the browser\nshows; nUmerics > stocHast > Data puts the solution back.\n\n**Statistics of a column, histogram, Fourier series.**"
+  },
+  {
+   "code": "import numpy as np\nimport matplotlib.pyplot as plt\nfrom pathlib import Path\nimport pyxpp\n\nPKG = Path(pyxpp.__file__).resolve().parents[1]   # the pyauto-xpp folder (examples/lecar.ode is in it)\n\nm = pyxpp.load(PKG / \"examples\" / \"lecar.ode\")\nS = m.buttons.numerics.stochast\ntr = m.run(iapp=0.1, total=400, trans=200, dt=0.05)\n\nS.stat(\"v\")                                       # mean and standard deviation of a column\nprint(m.transcript.strip().splitlines()[-1], \"  numpy:\", round(float(tr[\"v\"].mean()), 6), round(float(tr[\"v\"].std()), 6))\n\nS.histogram(50, -0.4, 0.3, \"v\", \"\")               # bins, low, high, variable, condition\nh = m.data\nprint(\"histogram:\", h, \" columns t = bin, V = count; total count\", int(h[\"v\"].sum()))\nS.data()                                          # back to the solution\nS.fourier(\"v\")\nf = m.data\nprint(\"Fourier:\", f, \" t = frequency, V = cosine, W = sine coefficient\")\nk = 1 + np.argmax(np.hypot(f[\"v\"][1:], f[\"w\"][1:]))\nprint(\"strongest mode: frequency\", round(float(f.t[k]), 5), \"-> period\", round(1 / float(f.t[k]), 3),\n      \"(frequency step 1/200: the run is 200 long)\")\nS.data()\n\nfig, ax = plt.subplots(1, 2, figsize=(10, 3))\nax[0].bar(h.t, h[\"v\"], width=0.014); ax[0].set(xlabel=\"v\", ylabel=\"count\", title=\"histogram of v\")\nax[1].plot(f.t[:60], np.hypot(f[\"v\"], f[\"w\"])[:60], \".-\"); ax[1].set(xlabel=\"frequency\", title=\"|Fourier coefficient|\")\nfig.tight_layout(); fig.savefig(FIG / \"hist_fourier.png\", dpi=100)",
+   "out": "message Mean=-0.186542 Std. Dev. = 0.180086   numpy: -0.186542 0.180086\nhistogram: <Trajectory 51 rows x ['t', 'V', 'W', 'CUR', 'ICA', 'IK', 'RATE']>  columns t = bin, V = count; total count 4001\nFourier: <Trajectory 1999 rows x ['t', 'V', 'W', 'CUR', 'ICA', 'IK', 'RATE']>  t = frequency, V = cosine, W = sine coefficient\nstrongest mode: frequency 0.06 -> period 16.667 (frequency step 1/200: the run is 200 long)",
+   "figs": [
+    "hist_fourier.png"
+   ],
+   "sec": 0.2
+  },
+  {
+   "md": "**Largest Liapunov exponent** of the current orbit (about 0 on a limit\ncycle)."
+  },
+  {
+   "code": "S.liapunov(0)                                     # 0: no range over parameters\nprint(m.transcript.strip().splitlines()[-1])",
+   "out": "message Maximal exponent is -0.00223792",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Poincare map.** With a section set, XPP stores only the crossings\n(here v = 0 going up); the times between them are the period."
+  },
+  {
+   "code": "P = m.buttons.numerics.poincare_map\nP.section({\"Variable\": \"v\", \"Section\": 0, \"Direction (+1,-1,0)\": 1})\ncross = m.run(trans=0, total=300)\nprint(cross, \" periods:\", np.round(np.diff(cross.t)[-3:], 4))\nP.none()",
+   "out": "<Trajectory 18 rows x ['t', 'V', 'W', 'CUR', 'ICA', 'IK', 'RATE']>  periods: [16.4746 16.4744 16.4745]",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**One period of the orbit** (XPP 8.1: Initialconds > Periodic). After a\nrun has settled on a stable orbit, Periodic finds the period in double\nprecision, puts the initial condition at the peak of the plotted\nvariable, sets `total` to the period and `trans` to 0, and integrates one\nperiod. This is the start that AUTO's periodic runs and the adjoint need."
+  },
+  {
+   "code": "m.run(iapp=0.1, total=300, dt=0.01, trans=0)\nm.buttons.xi_vs_t(\"v\")                              # Periodic starts at the peak of the plotted variable\nm.buttons.initialconds.periodic()\nprint(m.transcript.strip().splitlines()[-1])\norbit = m.data\nT = m.numerics[\"total\"]\nprint(f\"total = {T:.6f}, trans = {m.numerics['trans']}, v(0) = {orbit['v'][0]:.6f} = max v {orbit['v'].max():.6f}\")\nprint(\"XPP's note:\", m.log.strip().splitlines()[-1].strip())",
+   "out": "message Period T=16.4745. Starting at max of V; total set to T\ntotal = 16.474500, trans = 0.0, v(0) = 0.261500 = max v 0.261500\nXPP's note: note: T / (dt*njmp) = 1647.45 is not a whole number, so the stored orbit will stop 0.0045 short of one period",
+   "figs": [],
+   "sec": 0.1
+  },
+  {
+   "md": "**Adjoint and interaction function** (nUmerics > Averaging) on that one\nperiod. XPP 8.1 closes the orbit by Newton steps, normalises the adjoint,\nand also computes the isostable quantities. Make H asks for the coupling\nof each equation (`v'` is the other cell's v)."
+  },
+  {
+   "code": "A = m.buttons.numerics.averaging\nn = len(m.log)\nA.new_adj()\nadj = m.data\nprint(f\"adjoint: {adj}, max of the V component {adj['v'].max():.4f}\")\nprint(\"\\n\".join(l.strip() for l in m.log[n:].strip().splitlines()[-4:]))\nA.make_h(\"v'-v\", \"0\")                              # diffusive coupling through v\nH = m.data\nprint(\"H:\", H, \" H(0) =\", round(float(H[\"v\"][0]), 5), \"(0 for diffusive coupling: in phase, v' - v = 0)\")",
+   "out": "adjoint: <Trajectory 401 rows x ['t', 'V', 'W', 'CUR', 'ICA', 'IK', 'RATE']>, max of the V component 58.7159\nZ at phase 0: 1.9602318 3.8400032\nisostable: kappa = -0.6065426415, nu = exp(kappa T) = 4.574232013e-05, next multiplier / nu = 0; I.rho = 1 to 2.4e-15, Z.rho = 0 to 7.1e-15\nB found, periodic to 3.6e-17\n(the grid orbit was closed by Newton steps: closure error 4.32e-09 -> 2.22e-15)\nH: <Trajectory 401 rows x ['t', 'V', 'W', 'CUR', 'ICA', 'IK', 'RATE']>  H(0) = 0.0 (0 for diffusive coupling: in phase, v' - v = 0)",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Phase reduction to second order** (XPP 8.1, also in Averaging): the\nisostable response I(t), the Floquet exponent's function rho, the\nsecond-order phase correction B(t), and the second-order interaction\nfunction H2 of two coupled cells. Each replaces the browser's data; H2\nalso reports gamma, computed two ways."
+  },
+  {
+   "code": "curves = {\"adjoint Z (V)\": (adj.t, adj[\"v\"]), \"H\": (H.t, H[\"v\"])}\nfor name, button in ((\"isostable I (V)\", A.isostable), (\"Floquet rho (V)\", A.floquet_rho),\n                     (\"B correction (V)\", A.b_correction)):\n    button()\n    d = m.data\n    curves[name] = (d.t.copy(), d[\"v\"].copy())\nn = len(m.log)\nA.h2()\nh2 = m.data\ncurves[\"H2\"] = (h2.t, h2[\"v\"])\nprint(\"\\n\".join(l.strip() for l in m.log[n:].strip().splitlines()))\nfig, axs = plt.subplots(2, 3, figsize=(12, 5.5))\nfor ax, (name, (x, y)) in zip(axs.flat, curves.items()):\n    ax.plot(x, y); ax.axhline(0, color=\"0.8\", lw=0.8); ax.set_title(name, fontsize=9)\nfig.tight_layout(); fig.savefig(FIG / \"phase_reduction.png\", dpi=100)\nA.orbit()                                          # back to the orbit",
+   "out": "H2 computed (two coupled cells, second order): H2(0)=0, max |H2|=2.018115\ng2+g3 = -2 odd(H2); gamma = (g2'(0)+g3'(0))/4 = -0.046242461 (from A: -0.046242462, from Bf: -0.046242461)",
+   "figs": [
+    "phase_reduction.png"
+   ],
+   "sec": 0.4
+  },
+  {
+   "md": "**Boundary-value problems** (Bndryval): `bndry` lines give the conditions\n(`x` is the value at the start, `x'` at the end). Here x'' = -x with\nx(0) = 0, x(pi/2) = 1, whose solution is sin t: the shooting finds y(0) = 1."
+  },
+  {
+   "code": "b = pyxpp.load(text=\"\"\"\nx'=y\ny'=-x\nbndry x\nbndry x'-1\ninit x=0,y=0.3\n@ total=1.5707963,dt=0.01\ndone\n\"\"\")\nb.buttons.bndryval.show()\nbt = b.data\nprint(\"y(0) =\", round(float(bt[\"y\"][0]), 6), \"  x(pi/2) =\", round(float(bt[\"x\"][-1]), 6),\n      \"  largest |x - sin t| =\", f\"{np.abs(bt['x'] - np.sin(bt.t)).max():.1e}\")",
+   "out": "y(0) = 1.0   x(pi/2) = 1.0   largest |x - sin t| = 3.4e-07",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Delay equations.** `delay(x, tau)` needs the maximum delay in the\n`delay` option. x' = -x(t - tau) is stable for tau < pi/2 and oscillates\nwith growing amplitude beyond."
+  },
+  {
+   "code": "d = pyxpp.load(text=\"\"\"\nx'=-delay(x,tau)\npar tau=1\ninit x=1\n@ delay=5,total=60,dt=0.01\ndone\n\"\"\")\nfig, ax = plt.subplots(figsize=(7, 2.8))\nfor tau in (1.0, 1.5, 1.65):\n    run = d.run(tau=tau)\n    ax.plot(run.t, run[\"x\"], label=f\"tau = {tau}\")\n    print(f\"tau = {tau}: |x| at the end {abs(float(run['x'][-1])):.3g}\")\nax.legend(); ax.set_xlabel(\"t\"); fig.tight_layout(); fig.savefig(FIG / \"delay.png\", dpi=100)",
+   "out": "tau = 1.0: |x| at the end 8.56e-09\ntau = 1.5: |x| at the end 0.135\ntau = 1.65: |x| at the end 3.92",
+   "figs": [
+    "delay.png"
+   ],
+   "sec": 0.1
+  },
+  {
+   "md": "**Many noisy runs.** stocHast > Compute repeats a stochastic run (a range\ndialog: here 200 runs from the same start); Mean and Variance then show\nthe average over the runs at each time. For dx = -x dt + 0.3 dW the\nvariance tends to 0.045."
+  },
+  {
+   "code": "s = pyxpp.load(text=\"\"\"\nwiener w\nx'=-x+0.3*w\ninit x=1\n@ total=5,dt=0.01,meth=euler\ndone\n\"\"\")\nSS = s.buttons.numerics.stochast\nSS.new_seed(12345)\nSS.compute({\"Range over\": \"x\", \"Steps\": 200, \"Start\": 1, \"End\": 1})\nSS.mean(); mean = s.data\nSS.variance(); var = s.data\ntt = mean.t\nprint(\"mean at t=1, 5:\", round(float(mean[\"x\"][100]), 4), round(float(mean[\"x\"][-1]), 4), \"  theory\", round(np.exp(-1), 4), round(np.exp(-5), 4))\nprint(\"variance at t=5:\", round(float(var[\"x\"][-1]), 4), \"  theory\", round(0.045 * (1 - np.exp(-10)), 4))",
+   "out": "mean at t=1, 5: 0.362 0.0036   theory 0.3679 0.0067\nvariance at t=5: 0.0431   theory 0.045",
+   "figs": [],
+   "sec": 0.0
+  }
+ ],
+ "09_auto_one": [
+  {
+   "md": "## AUTO I: one-parameter diagrams\n\n`m.auto` is XPP's own AUTO window (XPP 8.1's built-in AUTO, not\nAUTO-07p). A run returns the new points as a `Diagram`; `m.auto.diagram`\nis the whole diagram so far.\n\n**Start on an equilibrium.** AUTO starts from the current initial\nconditions, which must be at (or very near) an equilibrium: integrate to\nrest first, then `run(param, start=\"steady\")`. Numerics can be given in\nthe same call."
+  },
+  {
+   "code": "import numpy as np\nimport matplotlib.pyplot as plt\nfrom pathlib import Path\nimport pyxpp\n\nPKG = Path(pyxpp.__file__).resolve().parents[1]   # the pyauto-xpp folder (examples/lecar.ode is in it)\n\nm = pyxpp.load(PKG / \"examples\" / \"lecar.ode\")\nm.pars[\"iapp\"] = 0.0\nm.run(total=300)\nm.run_last(total=10)                      # sit on the equilibrium\neq = m.auto.run(\"iapp\", start=\"steady\", ds=0.01, dsmax=0.02, parmin=-0.2, parmax=0.5, nmax=2000)\nprint(eq)\nfor p in eq.labeled():\n    print(f\"  label {p.label:2d} {p.type:2s} iapp = {p.x:9.5f}  v = {p.u0['v']:8.5f}  stable: {p.stable}\")",
+   "out": "<Diagram 67 points, labels 1:EP 2:LP 3:LP 4:HB 5:EP>\n  label  1 EP iapp =   0.00000  v = -0.49562  stable: True\n  label  2 LP iapp =   0.08326  v = -0.24491  stable: False\n  label  3 LP iapp =  -0.02073  v = -0.03370  stable: False\n  label  4 HB iapp =   0.20384  v =  0.06953  stable: False\n  label  5 EP iapp =   0.51057  v =  0.12244  stable: True",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Periodic orbits from a Hopf point.** `grab` a labelled point and choose\nwhat to do there; at an HB point XPP offers periodic / extend / new point\n/ two param."
+  },
+  {
+   "code": "hb = eq.special(\"HB\")[0]\npo = m.auto.run(grab=hb.label, choice=\"periodic\", ntst=40, dsmax=0.05, nmax=400)\nprint(po)\nlp = [p for p in po.special(\"LP\")]\nprint(\"folds of periodic orbits at iapp =\", [round(p.x, 5) for p in lp])\nprint(\"period at the last point:\", round(po[-1].period, 1), \" at iapp =\", round(po[-1].x, 5))",
+   "out": "<Diagram 50 points, labels 6:LP 7:MX>\nfolds of periodic orbits at iapp = [0.24196]\nperiod at the last point: 262740.2  at iapp = 0.08326",
+   "figs": [],
+   "sec": 0.2
+  },
+  {
+   "md": "The orbits fold at iapp = 0.242 (the Hopf point is subcritical) and end\nwhere their period becomes infinite, at the lower fold of equilibria\n(iapp = 0.0833): a saddle-node on the orbit (SNIC). AUTO stops there and\nmarks the last point MX.\n\n**The Diagram and its Points.** A `Point` has the parameter values\n(`par`), the state (`u0`; for an orbit also `umax`, `umin`, `ubar`), the\nperiod, the norm, the eigenvalues (Floquet multipliers for an orbit),\nstability, the AUTO branch, point number, label and type. `par` holds\nAUTO's parameter list (at most 8; see `parameters()` below)."
+  },
+  {
+   "code": "p = lp[0]\nprint(p.type, p.label, \"branch\", p.branch, \"point\", p.pt, \" periodic:\", p.periodic, \" stable:\", p.stable)\nprint(\"  par:\", {k: round(v, 5) for k, v in p.par.items()})\nprint(\"  max v\", round(p.umax[\"v\"], 4), \" min v\", round(p.umin[\"v\"], 4), \" mean v\", round(p.ubar[\"v\"], 4))\nprint(\"  period\", round(p.period, 4), \" norm\", round(p.norm, 4))\nprint(\"  multipliers:\", np.round(p.eigenvalues, 4))\nd = m.auto.diagram\nprint(\"whole diagram:\", d, \" labels\", [q.label for q in d.labeled()][:6], \"...\")\nprint(\"label 2:\", d.label(2).type, \" branches:\", [len(b) for b in d.branches()])",
+   "out": "LP 6 branch -4 point -10  periodic: True  stable: True\n  par: {'iapp': 0.24196, 'phi': 0.333, 'v1': -0.01, 'v2': 0.15, 'v3': 0.1, 'v4': 0.145, 'gca': 1.0, 'vk': -0.7}\n  max v 0.2556  min v -0.1432  mean v 0.0203\n  period 7.4368  norm 0.3662\n  multipliers: [1.+0.j 1.+0.j]\nwhole diagram: <Diagram 117 points, labels 1:EP 2:LP 3:LP 4:HB 5:EP 6:LP 7:MX>  labels [1, 2, 3, 4, 5, 6] ...\nlabel 2: LP  branches: [67, 50]",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Tables.** `table(y)` is a numpy structured array (parameter, max and min\nof `y`, stability, ...); `to_pandas(y)` the same as a DataFrame."
+  },
+  {
+   "code": "df = d.to_pandas(\"v\")\nprint(df.head(4).to_string())\nprint(df[df.type != \"\"][[\"label\", \"type\", \"par\", \"ymax\", \"ymin\", \"period\", \"stable\", \"periodic\"]].round(4).to_string())",
+   "out": "   branch  pt  label type       par   par2      ymax      ymin      norm  period  stable  periodic\n0       1   1      1   EP  0.000000  0.333 -0.495617 -0.495617  0.495617     0.0    True     False\n1       1  -2      0       0.008503  0.333 -0.477514 -0.477514  0.477515     0.0    True     False\n2       1  -3      0       0.016895  0.333 -0.459360 -0.459360  0.459360     0.0    True     False\n3       1  -4      0       0.025147  0.333 -0.441142 -0.441142  0.441143     0.0    True     False\n     label type     par    ymax    ymin       period  stable  periodic\n0        1   EP  0.0000 -0.4956 -0.4956       0.0000    True     False\n14       2   LP  0.0833 -0.2449 -0.2449       0.0000   False     False\n29       3   LP -0.0207 -0.0337 -0.0337       0.0000   False     False\n48       4   HB  0.2038  0.0695  0.0695       4.9850   False     False\n66       5   EP  0.5106  0.1224  0.1224       4.7878    True     False\n76       6   LP  0.2420  0.2556 -0.1432       7.4368    True      True\n116      7   MX  0.0833  0.2512 -0.3965  262740.1743   False      True",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Plot.** `Diagram.plot(y)` draws it as XPP does: red stable / black\nunstable equilibria, filled / open circles for stable / unstable orbits\n(max and min of y), special points labelled."
+  },
+  {
+   "code": "fig, ax = plt.subplots(figsize=(7, 4.5))\nd.plot(y=\"v\", ax=ax)\nax.set_title(\"Morris-Lecar: equilibria and periodic orbits in iapp\")\nfig.tight_layout(); fig.savefig(FIG / \"lecar_diagram.png\", dpi=110)",
+   "out": "",
+   "figs": [
+    "lecar_diagram.png"
+   ],
+   "sec": 0.1
+  },
+  {
+   "md": "**Checked against simulation.** The stable orbit's max and min of v at\niapp = 0.1 against a long run at that current."
+  },
+  {
+   "code": "rows = d.table(\"v\")\nstab = rows[(rows[\"periodic\"]) & (rows[\"stable\"])]\nk = np.argmin(np.abs(stab[\"par\"] - 0.1))\ntr = m.run(iapp=stab[\"par\"][k], total=500, trans=400, v=0, w=0.3)\nprint(f\"iapp = {stab['par'][k]:.4f}: AUTO max/min v = {stab['ymax'][k]:.4f} / {stab['ymin'][k]:.4f};\"\n      f\"  simulation {tr['v'].max():.4f} / {tr['v'].min():.4f}\")\nm.set(trans=0)",
+   "out": "iapp = 0.1033: AUTO max/min v = 0.2632 / -0.3772;  simulation 0.2634 / -0.3772",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Settings.** `settings` shows AUTO's current numerics and choices;\n`numerics(...)` changes them (names as in the AutoNum dialog: ntst, nmax,\nnpr, ds, dsmin, dsmax, ncol, epsl, epsu, epss, parmin, parmax, normmin,\nnormmax, iad, mxbf, iid, itmx, itnw, nwtn, iads); `parameters(...)` sets\nthe list of up to 8 parameters AUTO may use; `axes(...)` the plot type\n(hi, norm, hi-lo, period, two_par, frequency, average), y variable and\nranges."
+  },
+  {
+   "code": "a = m.auto\na.numerics(ntst=60, npr=50, epsl=1e-6)\na.parameters(\"iapp\", \"gca\", \"phi\")\na.axes(\"period\", y=\"v\", xmin=0, xmax=0.3)\ns = a.settings\nprint({k: s[k] for k in (\"ntst\", \"nmax\", \"npr\", \"ds\", \"dsmax\", \"parmin\", \"parmax\", \"epsl\", \"param\", \"y\", \"plot\")})\nprint(\"AUTO parameters:\", s[\"parameters\"][:3])\na.axes(\"hi\")",
+   "out": "{'ntst': 60, 'nmax': 400, 'npr': 50, 'ds': 0.01, 'dsmax': 0.05, 'parmin': -0.2, 'parmax': 0.5, 'epsl': 1e-06, 'param': 'iapp', 'y': 'V', 'plot': 3}\nAUTO parameters: ['iapp', 'gca', 'phi']",
+   "figs": [],
+   "sec": 0.0
+  }
+ ],
+ "10_auto_two": [
+  {
+   "md": "## AUTO II: two-parameter curves\n\nGrab a fold (LP) or Hopf (HB) point and continue it in two parameters.\nAt an LP, XPP goes straight to a two-parameter run; at an HB choose\n`\"two param\"`. `param2=` names the second parameter. Run once with\n`ds > 0` and once with `ds < 0` to get both directions along the curve.\n\n**The cusp** x' = h + r x - x^3: folds lie on 4 r^3 = 27 h^2."
+  },
+  {
+   "code": "import numpy as np\nimport matplotlib.pyplot as plt\nfrom pathlib import Path\nimport pyxpp\n\nPKG = Path(pyxpp.__file__).resolve().parents[1]   # the pyauto-xpp folder (examples/lecar.ode is in it)\n\ncusp = pyxpp.load(text=\"\"\"\nx'=h+r*x-x^3\npar h=-1,r=1\ninit x=-1\n@ total=50\ndone\n\"\"\")\ncusp.run(); cusp.run_last()\nbr = cusp.auto.run(\"h\", start=\"steady\", ds=0.01, dsmax=0.05, parmin=-1, parmax=1, nmax=300)\nlp = br.special(\"LP\")[0]\nprint(f\"fold at h = {lp.x:.6f}  (exact 2/(3 sqrt 3) = {2 / (3 * np.sqrt(3)):.6f})\")\nup = cusp.auto.run(grab=lp.label, param2=\"r\", ds=0.01, nmax=300, parmin=-1, parmax=1)\ndown = cusp.auto.run(grab=lp.label, ds=-0.01)\nfor c in (up, down):\n    h = np.array([p.x for p in c]); r = np.array([p.par[\"r\"] for p in c])\n    print(f\"{len(c)} points, two_par={c[0].two_par}, max |4r^3 - 27h^2| = {np.abs(4 * r**3 - 27 * h**2).max():.1e}\")",
+   "out": "fold at h = 0.384900  (exact 2/(3 sqrt 3) = 0.384900)\n25 points, two_par=True, max |4r^3 - 27h^2| = 1.3e-03\n76 points, two_par=True, max |4r^3 - 27h^2| = 1.2e-03",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Morris-Lecar in (iapp, gca):** the fold curve of equilibria and the Hopf\ncurve. `Diagram.plot(two_par=True)` draws the two-parameter points."
+  },
+  {
+   "code": "m = pyxpp.load(PKG / \"examples\" / \"lecar.ode\")\nm.run(total=300); m.run_last(total=10)\neq = m.auto.run(\"iapp\", start=\"steady\", ds=0.01, dsmax=0.02, parmin=-0.2, parmax=0.5, nmax=2000)\nfold = eq.special(\"LP\")[0]\nhopf = eq.special(\"HB\")[0]\nnum = dict(nmax=400, dsmax=0.02, parmin=-0.2, parmax=1.5)\nf1 = m.auto.run(grab=fold.label, param2=\"gca\", ds=0.01, **num)\nf2 = m.auto.run(grab=fold.label, ds=-0.01)\nh1 = m.auto.run(grab=hopf.label, choice=\"two param\", ds=0.01)\nh2 = m.auto.run(grab=hopf.label, choice=\"two param\", ds=-0.01)\nprint(\"fold curve:\", len(f1) + len(f2), \"points;  Hopf curve:\", len(h1) + len(h2), \"points\")\nprint(\"special points on them:\", sorted({(p.type, round(p.x, 3), round(p.par[\"gca\"], 3)) for p in (*f1, *f2, *h1, *h2) if p.type not in (\"\", \"EP\", \"MX\")}))\nfig, ax = plt.subplots(1, 2, figsize=(12, 4.5))\nm.auto.diagram.plot(two_par=True, ax=ax[0])          # the whole diagram, as XPP draws it\nax[0].set(xlim=(-0.2, 0.6), ylim=(0.5, 1.5), title=\"Diagram.plot(two_par=True)\")\nax = ax[1]                                           # the same curves, coloured by kind\nfor c, col, lab in ((f1, \"C0\", \"folds (LP)\"), (f2, \"C0\", None), (h1, \"C3\", \"Hopf (HB)\"), (h2, \"C3\", None)):\n    ax.plot([p.x for p in c], [p.par[\"gca\"] for p in c], color=col, label=lab)\nax.plot(fold.x, 1.0, \"ko\", ms=4); ax.plot(hopf.x, 1.0, \"ks\", ms=4); ax.legend()\nax.set(xlim=(-0.2, 0.6), ylim=(0.5, 1.5), xlabel=\"iapp\", ylabel=\"gca\", title=\"Morris-Lecar in (iapp, gca)\")\nfig.tight_layout(); fig.savefig(FIG / \"lecar_two_par.png\", dpi=110)",
+   "out": "fold curve: 490 points;  Hopf curve: 445 points\nspecial points on them: []",
+   "figs": [
+    "lecar_two_par.png"
+   ],
+   "sec": 0.4
+  },
+  {
+   "md": "**Sub- or supercritical? GH points** (XPP 8.1, `hopf_l1.c`).\n`m.auto.lyapunov(point)` gives the first Lyapunov coefficient l1 and the\nfrequency at a Hopf point: l1 < 0 supercritical (a stable orbit is born),\nl1 > 0 subcritical. In the XPP window a subcritical stretch of a Hopf\ncurve is drawn purple and a sign change is marked GH; headless,\n`m.auto.gh_points(curve)` finds the sign changes the same way."
+  },
+  {
+   "code": "print(\"Hopf at gca = 1: l1 = %.3f, omega = %.4f\" % m.auto.lyapunov(hopf))\nghs = m.auto.gh_points(h1) + m.auto.gh_points(h2)\nfor g in ghs:\n    print(f\"GH at iapp = {g['par']:.4f}, gca = {g['par2']:.4f}  (l1 {g['l1_before']:+.3f} -> {g['l1_after']:+.3f})\")",
+   "out": "Hopf at gca = 1: l1 = 17.692, omega = 1.2605\nGH at iapp = 0.3082, gca = 0.6182  (l1 +0.194 -> -0.836)\nGH at iapp = 0.1251, gca = 0.5534  (l1 -0.784 -> +0.216)",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Checked:** between the two GH points the Hopf point should be\nsupercritical, so the first orbits from it are stable (gca = 0.45 lies\nin that stretch of the curve, which crosses it twice); at gca = 1 it is\nsubcritical, so they start unstable (and fold, as in section AUTO I)."
+  },
+  {
+   "code": "for gca in (1.0, 0.45):\n    mm = pyxpp.load(PKG / \"examples\" / \"lecar.ode\")\n    mm.pars[\"gca\"] = gca\n    mm.run(total=400); mm.run_last(total=10)\n    e = mm.auto.run(\"iapp\", start=\"steady\", ds=0.005, dsmax=0.01, parmin=-0.2, parmax=0.5, nmax=2000)\n    for h in e.special(\"HB\"):\n        l1, om = mm.auto.lyapunov(h)\n        orb = mm.auto.run(grab=h.label, choice=\"periodic\", ntst=40, ds=0.002, dsmax=0.005, nmax=8)\n        print(f\"gca = {gca}: Hopf at iapp = {h.x:.4f}, l1 = {l1:+8.3f};  orbits 2-6 stable: {[p.stable for p in orb[2:7]]}\")",
+   "out": "gca = 1.0: Hopf at iapp = 0.2038, l1 =  +17.687;  orbits 2-6 stable: [False, False, False, False, False]\ngca = 0.45: Hopf at iapp = 0.1542, l1 =  -44.838;  orbits 2-6 stable: [True, True, True, True, True]\ngca = 0.45: Hopf at iapp = 0.2910, l1 =  -13.811;  orbits 2-6 stable: [True, True, True, True, True]",
+   "figs": [],
+   "sec": 0.1
+  },
+  {
+   "md": "**The Brusselator** x' = a - (b+1) x + x^2 y, y' = b x - x^2 y: Hopf on\nb = 1 + a^2."
+  },
+  {
+   "code": "bru = pyxpp.load(text=\"\"\"\nx'=a-(b+1)*x+x^2*y\ny'=b*x-x^2*y\npar a=1,b=1\ninit x=1,y=1\n@ total=50\ndone\n\"\"\")\nbru.run(); bru.run_last()\nb1 = bru.auto.run(\"b\", start=\"steady\", ds=0.01, dsmax=0.05, parmin=0, parmax=5, nmax=300)\nhb = b1.special(\"HB\")[0]\nprint(f\"Hopf at b = {hb.x:.6f} for a = 1 (exact 2)\")\nc1 = bru.auto.run(grab=hb.label, choice=\"two param\", param2=\"a\", ds=0.01, nmax=300, parmin=0, parmax=5)\nc2 = bru.auto.run(grab=hb.label, choice=\"two param\", ds=-0.01)\npts = [(p.par[\"a\"], p.x) for p in (*c1, *c2)]\nprint(\"max |b - (1 + a^2)| on the Hopf curve:\", f\"{max(abs(b - 1 - a * a) for a, b in pts):.1e}\")",
+   "out": "Hopf at b = 2.000000 for a = 1 (exact 2)\nmax |b - (1 + a^2)| on the Hopf curve: 5.3e-04",
+   "figs": [],
+   "sec": 0.1
+  },
+  {
+   "md": "The curve is as accurate as AUTO's convergence criteria allow: with\nsmaller `epsl`, `epsu` (and a smaller step) it lies closer to the exact\ncurve. `reset()` clears the diagram first; note that grabbing points and\nrunning leaves the parameters at the values of the last point."
+  },
+  {
+   "code": "bru.auto.reset()\nprint(\"after the runs: a =\", round(bru.pars[\"a\"], 4), \" b =\", round(bru.pars[\"b\"], 4), \"(AUTO leaves the last point's values)\")\nbru.set(a=1, b=1, x=1, y=1)\nbru.run(); bru.run_last()\ntight = dict(epsl=1e-8, epsu=1e-8, epss=1e-6)\nb1 = bru.auto.run(\"b\", start=\"steady\", ds=0.01, dsmax=0.05, parmin=0, parmax=5, nmax=300, **tight)\nhb = b1.special(\"HB\")[0]\nc1 = bru.auto.run(grab=hb.label, choice=\"two param\", param2=\"a\", ds=0.01, dsmax=0.02, nmax=600)\nc2 = bru.auto.run(grab=hb.label, choice=\"two param\", ds=-0.01)\npts = [(p.par[\"a\"], p.x) for p in (*c1, *c2)]\nprint(\"with epsl = epsu = 1e-8: max |b - (1 + a^2)| =\", f\"{max(abs(b - 1 - a * a) for a, b in pts):.1e}\")",
+   "out": "after the runs: a = 0.0866  b = 1.0075 (AUTO leaves the last point's values)\nwith epsl = epsu = 1e-8: max |b - (1 + a^2)| = 9.9e-08",
+   "figs": [],
+   "sec": 0.1
+  }
+ ],
+ "11_auto_more": [
+  {
+   "md": "## AUTO III: branch points, periodic starts, period doubling, maps\n\n**Branch points.** In the pitchfork x' = mu x - x^3 the trivial branch has\na branch point (BP) at mu = 0. XPP's AUTO switches branches by itself, so\none run gives the trivial branch and both new branches (x = +-sqrt(mu)).\n(A BP can also be grabbed with `choice=\"switch\"`; on this example that\nonly followed the trivial branch again, also with automatic switching\noff, `mxbf=0`, so rely on the automatic switching.)"
+  },
+  {
+   "code": "import numpy as np\nimport matplotlib.pyplot as plt\nimport pyxpp\n\npf = pyxpp.load(text=\"\"\"\nx'=mu*x-x^3\npar mu=-1\ninit x=0\n@ total=50\ndone\n\"\"\")\npf.run(); pf.run_last()\nbr = pf.auto.run(\"mu\", start=\"steady\", ds=0.01, dsmax=0.05, parmin=-1, parmax=1, nmax=200)\nbp = br.special(\"BP\")[0]\nprint(br, f\"  BP at mu = {bp.x:.1e}\")\nfor b in br.branches():\n    mu = np.array([p.x for p in b]); x = np.array([p.u0[\"x\"] for p in b])\n    sel = mu > 0.01\n    err = np.abs(np.abs(x[sel]) - np.sqrt(mu[sel])).max() if abs(x).max() > 0.1 else np.abs(x).max()\n    print(f\"  branch {b[0].branch}: {len(b)} points, mu {mu.min():.2f}..{mu.max():.2f}, error from the exact branch {err:.1e}\")",
+   "out": "<Diagram 111 points, labels 1:EP 2:BP 3:EP 4:EP 5:EP>   BP at mu = -3.0e-09\n  branch 1: 43 points, mu -1.00..1.00, error from the exact branch 0.0e+00\n  branch 2: 34 points, mu -0.00..1.01, error from the exact branch 2.7e-08\n  branch 2: 34 points, mu -0.00..1.01, error from the exact branch 2.7e-08",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Starting from a periodic orbit found by simulation** (there is no Hopf\npoint to start from). Integrate past the transient, measure the period,\nintegrate exactly one period, then `start=\"periodic\"`: AUTO reads the\norbit and its period from the data browser. Then grab each period-doubling\npoint (PD) and choose `\"doubling\"`. Roessler system, parameter c."
+  },
+  {
+   "code": "r = pyxpp.load(text=\"\"\"\nx'=-y-z\ny'=x+a*y\nz'=b+z*(x-c)\npar a=0.2,b=0.2,c=2.5\ninit x=1,y=1,z=0\n@ total=1000,dt=0.005,trans=900,maxstor=100000\ndone\n\"\"\")\ntr = r.run()\ny, t = tr[\"y\"], tr.t\nup = np.where((y[:-1] < 0) & (y[1:] >= 0))[0]\n\n\ndef crossing(k):\n    s = -y[k] / (y[k + 1] - y[k])\n    return t[k] + s * (t[k + 1] - t[k]), {v: float(tr[v][k] + s * (tr[v][k + 1] - tr[v][k])) for v in r.vars}\n\n\nt1, start = crossing(up[-2])\nt2, _ = crossing(up[-1])\nr.set(trans=0, total=t2 - t1, **start)\nr.run()                                            # one period, starting on the section y = 0\np1 = r.auto.run(\"c\", start=\"periodic\", ntst=50, ds=0.01, dsmax=0.05, nmax=300, parmin=2, parmax=4.5)\npds, branch = [], p1\nfor k in range(3):\n    if not branch.special(\"PD\"):\n        break\n    pd = branch.special(\"PD\")[0]\n    pds.append(pd.x)\n    print(f\"PD {k + 1}: c = {pd.x:.5f}, period {pd.period:.4f}\")\n    branch = r.auto.run(grab=pd.label, choice=\"doubling\", nmax=300)\nprint(\"ratio of successive PD spacings:\", round((pds[1] - pds[0]) / (pds[2] - pds[1]), 3), \"(Feigenbaum's limit 4.669)\")\nfig, ax = plt.subplots(figsize=(7, 4))\nr.auto.diagram.plot(y=\"x\", ax=ax)\nax.set(xlim=(2, 4.5), title=\"Roessler: period doubling in c (max and min of x)\")\nfig.tight_layout(); fig.savefig(FIG / \"roessler_pd.png\", dpi=110)",
+   "out": "PD 1: c = 2.83246, period 5.7698\nPD 2: c = 3.83736, period 11.5727\nPD 3: c = 4.12421, period 23.2026\nratio of successive PD spacings: 3.503 (Feigenbaum's limit 4.669)",
+   "figs": [
+    "roessler_pd.png"
+   ],
+   "sec": 0.9
+  },
+  {
+   "md": "**Other choices at a point.**\n\n| grabbed point | `choice=` |\n|---|---|\n| HB | `periodic`, `extend`, `new point`, `two param` |\n| BP | `switch`, `extend`, `new point`, `two param` |\n| LP | (none: two-parameter run) |\n| PD | `doubling`, `two param`, `fixed period`, `extend` |\n| TR | `two param`, `fixed period`, `extend` |\n| a point on a periodic branch | `extend`, `fixed period` |\n\n`extend` carries on from the end of a branch; `fixed period` follows the\norbit with its period held fixed in two parameters. A point is grabbed by\nits label, by a `Point`, or as `\"#k\"` / `-1` for the k-th / last point."
+  },
+  {
+   "code": "ext = r.auto.run(grab=p1[-1], choice=\"extend\", nmax=50, parmax=6)\nprint(\"extend the period-1 branch past its end (c = 4.5) with parmax = 6:\", len(ext),\n      \"more points, c up to\", round(max(p.x for p in ext), 4))",
+   "out": "extend the period-1 branch past its end (c = 4.5) with parmax = 6: 49 more points, c up to 6.0076",
+   "figs": [],
+   "sec": 0.4
+  },
+  {
+   "md": "**Maps.** For a difference equation (`meth=discrete`) AUTO follows fixed\npoints; a 2-cycle is a fixed point of the second iterate. Logistic map\nx -> r x (1 - x): the fixed point loses stability at r = 3, where its\nmultiplier passes -1 (a flip). XPP labels that point HB (AUTO's type 3);\na label with no type is a regular output point (every `npr` steps)."
+  },
+  {
+   "code": "f1 = pyxpp.load(text=\"\"\"\nx(t+1)=r*x*(1-x)\npar r=2.8\ninit x=0.6\n@ meth=discrete,total=200\ndone\n\"\"\")\nf1.run(); f1.run_last()\nm1 = f1.auto.run(\"r\", start=\"steady\", ds=0.01, dsmax=0.02, parmin=2.5, parmax=4, nmax=200)\nprint(\"fixed point:\", [(p.type, round(p.x, 5)) for p in m1.labeled()])\nprint(\"multiplier at the HB point:\", round(m1.special(\"HB\")[0].eigenvalues[0].real, 5), \" exact 2 - r =\", round(2 - m1.special(\"HB\")[0].x, 5))\nf2 = pyxpp.load(text=\"\"\"\nf(x)=r*x*(1-x)\nx(t+1)=f(f(x))\npar r=3.2\ninit x=0.5\n@ meth=discrete,total=400\ndone\n\"\"\")\nf2.run(); f2.run_last()\nm2 = f2.auto.run(\"r\", start=\"steady\", ds=0.01, dsmax=0.02, parmin=2.9, parmax=4, nmax=200)\nprint(\"2-cycle:\", [(p.type, round(p.x, 5)) for p in m2.labeled()], \" (exact PD of the 2-cycle: 1 + sqrt 6 =\", round(1 + 6 ** 0.5, 5), \")\")",
+   "out": "fixed point: [('EP', 2.8), ('HB', 3.00001), ('', 3.75699), ('EP', 4.01642)]\nmultiplier at the HB point: -1.00001  exact 2 - r = -1.00001\n2-cycle: [('EP', 3.2), ('HB', 3.4495), ('EP', 4.00122)]  (exact PD of the 2-cycle: 1 + sqrt 6 = 3.44949 )",
+   "figs": [],
+   "sec": 0.0
+  }
+ ],
+ "12_auto_starts": [
+  {
+   "md": "## AUTO IV: many initial conditions, files and buttons\n\n**From many initial conditions.** Integrate from each start, see where it\nends (rest or an orbit), and start AUTO there. Each start gives a branch;\nthey should all lie on one diagram. Hodgkin-Huxley at I = 8, where rest\nand repetitive firing coexist. (The full study, 49 starts, is\n`rungs/AUTO/hh/hh_auto.py`.)"
+  },
+  {
+   "code": "import numpy as np\nimport matplotlib.pyplot as plt\nfrom pathlib import Path\nimport pyxpp\n\nPKG = Path(pyxpp.__file__).resolve().parents[1]   # the pyauto-xpp folder (examples/lecar.ode is in it)\nfrom pyxpp.builder import ModelBuilder\n\nhh = (ModelBuilder(\"hh\")\n      .parameter(I=8.0, vna=50, vk=-77, vl=-54.4, gna=120, gk=36, gl=0.3, c=1)\n      .function(\"am(v)\", \".1*(v+40)/(1-exp(-(v+40)/10))\")\n      .function(\"bm(v)\", \"4*exp(-(v+65)/18)\")\n      .function(\"ah(v)\", \".07*exp(-(v+65)/20)\")\n      .function(\"bh(v)\", \"1/(1+exp(-(v+35)/10))\")\n      .function(\"an(v)\", \".01*(v+55)/(1-exp(-(v+55)/10))\")\n      .function(\"bn(v)\", \".125*exp(-(v+65)/80)\")\n      .ode(\"v\", \"(I - gna*h*(v-vna)*m^3 - gk*(v-vk)*n^4 - gl*(v-vl))/c\")\n      .ode(\"m\", \"am(v)*(1-m) - bm(v)*m\")\n      .ode(\"h\", \"ah(v)*(1-h) - bh(v)*h\")\n      .ode(\"n\", \"an(v)*(1-n) - bn(v)*n\")\n      .initial(v=-65, m=0.053, h=0.596, n=0.318)\n      .option(total=300, dt=0.01, meth=\"rk4\", maxstor=100000))\nm = hh.load(\"hh.ode\")\nrest = m.equilibrium({\"v\": -60, \"m\": 0.08, \"h\": 0.5, \"n\": 0.35})\nstarts = {\"near rest\": {k.lower(): x + (0.5 if k == \"V\" else 0) for k, x in rest.x.items()},\n          \"v = -40\": dict(v=-40, m=0.3, h=0.3, n=0.5),\n          \"v = 20\": dict(v=20, m=0.9, h=0.2, n=0.6)}\nfig, ax = plt.subplots(1, 2, figsize=(12, 4))\nfor name, ic in starts.items():\n    m.auto.reset()\n    tr = m.run(I=8.0, trans=0, total=300, **ic)\n    late = tr.t > 150\n    v = tr[\"v\"]\n    ax[0].plot(tr.t, v, lw=0.8, label=name)\n    if np.ptp(v[late]) < 0.5:                                   # at rest: steady state\n        m.set(**{k.lower(): float(tr[k][-1]) for k in m.vars})\n        d = m.auto.run(\"I\", start=\"steady\", ntst=15, nmax=300, npr=500, ds=0.1, dsmax=1, parmin=0, parmax=20)\n        I = [p.x for p in d]; ax[1].plot(I, [p.u0[\"v\"] for p in d], \"-\", label=f\"{name}: equilibria\")\n        print(f\"{name:9s} -> rest;   AUTO special points:\", [(p.type, round(p.x, 4)) for p in d.labeled() if p.type == \"HB\"])\n    else:                                                       # spiking: one period, then periodic\n        up = np.where((v[:-1] < 0) & (v[1:] >= 0) & late[1:])[0]\n        T = float(tr.t[up[-1]] - tr.t[up[-2]]); k = up[-2] + 1\n        m.set(trans=0, total=T, **{n.lower(): float(tr[n][k]) for n in m.vars})\n        m.run()\n        d = m.auto.run(\"I\", start=\"periodic\", ntst=60, nmax=200, npr=500, ds=-0.05, dsmax=0.5, parmin=0, parmax=20)\n        ax[1].plot([p.x for p in d], [p.umax[\"v\"] for p in d], \".\", ms=2, label=f\"{name}: orbits (max v)\")\n        print(f\"{name:9s} -> spiking, period {T:.3f};  folds of orbits (AUTO passes each twice):\", sorted({round(p.x, 4) for p in d.labeled() if p.type == \"LP\"}))\nax[0].set(xlabel=\"t\", ylabel=\"v\", title=\"runs at I = 8\"); ax[0].legend(fontsize=7)\nax[1].set(xlabel=\"I\", ylabel=\"v\", xlim=(5, 12), title=\"AUTO started from where each run ended\"); ax[1].legend(fontsize=7)\nfig.tight_layout(); fig.savefig(FIG / \"hh_starts.png\", dpi=100)",
+   "out": "near rest -> rest;   AUTO special points: [('HB', 9.7793)]\nv = -40   -> spiking, period 16.020;  folds of orbits (AUTO passes each twice): [6.2642, 7.8462, 7.9217]\nv = 20    -> spiking, period 16.010;  folds of orbits (AUTO passes each twice): [6.2642, 7.8462, 7.9217]",
+   "figs": [
+    "hh_starts.png"
+   ],
+   "sec": 4.2
+  },
+  {
+   "md": "**Files.** `write_pts` writes XPP's text table of the diagram; `save` and\n`load` keep a whole diagram (`.auto` file) to reload later; `reset`\ndeletes the diagram and AUTO's files; `clear_grab` drops the grabbed\npoint."
+  },
+  {
+   "code": "lm = pyxpp.load(PKG / \"examples\" / \"lecar.ode\")\nlm.run(total=300); lm.run_last(total=10)\nbr = lm.auto.run(\"iapp\", start=\"steady\", ds=0.01, dsmax=0.02, parmin=-0.2, parmax=0.5, nmax=2000)\nlm.auto.write_pts(\"diagram.dat\")\nprint((lm.workdir / \"diagram.dat\").read_text().splitlines()[:3])\nlm.auto.save(\"lecar.auto\")\nn_before = len(lm.auto.diagram)\nlm.auto.reset()\nprint(\"after reset:\", len(lm.auto.diagram), \"points\")\nlm.auto.load(\"lecar.auto\")\nprint(\"after load:\", len(lm.auto.diagram), \"points (was\", n_before, \")\")\nlm.auto.grab(2)\nprint(\"grabbed:\", lm.auto.settings[\"grabbed\"], \" label\", lm.auto.settings[\"grab_label\"])\nlm.auto.clear_grab()\nprint(\"after clear_grab:\", lm.auto.settings[\"grabbed\"])",
+   "out": "['0 -0.495617 -0.495617 2 1 0', '0.00850324 -0.477514 -0.477514 1 1 0', '0.0168951 -0.45936 -0.45936 1 1 0']\nafter reset: 0 points\nafter load: 67 points (was 67 )\ngrabbed: True  label 2\nafter clear_grab: False",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**AUTO's buttons.** Everything in the AUTO window is in `m.auto.buttons`,\ne.g. its own SVG of the diagram and the all-info dump."
+  },
+  {
+   "code": "lm.auto.buttons.file.svg(\"diagram.svg\")\nprint(lm.transcript.strip().splitlines()[-1])\nimport shutil\nshutil.copy(lm.workdir / \"diagram.svg\", FIG / \"xpp_auto_diagram.svg\")\nlm.auto.buttons.file.all_info(\"allinfo.dat\")\nprint((lm.workdir / \"allinfo.dat\").read_text().splitlines()[0][:100])",
+   "out": "file    SVG (*.svg) -> diagram.svg\n2 1 0 0 0.333 0 -0.495617 0.00027 -0.495617 0.00027 0 0 0 0 ",
+   "figs": [
+    "xpp_auto_diagram.svg"
+   ],
+   "sec": 0.0
+  }
+ ],
+ "13_errors": [
+  {
+   "md": "## Errors, limits and tips\n\n**Errors.** Anything XPP refuses raises `pyxpp.XPPError` with XPP's\nmessage (and, for a button, the transcript). XPP's `exit()` is turned\ninto an error, so Python keeps running; a loop that keeps asking with no\nanswer stops after 500 questions."
+  },
+  {
+   "code": "from pathlib import Path\nimport pyxpp\n\nPKG = Path(pyxpp.__file__).resolve().parents[1]   # the pyauto-xpp folder (examples/lecar.ode is in it)\n\nfor what, call in (\n        (\"a bad .ode file\", lambda: pyxpp.load(text=\"x'=y+\\ndone\\n\")),\n        (\"File > Quit\", lambda: pyxpp.load(PKG / \"examples\" / \"lecar.ode\").buttons.file.quit(True)),\n        (\"a button that keeps asking\", lambda: pyxpp.load(PKG / \"examples\" / \"lecar.ode\").buttons.file.tutorial()),\n        (\"an unknown parameter\", lambda: pyxpp.load(PKG / \"examples\" / \"lecar.ode\").pars.__setitem__(\"nope\", 1)),\n        (\"AUTO with nothing to start from\", lambda: pyxpp.load(PKG / \"examples\" / \"lecar.ode\").auto.run(\"iapp\"))):\n    try:\n        call()\n    except (pyxpp.XPPError, KeyError, ValueError) as e:\n        print(f\"{what:32s} -> {type(e).__name__}: {str(e).splitlines()[0][:90]}\")",
+   "out": "a bad .ode file                  -> XPPError: loading model.ode failed: XPP tried to exit (code 0)\nFile > Quit                      -> XPPError: XPP tried to exit (code 1)\na button that keeps asking       -> XPPError: XPP asked 'link to the HTML manual by setting the environment variable XPPHELP on your com\nan unknown parameter             -> KeyError: \"no parameter 'nope'; have ['iapp', 'phi', 'v1', 'v2', 'v3', 'v4', 'gca', 'vk', 'vl', 'gk'\nAUTO with nothing to start from  -> ValueError: nothing grabbed: give start='steady' (or periodic, ...)",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Limits** (headless XPP):\n\n- Buttons that need a live screen do nothing useful: Window > Scroll,\n  AUTO Axes > Scroll, Viewaxes > Toon, Kinescope (blank frames).\n- Mouse buttons (Initialconds > Mouse, zoom boxes, text placement) take\n  pixel answers `\"ix,iy\"` / `\"x1,y1,x2,y2\"`.\n- Storage is not a limit: XPP 8.1 enlarges it when a run needs more rows\n  than `maxstor` (a 200 001-row run works with the default 5000).\n- A crash inside XPP's C code (a segfault) ends the Python process. Run\n  doubtful models in a subprocess.\n\n**Tips.**\n\n- Start AUTO on an equilibrium: `run()` then `run_last()` before\n  `start=\"steady\"`; for orbits, integrate exactly one period before\n  `start=\"periodic\"`.\n- Writing a file that exists makes XPP ask \"Overwrite?\": answer `True`\n  (e.g. `write_set(\"a.set\", True)`), or the old file stays.\n- Grabbing and running leaves parameters at the last point's values;\n  set them again before a new start.\n- To learn what a button asks, call it with no answers and read\n  `m.transcript`; a wrong dialog field or menu entry lists the right ones.\n- XPP stores data in single precision: compare stored values to about\n  1e-7 relative.\n- Every model has its own XPP; to run many in parallel, use processes\n  (e.g. `concurrent.futures.ProcessPoolExecutor`), one model each."
+  },
+  {
+   "code": "import concurrent.futures as cf\n\n\ndef end_v(iapp):\n    m = pyxpp.load(PKG / \"examples\" / \"lecar.ode\")\n    return float(m.run(iapp=iapp, total=200)[\"v\"][-1])\n\n\nwith cf.ThreadPoolExecutor(1) as ex:          # (processes in real use; one thread here)\n    print([round(x, 4) for x in ex.map(end_v, (0.0, 0.05, 0.1))])",
+   "out": "[-0.4956, -0.3825, 0.0927]",
+   "figs": [],
+   "sec": 0.0
+  }
+ ],
+ "14_versions": [
+  {
+   "md": "## The XPP inside: versions and what each source drop changed\n\nThe package carries Bard Ermentrout's XPPAUT 8.1 source (`csrc/xppaut/`),\nupdated as new drops arrive; `CHANGES.md` lists each one. The version XPP\nreports is in the log."
+  },
+  {
+   "code": "import time\nfrom pathlib import Path\nimport pyxpp\n\nPKG = Path(pyxpp.__file__).resolve().parents[1]   # the pyauto-xpp folder (examples/lecar.ode is in it)\n\nm = pyxpp.load(PKG / \"examples\" / \"lecar.ode\")\nprint(next(l for l in m.log.splitlines() if \"XPPAUT\" in l).strip())",
+   "out": "XPPAUT 8.1.1 Copyright (C) 2002-now  Bard Ermentrout",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "| source | what changed | in pyauto-xpp |\n|---|---|---|\n| 8.1 (11 Nov 2026) | Initialconds > Periodic; phase reduction in Averaging (isostable I, Floquet rho, B correction, H2); subcritical Hopf curves and GH points in AUTO | `buttons.initialconds.periodic`, `buttons.numerics.averaging.isostable` / `floquet_rho` / `b_correction` / `h2` (section \"Analysis tools\"); `auto.lyapunov(point)` and `auto.gh_points(curve)` (section \"AUTO II\": XPP finds GH points while drawing, so headless they are found in Python the same way) |\n| update (13 Nov 2026) | every GIF carries the model, parameters, numerics and a note; Fourier and histograms work on whatever the data browser shows (`get_browser_rows`) | `m.data` reads the browser, so the histogram, Fourier, adjoint, H come back as data (section \"Analysis tools\") |\n| 13 Nov 2026, later | window-manager close button on every window, bevelled buttons, an X error handler, \"OK\"/\"Close\" labels; the integrator draws its progress bar and checks for Esc about 50 times a second instead of at every output point | no window, so nothing to see; results identical; same speed (below) |\n\n**The integrator change, timed.** In the X11 GUI each progress/Esc check\nflushes the X connection, so checking 50 times a second instead of at\nevery stored point speeds up long runs there. Headless the check is a\nstub, so the speed is the same; the numbers are identical."
+  },
+  {
+   "code": "for label, kw in ((\"rk4, dt = 0.05, every step stored\", dict(meth=\"rk4\", dt=0.05, nout=1)),\n                  (\"rk4, dt = 0.05, every 20th step stored\", dict(meth=\"rk4\", dt=0.05, nout=20))):\n    best = min((lambda t0: (m.run(iapp=0.1, total=10000, v=-0.3, w=0, **kw), time.perf_counter() - t0)[1])(time.perf_counter())\n               for _ in range(3))\n    print(f\"{label:40s} {best * 1000:6.0f} ms for {len(m.data):6d} rows, v at t = 10000: {m.data['v'][-1]:.7f}\")",
+   "out": "rk4, dt = 0.05, every step stored           283 ms for 200001 rows, v at t = 10000: -0.2914104\nrk4, dt = 0.05, every 20th step stored      234 ms for  10001 rows, v at t = 10000: -0.2914104",
+   "figs": [],
+   "sec": 1.6
+  }
+ ],
+ "04b_runs": [
+  {
+   "md": "## Run conditions as data: `Run`\n\n`m.run(total=..., iapp=...)` changes the model and the change stays. A\n`Run` keeps *how to integrate* apart from the model: numerics, the method\nand its settings, parameters, initial conditions, any other `@` option.\nApplying a `Run` changes the model for that run only; afterwards it is as\nit was. Fields left out keep the model's own values."
+  },
+  {
+   "code": "from pathlib import Path\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport pyxpp\nfrom pyxpp import Run\n\nPKG = Path(pyxpp.__file__).resolve().parents[1]   # the pyauto-xpp folder (examples/lecar.ode is in it)\nm = pyxpp.load(PKG / \"examples\" / \"lecar.ode\")\nbefore = m.snapshot()\n\nbase = Run(total=200, dt=0.05, meth=\"rk4\", name=\"rest\")\nspiking = base.with_pars(iapp=0.1).with_ics(v=-0.3, w=0).replace(name=\"spiking\")\nstiff = spiking.replace(meth=\"cvode\", tol=1e-10, atol=1e-10, name=\"spiking, cvode\")\nlate = spiking.replace(trans=150, nout=4, name=\"spiking, last 50, every 4th step\")\nprint(spiking)",
+   "out": "Run(total=200, dt=0.05, meth='rk4', pars={'iapp': 0.1}, ics={'v': -0.3, 'w': 0}, name='spiking')",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "`run_many` runs each one; every result carries the `Run` that made it."
+  },
+  {
+   "code": "trs = m.run_many([base, spiking, stiff, late])\nfor t in trs:\n    print(f\"{t.run.name:32s} rows {len(t):5d}   t {t.t[0]:6.1f} .. {t.t[-1]:6.1f}   max v {t['v'].max():+.4f}\")\nprint(\"model unchanged:\", m.snapshot() == before)\nprint(\"rk4 against cvode (1e-10), largest |dv|:\", f\"{np.abs(trs[1]['v'] - trs[2]['v']).max():.1e}\")\nfig, ax = plt.subplots(figsize=(8, 3))\nfor t in trs:\n    ax.plot(t.t, t[\"v\"], lw=1, label=t.run.name)\nax.legend(fontsize=7); ax.set_xlabel(\"t\"); ax.set_ylabel(\"v\")\nfig.tight_layout(); fig.savefig(FIG / \"runs.png\", dpi=100)",
+   "out": "rest                             rows  4001   t    0.0 ..  200.0   max v +0.2407\nspiking                          rows  4001   t    0.0 ..  200.0   max v +0.2615\nspiking, cvode                   rows  4001   t    0.0 ..  200.0   max v +0.2615\nspiking, last 50, every 4th step rows   250   t  150.2 ..  200.0   max v +0.2615\nmodel unchanged: True\nrk4 against cvode (1e-10), largest |dv|: 5.2e-06",
+   "figs": [
+    "runs.png"
+   ],
+   "sec": 0.1
+  },
+  {
+   "md": "**Variants.** `replace(...)` changes fields (and replaces `pars`, `ics`,\n`options` whole); `with_pars`, `with_ics`, `with_options` add to them.\n`start=\"last\"` continues from the end of the previous run (Initialconds >\nLast). `Run.from_model(m)` captures the model's current settings."
+  },
+  {
+   "code": "a = m.run(spiking)\nb = m.run(spiking.replace(start=\"last\"))\nprint(\"continues where the last run ended:\", np.allclose(b.array[0, 1:3], a.array[-1, 1:3]))\nprint(Run.from_model(m).replace(pars={}, ics={}))",
+   "out": "continues where the last run ended: True\nRun(total=30.0, dt=0.05, meth='rungekutta', t0=0.0, trans=0.0, nout=1, bound=100.0, tol=0.001, atol=0.001, dtmin=1e-12, dtmax=1.0, delay=0.0)",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**One-off settings without a `Run`.** `keep=False` makes keyword settings\napply to one run only (they are sorted into parameters, initial\nconditions, numerics and other options, and the result gets the `Run`);\n`m.using(...)` does the same for a block of runs."
+  },
+  {
+   "code": "t = m.run(total=50, iapp=0.1, v=-0.2, meth=\"cvode\", keep=False)\nprint(t.run, \" unchanged:\", m.snapshot() == before)\nwith m.using(stiff):\n    first = m.run()\n    more = m.run_last()\n    print(\"inside:\", m.numerics[\"meth\"], m.pars[\"iapp\"])\nprint(\"after:\", m.numerics[\"meth\"], m.pars[\"iapp\"], \" unchanged:\", m.snapshot() == before)",
+   "out": "Run(total=50, meth='cvode', pars={'iapp': 0.1}, ics={'v': -0.2})  unchanged: True\ninside: cvode 0.1\nafter: rungekutta 0.0  unchanged: True",
+   "figs": [],
+   "sec": 0.0
+  },
+  {
+   "md": "**Saving runs.** A `Run` is saved as JSON and loaded back, so a set of\nruns can live next to the results it produced. (Adaptive methods store\nevery step: XPP sets `nout` to 1 for cvode, dopri, stiff, gear, rosen23.)"
+  },
+  {
+   "code": "p = stiff.save(\"runs/spiking_cvode.json\")\nprint(p.read_text())\nprint(\"loaded back equal:\", Run.load(p) == stiff)",
+   "out": "{\n \"total\": 200,\n \"dt\": 0.05,\n \"meth\": \"cvode\",\n \"tol\": 1e-10,\n \"atol\": 1e-10,\n \"pars\": {\n  \"iapp\": 0.1\n },\n \"ics\": {\n  \"v\": -0.3,\n  \"w\": 0\n },\n \"start\": \"ics\",\n \"name\": \"spiking, cvode\"\n}\n\nloaded back equal: True",
+   "figs": [],
+   "sec": 0.0
+  }
+ ]
+}

@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+build/
+*.egg-info/
+.pixi/
+pyxpp/_libxpp.*
+tutorials/scripts/figures/
+tutorials/scripts/odes/
+tutorials/notebooks/odes/
+.ipynb_checkpoints/
+pyxpp_*/

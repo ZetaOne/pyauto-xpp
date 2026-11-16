@@ -1,0 +1,8 @@
+table w % 11 -5 5 exp(-abs(t))
+u[0..20]'=-u[j]+k([j])
+special k=conv(even,21,5,w,u0)
+init u[0..20]=0.1
+only u0,u10
+# raw() writes any line as it is
+@ total=1
+done

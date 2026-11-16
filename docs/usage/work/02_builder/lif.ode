@@ -1,0 +1,6 @@
+par I=1.5,vth=1,vreset=0
+v'=-v+I
+global 1 v-vth {v=vreset}
+aux spike=v
+@ total=10,dt=0.001
+done

@@ -1,0 +1,18 @@
+# Binder (mybinder.org): the same environment as pixi.toml, built on Binder's server.
+name: pyauto-xpp
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - c-compiler
+  - pip
+  - setuptools>=64
+  - numpy
+  - matplotlib
+  - pandas
+  - plotly
+  - ipywidgets
+  - anywidget
+  - jupyterlab
+  - jupytext
+  - ipykernel

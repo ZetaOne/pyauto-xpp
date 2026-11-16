@@ -1,0 +1,9 @@
+number k0=2
+par tau=5
+!rate=k0/tau
+x'=-rate*x
+x(0)=2.5
+y[1..3]'=-y[j]
+y[1..3](0)=[j]*2
+@ total=5
+done

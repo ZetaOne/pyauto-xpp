@@ -1,0 +1,4 @@
+#!/bin/bash
+# build XPP's C library and install pyxpp into Binder's environment
+set -e
+pip install --no-deps -e .

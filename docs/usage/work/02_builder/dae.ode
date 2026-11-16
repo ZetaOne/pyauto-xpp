@@ -1,0 +1,8 @@
+table sq % 101 0 2 t^2
+x'=-x+y
+solv y=1
+0=y^3+y-x-sq(1)
+aux yy=y
+init x=0
+@ total=2
+done

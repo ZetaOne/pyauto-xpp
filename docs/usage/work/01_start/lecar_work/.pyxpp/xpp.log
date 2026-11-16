@@ -1,0 +1,108 @@
+ sym 0 loaded .. times 0 loaded .. sym 1 loaded .. times 1 loaded .. sym 2 loaded .. times 2 loaded .. sym 3 loaded .. times 3 loaded .. sym 4 loaded .. times 4 loaded ..
+text=                Channnels for the ML Eqns   
+text= The ML eqns have three channels Calcium, potassium and leak.    
+text= To set parameters click on the asterisks   
+text=*  We first set the integration time to 100 and increase the current   
+action=$ total=100 iapp=.1  
+text= Integrate the equations and see the nice limit cycle. Draw the nullclines.   
+text=*  Now we block potassium. Integrate again and look at what happens   
+action=$ gk=0  
+text= Draw the nullclines. Where is the V nullcline?   
+text=*  Now we block both currents and integrate   
+action=$ gk=0 gca=0  
+text=*  Now calcium is blocked. Explore this   
+action=$ gk=2 gca=0  
+text=*  Back to normal.  Both currents are required for oscillations!   
+action=$ gk=2 gca=1.33  
+text=*   What happens with no leak???    
+action=$ gl=0  
+Parameters:
+|iapp|=0.000000 |phi|=0.333000 
+Parameters:
+|v1|=-0.010000 |v2|=0.150000 |v3|=0.100000 |v4|=0.145000 |gca|=1.000000 
+Parameters:
+|vk|=-0.700000 |vl|=-0.500000 |gk|=2.000000 |gl|=0.500000 |om|=1.000000 
+ Added user fun MINF 
+ Added user fun NINF 
+ Added user fun LAMN 
+ICA = GCA*MINF(V)*(V-1)   
+CUR = iapp   
+ICA = ica   
+IK = gk*w*(v-vk)   
+RATE = phi   
+ added vvst doing $ xplot=t yplot=v xlo=0 xhi=100 ylo=-.6 yhi=.5 total=100 iapp=.1 
+ added pp doing $ xp=v yp=w xlo=-.6.xhi=1.2 ylo=-.25 yhi=1.2 
+ added snic doing $ v3=.1 v4=.145 gca=1 phi=.333 
+ added hopf doing $ v3=0 v4=.3 gca=1.1 phi=.2 
+ added hom doing $ v3=.1 v4=.145 gca=1 phi=1.15 
+ added cool doing $ v3=.1 v4=.145 gca=1 phi=1.15 iapp=.080918 
+MINF(V)=.5*(1+TANH((V-V1)/V2))  
+NINF(V)=.5*(1+TANH((V-V3)/V4))  
+LAMN(V)= PHI*COSH((V-V3)/(2*V4))  
+ICA=GCA*MINF(V)*(V-1)  
+0:dV/dt=  (IAPP+GL*(VL-V)+GK*W*(VK-V)-ICA)  
+1:dW/dt= (LAMN(V)*(NINF(V)-W))  
+cur=iapp  
+ica=ica  
+ik=gk*w*(v-vk)  
+rate=phi  
+ All formulas are valid!!
+ nvar=2 naux=4 nfix=1 nmark=0 NEQ=6 NODE=7 
+Used 18 constants and 127 symbols 
+XPPAUT 8.1.1 Copyright (C) 2002-now  Bard Ermentrout 
+TrueColor visual:  no colormap needed
+ICA is a duplicate name
+ sym 0 loaded .. times 0 loaded .. sym 1 loaded .. times 1 loaded .. sym 2 loaded .. times 2 loaded .. sym 3 loaded .. times 3 loaded .. sym 4 loaded .. times 4 loaded ..
+text=                Channnels for the ML Eqns   
+text= The ML eqns have three channels Calcium, potassium and leak.    
+text= To set parameters click on the asterisks   
+text=*  We first set the integration time to 100 and increase the current   
+action=$ total=100 iapp=.1  
+text= Integrate the equations and see the nice limit cycle. Draw the nullclines.   
+text=*  Now we block potassium. Integrate again and look at what happens   
+action=$ gk=0  
+text= Draw the nullclines. Where is the V nullcline?   
+text=*  Now we block both currents and integrate   
+action=$ gk=0 gca=0  
+text=*  Now calcium is blocked. Explore this   
+action=$ gk=2 gca=0  
+text=*  Back to normal.  Both currents are required for oscillations!   
+action=$ gk=2 gca=1.33  
+text=*   What happens with no leak???    
+action=$ gl=0  
+Parameters:
+|iapp|=0.000000 |phi|=0.333000 
+Parameters:
+|v1|=-0.010000 |v2|=0.150000 |v3|=0.100000 |v4|=0.145000 |gca|=1.000000 
+Parameters:
+|vk|=-0.700000 |vl|=-0.500000 |gk|=2.000000 |gl|=0.500000 |om|=1.000000 
+ Added user fun MINF 
+ Added user fun NINF 
+ Added user fun LAMN 
+ICA = GCA*MINF(V)*(V-1)   
+CUR = iapp   
+ICA = ica   
+IK = gk*w*(v-vk)   
+RATE = phi   
+ added vvst doing $ xplot=t yplot=v xlo=0 xhi=100 ylo=-.6 yhi=.5 total=100 iapp=.1 
+ added pp doing $ xp=v yp=w xlo=-.6.xhi=1.2 ylo=-.25 yhi=1.2 
+ added snic doing $ v3=.1 v4=.145 gca=1 phi=.333 
+ added hopf doing $ v3=0 v4=.3 gca=1.1 phi=.2 
+ added hom doing $ v3=.1 v4=.145 gca=1 phi=1.15 
+ added cool doing $ v3=.1 v4=.145 gca=1 phi=1.15 iapp=.080918 
+MINF(V)=.5*(1+TANH((V-V1)/V2))  
+NINF(V)=.5*(1+TANH((V-V3)/V4))  
+LAMN(V)= PHI*COSH((V-V3)/(2*V4))  
+ICA=GCA*MINF(V)*(V-1)  
+0:dV/dt=  (IAPP+GL*(VL-V)+GK*W*(VK-V)-ICA)  
+1:dW/dt= (LAMN(V)*(NINF(V)-W))  
+cur=iapp  
+ica=ica  
+ik=gk*w*(v-vk)  
+rate=phi  
+ All formulas are valid!!
+ nvar=2 naux=4 nfix=1 nmark=0 NEQ=6 NODE=7 
+Used 18 constants and 127 symbols 
+XPPAUT 8.1.1 Copyright (C) 2002-now  Bard Ermentrout 
+TrueColor visual:  no colormap needed
+ICA is a duplicate name
