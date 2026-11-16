@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from setuptools import setup
+from setuptools.dist import Distribution
 from setuptools.command.build_py import build_py
 from setuptools.command.develop import develop
 
@@ -31,4 +32,10 @@ class Develop(develop):
         super().run()
 
 
-setup(cmdclass={"build_py": BuildPy, "develop": Develop})
+class BinaryDistribution(Distribution):
+    """the package ships a compiled library: wheels are per platform, not pure Python"""
+    def has_ext_modules(self):
+        return True
+
+
+setup(cmdclass={"build_py": BuildPy, "develop": Develop}, distclass=BinaryDistribution)

@@ -128,6 +128,9 @@ def main():
         o.unlink()
 
     opt = ["-O0", "-g"] if a.debug else ["-O2", "-g"]
+    # macOS cross builds (cibuildwheel sets ARCHFLAGS, e.g. "-arch x86_64")
+    arch = os.environ.get("ARCHFLAGS", "").split() if sys.platform == "darwin" else []
+    opt += arch
     cflags = [
         *opt, "-fPIC", "-fcommon", "-std=gnu99", "-w",
         # old K&R code relies on implicit declarations
@@ -157,7 +160,7 @@ def main():
 
     if sys.platform == "darwin":
         out = ROOT / "pyxpp" / "_libxpp.dylib"
-        ldflags = ["-dynamiclib", "-undefined", "error"]
+        ldflags = ["-dynamiclib", "-undefined", "error", *arch]
     else:
         out = ROOT / "pyxpp" / "_libxpp.so"
         ldflags = ["-shared", "-Wl,--no-undefined"]
