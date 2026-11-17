@@ -1,7 +1,7 @@
 # pixi: one command sets up everything (https://pixi.sh)
 #
-#   pixi run lab        # JupyterLab in your browser: tutorials/notebooks and tutorials/scripts
-#   pixi run scripts    # run every tutorial script, one line each
+#   pixi run lab        # JupyterLab in your browser: the tutorials
+#   pixi run examples   # run every worked-example notebook, one line each
 #   pixi run test       # the package's tests
 #
 # pixi.lock pins every package; after an update only what changed is downloaded.
@@ -32,5 +32,5 @@ pyauto-xpp = { path = ".", editable = true }
 [tasks]
 jupytext-default = "python tools/jupytext_default.py"    # .py scripts open as notebooks
 lab = { cmd = "jupyter lab tutorials", depends-on = ["jupytext-default"] }
-scripts = { cmd = "python run_all.py", cwd = "tutorials/scripts" }
+examples = { cmd = "python run_all.py", cwd = "tutorials/worked-examples" }
 test = "python -m pytest -q tests"

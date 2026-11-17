@@ -32,8 +32,8 @@ br = m.auto.run("iapp", start="steady")     # AUTO, from the steady state
 *Left: Morris–Lecar in AUTO, equilibria in the applied current i (red stable,
 black unstable), the two Hopf points and the periodic orbits between them
 (green stable, blue unstable). Right: the Mackey–Glass delay equation, AUTO's
-period doublings over the maxima of simulations. Both made by the tutorial
-scripts; more in the [gallery](https://zetaone.github.io/pyauto-xpp/#gallery).*
+period doublings over the maxima of simulations. Both from the worked
+examples; more in the [gallery](https://zetaone.github.io/pyauto-xpp/#gallery).*
 
 ## Features
 
@@ -47,8 +47,8 @@ scripts; more in the [gallery](https://zetaone.github.io/pyauto-xpp/#gallery).*
   equations** (new in XPPAUT 8.2).
 - **Models in Python**: `ModelBuilder` writes the `.ode` file for you, or load
   any existing `.ode` file.
-- **70 tutorials**: 39 scripts that check their numbers against exact or
-  published values, and 31 interactive notebooks with sliders, a direction
+- **70 tutorials**: 39 worked examples (in seven notebooks, with equations,
+  explanations and checks against exact or published values), and 31 interactive notebooks with sliders, a direction
   field menu, clickable phase planes and an AUTO panel.
 - **Prebuilt** for Python 3.9 to 3.15 on Linux (x86_64, ARM; glibc 2.28+),
   macOS (Apple Silicon 11+; Intel 10.9+ with Python 3.9-3.11, 10.13+ with
@@ -71,7 +71,7 @@ Install [pixi](https://pixi.sh) once, then:
 ```bash
 git clone https://github.com/ZetaOne/pyauto-xpp && cd pyauto-xpp
 pixi run lab        # JupyterLab with the tutorials opens in your browser
-pixi run scripts    # every tutorial script, one line each
+pixi run examples   # every worked-example notebook, one line each
 pixi run test       # the package's tests
 ```
 
@@ -123,22 +123,12 @@ The full guide is [`docs/usage/USAGE.mdx`](docs/usage/USAGE.mdx).
 
 ## Tutorials
 
-| group | scripts | notebooks | examples |
-|---|---:|---:|---|
-| 2D-FLOWS | 14 | 14 | FitzHugh–Nagumo, Morris–Lecar, Hodgkin–Huxley, toggle switch, forced Duffing |
-| EVENTS | 2 | 2 | bouncing ball, integrate-and-fire |
-| MAPS | 5 | 5 | logistic, Hénon, standard (Chirikov–Taylor) map |
-| 3D-FLOWS | 3 | 3 | Lorenz, Lorenz 84, Rössler |
-| DELAYS | 11 | 3 | Mackey–Glass, Hutchinson, delay-coupled Stuart–Landau, two delays |
-| NOISE | 2 | 2 | FitzHugh–Nagumo with white noise and with a Markov input |
-| SPACE | 2 | 2 | a chain of FitzHugh–Nagumo cells, the Nagumo front |
-
-- [`tutorials/scripts/`](tutorials/scripts): plain Python, one model each.
-  Each builds its model in code, analyses it, saves its figures to
-  `figures/<script>/` and ends with `N/M checks passed`. In JupyterLab
-  (`pixi run lab`, Binder or Codespaces), double-click a script: it opens as a notebook,
-  one cell per `# %%`, with the figures inline; edits are saved back into the
-  `.py` file.
+- [`tutorials/worked-examples/`](tutorials/worked-examples): 39 worked examples in
+  seven notebooks, one per level (first steps; bifurcations with AUTO; two
+  parameters and global bifurcations; forcing, tori and phase; noise and space;
+  delay equations by simulation and with AUTO). Each model comes with its
+  equations, step-by-step explanations, figures and checks against exact or
+  published values.
 - [`tutorials/notebooks/`](tutorials/notebooks): interactive notebooks.
   They use `xpptut.py` from the same folder.
 

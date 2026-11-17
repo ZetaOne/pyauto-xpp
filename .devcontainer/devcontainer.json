@@ -12,7 +12,7 @@
     "8888": { "label": "JupyterLab", "onAutoForward": "openBrowser" }
   },
   "customizations": {
-    "codespaces": { "openFiles": ["tutorials/scripts/README.md"] },
+    "codespaces": { "openFiles": ["tutorials/worked-examples/README.md"] },
     "vscode": {
       "extensions": ["ms-python.python", "ms-toolsai.jupyter"]
     }
