@@ -547,7 +547,7 @@ a { color: var(--accent) }
   <div class="scrim" id="scrim" hidden></div>
   <main id="main" class="doc" tabindex="-1">
 <h1 id="pyauto-xpp-usage-and-examples">pyauto-xpp: usage and examples</h1>
-<p>pyauto-xpp runs XPPAUT 8.2 and its own AUTO from Python, for batch work and Python workflows. Every example below was run with the package when this page was built (<code>docs/usage/build_usage.py</code>); the output under each example is what it printed, and each figure is what it saved. The import name is <code>pyxpp</code>.</p>
+<p>pyauto-xpp runs <a href="https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html">XPPAUT</a> 8.2 and its own AUTO from Python, for batch work and Python workflows. Every example below was run with the package when this page was built (<code>docs/usage/build_usage.py</code>); the output under each example is what it printed, and each figure is what it saved. The import name is <code>pyxpp</code>.</p>
 <h2 id="contents">Contents<a class="anchor" href="#contents" aria-label="Link to this section (copies the address)" title="Copy the link to this section">#</a></h2>
 <ol type="1">
 <li><a href="#getting-started">Getting started</a></li>
@@ -2069,7 +2069,7 @@ with cf.ThreadPoolExecutor(1) as ex:          # (processes in real use; one thre
     print([round(x, 4) for x in ex.map(end_v, (0.0, 0.05, 0.1))])</code></pre></div>
 <div class="cb cb-out"><div class="cb-head"><span class="cb-lang">Output</span><button type="button" class="cb-copy" aria-label="Copy output to the clipboard"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" stroke-width="2"/></svg><span class="cb-msg">Copy</span></button></div><pre class="language-none" tabindex="0"><code class="language-none">[-0.4956, -0.3825, 0.0927]</code></pre></div>
 <h2 id="the-xpp-inside-versions-and-what-each-source-drop-changed">The XPP inside: versions and what each source drop changed<a class="anchor" href="#the-xpp-inside-versions-and-what-each-source-drop-changed" aria-label="Link to this section (copies the address)" title="Copy the link to this section">#</a></h2>
-<p>The package carries Bard Ermentrout's XPPAUT 8.2 source (<code>csrc/xppaut/</code>), updated as new drops arrive; <code>CHANGES.md</code> lists each one. The version XPP reports is in the log.</p>
+<p>The package carries <a href="https://sites.pitt.edu/~phase/">Bard Ermentrout</a>'s <a href="https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html">XPPAUT</a> 8.2 source (<code>csrc/xppaut/</code>), updated as new drops arrive; <code>CHANGES.md</code> lists each one. The version XPP reports is in the log.</p>
 <div class="cb cb-code"><div class="cb-head"><span class="cb-lang">Python</span><button type="button" class="cb-copy" aria-label="Copy python to the clipboard"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" stroke-width="2"/></svg><span class="cb-msg">Copy</span></button></div><pre class="language-python" tabindex="0"><code class="language-python">import time
 from pathlib import Path
 import pyxpp

@@ -10,7 +10,7 @@
 [![Platforms](https://img.shields.io/badge/wheels-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](https://github.com/ZetaOne/pyauto-xpp/releases/latest)
 [![Licence](https://img.shields.io/badge/licence-GPL--3.0--or--later-green)](LICENSE)
 
-XPPAUT 8.2, the dynamical-systems tool by Bard Ermentrout, and its AUTO,
+[XPPAUT](https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html) 8.2, the dynamical-systems tool by [Bard Ermentrout](https://sites.pitt.edu/~phase/), and its AUTO,
 made available to Python. It is meant for batch work and Python workflows:
 every XPP command is a Python call, AUTO runs from scripts, and models can be
 written in Python. For interactive exploration XPPAUT itself remains the place
@@ -158,7 +158,7 @@ AUTO's diagrams. Changes are listed in [`CHANGES.md`](CHANGES.md).
 
 ## Thank you, Prof. Ermentrout
 
-[XPPAUT](https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html) and his book
+[Bard Ermentrout](https://sites.pitt.edu/~phase/)'s [XPPAUT](https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html) and his book
 [*Simulating, Analyzing, and Animating Dynamical Systems*](https://doi.org/10.1137/1.9780898718195)
 have taught many of us how to explore dynamical systems. Every number in
 pyauto-xpp comes from his code. Thank you, Prof. Ermentrout.
@@ -170,9 +170,8 @@ Made by [Jeevan Kumar Gochhayat](https://github.com/ZetaOne).
 **GNU General Public License, version 3 or later** (GPL-3.0-or-later). See
 [`LICENSE`](LICENSE).
 
-- **XPPAUT** is by G. Bard Ermentrout. The C sources in `csrc/xppaut` are his
-  version 8.2, including AUTO for delay equations.
-  [Homepage](https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html).
+- **[XPPAUT](https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html)** is by [G. Bard Ermentrout](https://sites.pitt.edu/~phase/). The C sources in
+  `csrc/xppaut` are his version 8.2, including AUTO for delay equations.
 - **AUTO** is by E. Doedel and collaborators.
 - **pyxpp**, the headless Python bridge this package grew from, is by Youngmin
   Park.
