@@ -468,6 +468,7 @@ dialog.lightbox img { display: block; width: 100%; height: auto; max-height: cal
 .card .k { display: flex; gap: 6px; font-size: .6875rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted) }
 .card .k .nb { color: var(--accent) }
 .card h3 { margin: 4px 0 2px; font-size: .90625rem }
+.card.iso img { width: 100%; height: auto; border-radius: 6px; margin: 2px 0 8px; background: #fff }
 .card p { margin: 2px 0 6px; font-size: .8125rem; color: var(--muted); flex: 1 }
 .card .f { font-size: .71875rem; color: var(--muted); overflow-wrap: anywhere }
 .card .links { display: flex; gap: 2px; margin: 6px -6px 0; flex-wrap: wrap }
@@ -531,13 +532,13 @@ footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
 <header class="bar">
   <a class="brand" href="#top"><img src="icon.svg" alt="" width="22" height="22">pyauto-xpp</a>
   <a class="ver" href="https://github.com/ZetaOne/pyauto-xpp/releases/tag/v0.3.0" title="Latest release">v0.3.0</a>
-  <nav class="nav" aria-label="Sections"><a href="#gallery">Gallery</a><a href="#install">Quick start</a><a href="#downloads">Downloads</a><a href="#tutorials">Tutorials</a><a href="manual/">Manual</a></nav>
+  <nav class="nav" aria-label="Sections"><a href="#gallery">Gallery</a><a href="#install">Quick start</a><a href="#downloads">Downloads</a><a href="#tutorials">Tutorials</a><a href="#isochrons">Isochrons</a><a href="manual/">Manual</a></nav>
   <div class="right">
     <details class="menu" id="menu">
       <summary class="round" title="Menu" aria-label="Menu">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </summary>
-      <div class="panel" role="menu"><a role="menuitem" href="#gallery">Gallery</a><a role="menuitem" href="#install">Quick start</a><a role="menuitem" href="#downloads">Downloads</a><a role="menuitem" href="#tutorials">Tutorials</a><a role="menuitem" href="manual/">Manual</a><a role="menuitem" href="https://github.com/ZetaOne/pyauto-xpp">GitHub</a></div>
+      <div class="panel" role="menu"><a role="menuitem" href="#gallery">Gallery</a><a role="menuitem" href="#install">Quick start</a><a role="menuitem" href="#downloads">Downloads</a><a role="menuitem" href="#tutorials">Tutorials</a><a role="menuitem" href="#isochrons">Isochrons</a><a role="menuitem" href="manual/">Manual</a><a role="menuitem" href="https://github.com/ZetaOne/pyauto-xpp">GitHub</a></div>
     </details>
     <details class="display" id="themes">
       <summary class="round" title="Display: theme, text size, font" aria-label="Display: theme, text size and font">
@@ -613,7 +614,7 @@ footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
         <div class="code"><pre><code>curl -fsSL https://pixi.sh/install.sh | bash   <span class="c"># once, then open a new terminal</span>
 git clone https://github.com/ZetaOne/pyauto-xpp &amp;&amp; cd pyauto-xpp
 pixi run lab        <span class="c"># JupyterLab with the tutorials opens in your browser</span>
-pixi run scripts    <span class="c"># every tutorial script, one line each</span>
+pixi run examples   <span class="c"># every worked-example notebook, one line each</span>
 pixi run test       <span class="c"># the package's tests</span></code></pre></div>
       </div>
       <div data-for="win" hidden>
@@ -700,6 +701,31 @@ d.special("HB")</code></pre></div>
       <div class="chips" role="group" aria-label="Group" id="groups"></div>
     </div>
     <div class="cards" id="cards"></div>
+  </section>
+
+  <section id="isochrons" aria-labelledby="h-isochrons">
+    <h2 id="h-isochrons">Isochrons <a class="anchor" href="#isochrons" aria-label="Link to Isochrons">#</a></h2>
+    <p class="lead">An oscillator's phase, extended off its limit cycle: the isochrons are the curves of equal
+      asymptotic phase. These notebooks start from the idea and lead to the global isochrons of the reduced
+      Hodgkin&ndash;Huxley neuron by continuation, as in Osinga &amp; Moehlis, SIAM J. Appl. Dyn. Syst. 9 (2010).
+      In Google Colab the first cell installs pyauto-xpp; run it first. Locally: <code>pixi run isochrons</code>.</p>
+    <div class="cards">
+      <article class="card iso">
+        <img src="isochrons/fhn_isochron_sweep.gif" width="576" height="432" loading="lazy"
+             alt="FitzHugh-Nagumo phase map: the isochron of a point moving around the limit cycle sweeps the plane">
+        <div class="k"><span class="nb">notebook</span><span>&middot;</span><span>Isochrons 01</span></div>
+        <h3>What is an isochron? FitzHugh&ndash;Nagumo, then the reduced Hodgkin&ndash;Huxley neuron</h3>
+        <p>Phase on the cycle, asymptotic phase, the phase map and its contour lines, points on one isochron moving
+          together, kicks and the phase response curve; then why the reduced HH isochrons need continuation.</p>
+        <div class="f mono">01_FHN_basics-isochron.ipynb</div>
+        <div class="links">
+          <a href="https://github.com/ZetaOne/pyauto-xpp/blob/main/isochrons/01_FHN_basics-isochron.ipynb" aria-label="View 01_FHN_basics-isochron.ipynb on GitHub">View</a>
+          <a href="https://raw.githubusercontent.com/ZetaOne/pyauto-xpp/main/isochrons/01_FHN_basics-isochron.ipynb" data-dl aria-label="Download 01_FHN_basics-isochron.ipynb">Download</a>
+          <a href="https://mybinder.org/v2/gh/ZetaOne/pyauto-xpp/HEAD?urlpath=lab/tree/isochrons/01_FHN_basics-isochron.ipynb" aria-label="Open 01_FHN_basics-isochron.ipynb in Binder">Open in Binder</a>
+          <a href="https://colab.research.google.com/github/ZetaOne/pyauto-xpp/blob/main/isochrons/01_FHN_basics-isochron.ipynb" target="_blank" rel="noopener" aria-label="Open 01_FHN_basics-isochron.ipynb in Google Colab">Open in Colab</a>
+        </div>
+      </article>
+    </div>
   </section>
 
   <section id="thanks" aria-labelledby="h-thanks">
