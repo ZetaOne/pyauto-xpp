@@ -25,8 +25,9 @@ printed, and each figure is what it saved. The import name is `pyxpp`.
 11. [AUTO II: two-parameter curves](#auto-ii-two-parameter-curves)
 12. [AUTO III: branch points, periodic starts, period doubling, maps](#auto-iii-branch-points-periodic-starts-period-doubling-maps)
 13. [AUTO IV: many initial conditions, files and buttons](#auto-iv-many-initial-conditions-files-and-buttons)
-14. [Errors, limits and tips](#errors-limits-and-tips)
-15. [The XPP inside: versions and what each source drop changed](#the-xpp-inside-versions-and-what-each-source-drop-changed)
+14. [AUTO V: starting orbits, stored solutions, the final state](#auto-v-starting-orbits-stored-solutions-the-final-state)
+15. [Errors, limits and tips](#errors-limits-and-tips)
+16. [The XPP inside: versions and what each source drop changed](#the-xpp-inside-versions-and-what-each-source-drop-changed)
 
 ## Getting started
 
@@ -2206,6 +2207,113 @@ file    SVG (*.svg) -> diagram.svg
 
 ![xpp_auto_diagram.svg](figures/12_auto_starts/xpp_auto_diagram.svg)
 
+## AUTO V: starting orbits, stored solutions, the final state
+
+**A periodic run from a given orbit.** XPP starts "Periodic", "Bdry Value"
+and "Homoclinic" runs from scratch from the data browser (normally the last
+integration), with the period taken from the last time. `initial=(t, U)`
+hands AUTO an orbit directly: `t` the times, `U` one row per time and one
+column per variable (`m.vars`), or a `Trajectory`. For "periodic" give one
+period (U[-1] close to U[0]); the period is `t[-1] - t[0]`. Times that are
+not equally spaced are resampled (XPP reads the orbit at equally spaced
+rows). The data end up in the data browser (`m.load_data(t, U)` does only
+that step). Here the Hopf normal form, whose orbits have radius sqrt(mu)
+and period 2 pi / w, from the circle of radius 1:
+
+**Stored solutions.** `Point.solution` is the solution AUTO stored for a
+labelled point, as `(t, U)` on AUTO's mesh (NTST*NCOL + 1 points, double
+precision): `t` is AUTO's normalised time on [0, 1]; multiply by
+`p.period` for real time, or ask `m.auto.solution(p, real_time=True)`.
+Only labelled points are stored (every `npr`-th point and the special ones).
+
+```python
+import numpy as np
+import pyxpp
+
+hopf = pyxpp.load(text="""
+x'=mu*x-w*y-x*(x^2+y^2)
+y'=w*x+mu*y-y*(x^2+y^2)
+par mu=1,w=2
+init x=0.1,y=0
+@ total=5,dt=0.01
+done
+""")
+hopf.auto.parameters("mu", "w")
+t = np.linspace(0, np.pi, 301)                       # one period of the orbit of radius 1
+U = np.column_stack([np.cos(2 * t), np.sin(2 * t)])  # one row per time, one column per variable
+po = hopf.auto.run("mu", start="periodic", initial=(t, U), ntst=50, npr=10,
+                   nmax=30, ds=0.02, dsmax=0.1, parmin=0.1, parmax=3)
+print(po)
+print("periods:", sorted({round(p.period, 10) for p in po.points[1:]}), " (pi =", round(np.pi, 10), ")")
+p = po.label(2)
+s, X = p.solution                                    # AUTO's mesh, s on [0, 1]
+print(f"label 2: mu = {p.x:.4f}, {len(s)} mesh points, s from {s[0]} to {s[-1]}")
+print("radius on the mesh:", np.hypot(X[:, 0], X[:, 1]).min().round(10), "- sqrt(mu) =", np.sqrt(p.x).round(10))
+tt, X = hopf.auto.solution(p, real_time=True)        # t = s * period
+print("real time ends at", round(tt[-1], 10))
+```
+
+```text
+<Diagram 25 points, labels 1:EP 2: 3: 4:EP>
+periods: [3.1415926534, 3.1415926536]  (pi = 3.1415926536 )
+label 2: mu = 1.6502, 201 mesh points, s from 0.0 to 1.0
+radius on the mesh: 1.2846100701 - sqrt(mu) = 1.2846100702
+real time ends at 3.1415926536
+```
+
+(The first point of the run is the starting data itself, with the period
+in XPP's single precision; AUTO's own points follow.)
+
+**Boundary value problems** (`b` lines in the .ode file) are posed on
+0 <= t <= 1 in XPP; `initial=` gives AUTO the first solution, here of
+x'' = -a, x(0) = x(1) = 0, whose solution is x = a t (1 - t) / 2.
+Below it, **`m.last_state()`**: where the last integration stopped, in
+double precision (`m.data` and `last_point()` hold XPP's single-precision
+copy).
+
+```python
+import numpy as np
+import pyxpp
+bvp = pyxpp.load(text="""
+x'=y
+y'=-a
+par a=1
+b x
+b x'
+@ total=1,dt=0.01
+done
+""")
+bvp.auto.parameters("a")
+t = np.linspace(0, 1, 101)
+U = np.column_stack([t * (1 - t) / 2, (1 - 2 * t) / 2])     # x = a t (1 - t) / 2 at a = 1
+br = bvp.auto.run("a", start="bdry value", initial=(t, U), ntst=20, npr=5,
+                  nmax=20, ds=0.05, dsmax=0.2, parmin=0, parmax=5)
+p = br.label(3)
+s, X = p.solution
+print(f"label 3: a = {p.x:.4f}, largest error {np.abs(X[:, 0] - p.x * s * (1 - s) / 2).max():.1e}")
+
+m = pyxpp.load(text="x'=3*t^2\ny'=-y\ninit x=0,y=1\n@ total=1.37,dt=0.001,meth=rk4\ndone\n")
+m.run()
+s = m.last_state()
+print(s)
+print(f"x - t^3: last_state {s['x'] - s['t']**3:.1e},  last_point {m.last_point()['X'] - s['t']**3:.1e}")
+```
+
+```text
+label 3: a = 2.4835, largest error 4.9e-12
+{'t': 1.36999999999996, 'X': 2.5713529999999545, 'Y': 0.25410695955280305}
+x - t^3: last_state 1.8e-13,  last_point -4.1e-08
+```
+
+**Long meshes.** AUTO wrote the header of each stored solution in
+five-character columns with no space between them; once a solution needed
+10 000 or more lines (NTST*NCOL*(rows per mesh point) of about 10 000, e.g.
+NTST >= 1249 with NCOL = 4 for a 2-variable orbit) the columns ran
+together, a restart from a label then failed and the whole process
+crashed. pyxpp's XPP writes the columns apart, so long meshes work (tested
+with NTST = 3000); restarting from a label whose stored solution is
+missing raises `XPPError`.
+
 ## Errors, limits and tips
 
 **Errors.** Anything XPP refuses raises `pyxpp.XPPError` with XPP's
@@ -2262,7 +2370,8 @@ AUTO with nothing to start from  -> ValueError: nothing grabbed: give start='ste
 - To learn what a button asks, call it with no answers and read
   `m.transcript`; a wrong dialog field or menu entry lists the right ones.
 - XPP stores data in single precision: compare stored values to about
-  1e-7 relative.
+  1e-7 relative. `m.last_state()` gives the final state in double
+  precision, `Point.solution` AUTO's orbits.
 - Every model has its own XPP; to run many in parallel, use processes
   (e.g. `concurrent.futures.ProcessPoolExecutor`), one model each.
 

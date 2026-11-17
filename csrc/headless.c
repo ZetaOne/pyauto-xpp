@@ -936,3 +936,133 @@ EXPORT int pyxpp_delay_roots(double *x, int nev, double *ev, int *nunstab) {
   del_stab_flag = 1;
   return nr;
 }
+
+/* ---- starting data, stored solutions and the final state (2026-11-17) ---- */
+extern int MAXSTOR, INFLAG, DelayFlag;
+extern double MyData[], MyTime;
+extern char this_auto_file[];
+extern void data_back(void);
+extern void refresh_browser(int length);
+extern void extra(double *y, double t, int nod, int neq);
+int dde_po_get_orbit(int ibr, int lab, double per, int maxrows, int *nrow, double **ts, double **us);
+
+/* Put given data into XPP's data storage, as if an integration had produced it:
+   data is nrow x (1 + nvar), row-major, t first, then the first nvar variables
+   (nvar = NODE + NMarkov).  The auxiliary quantities are computed by XPP.
+   AUTO's runs from scratch ("Periodic", "Bdry value", "Homoclinic") start
+   from these rows: the orbit is read at equally spaced row indices and the
+   period is the last time (the first must be 0). */
+static int load_storage(int nrow, int nvar, const double *data) {
+  double x[MAXODE];
+  int r, j;
+  if (nrow < 2 || nrow > MAXSTOR) {
+    snprintf(errbuf, sizeof errbuf, "%d rows do not fit in XPP's storage (2 to MAXSTOR = %d)", nrow, MAXSTOR);
+    return -1;
+  }
+  if (nvar != NODE + NMarkov) {
+    snprintf(errbuf, sizeof errbuf, "expected %d variables, got %d", NODE + NMarkov, nvar);
+    return -1;
+  }
+  data_back();
+  for (r = 0; r < nrow; r++) {
+    const double *row = data + (size_t)r * (nvar + 1);
+    for (j = 0; j < MAXODE && j < NEQ; j++) x[j] = 0.0;
+    for (j = 0; j < nvar; j++) x[j] = row[1 + j];
+    extra(x, row[0], NODE, NEQ);
+    storage[0][r] = (float)row[0];
+    for (j = 0; j < NEQ; j++) storage[j + 1][r] = (float)x[j];
+  }
+  storind = nrow;
+  refresh_browser(nrow);
+  return 0;
+}
+EXPORT int pyxpp_load_storage(int nrow, int nvar, const double *data) {
+  if (nrow < 2 || nrow > MAXSTOR || nvar != NODE + NMarkov) {
+    errbuf[0] = 0;
+    return load_storage(nrow, nvar, data);      /* only writes the message */
+  }
+  GUARDED(load_storage(nrow, nvar, data));
+}
+
+/* The solution AUTO stored for label lab (the .s file, i.e. fort.8), on AUTO's
+   mesh: t is AUTO's normalised time in [0,1].  Rows go to t[0..maxrow) and
+   u[row*ndim + k] (all ndim components AUTO stored; the first NODE are the
+   variables).  *nrow and *ndim are set even when maxrow is too small (call with
+   maxrow = 0 to ask for the size).  Periodic orbits of delay equations are kept
+   by XPP's delay orbit solver, not in the file (ibr, per identify them).
+   Returns 0, or -1 if the label is not stored. */
+static int read_solution_header(FILE *fp, int lab, int *ntpl, int *nar) {
+  static char line[8192];
+  long v[9];
+  int i;
+  while (fgets(line, sizeof line, fp)) {
+    if (sscanf(line, "%ld %ld %ld %ld %ld %ld %ld %ld %ld",
+               v, v + 1, v + 2, v + 3, v + 4, v + 5, v + 6, v + 7, v + 8) != 9) return 0;
+    if (v[3] == lab) { *ntpl = (int)v[6]; *nar = (int)v[7]; return 1; }
+    for (i = 0; i < v[8]; i++)
+      if (!fgets(line, sizeof line, fp)) return 0;
+  }
+  return 0;
+}
+EXPORT int pyxpp_auto_solution(int ibr, int lab, double per, int maxrow,
+                               int *nrow, int *ndim, double *t, double *u) {
+  char path[1200];
+  FILE *fp;
+  int i, k, ntpl = 0, nar = 0;
+  *nrow = 0; *ndim = 0;
+  errbuf[0] = 0;
+  if (ibr < 0 && DelayFlag) {
+    double *ts = NULL, *us = NULL;
+    int nr = 0;
+    if (!dde_po_get_orbit(ibr, lab, per, 1 << 24, &nr, &ts, &us)) {
+      snprintf(errbuf, sizeof errbuf, "the orbit of label %d is not stored (delay periodic orbits "
+               "are kept for the current session only)", lab);
+      return -1;
+    }
+    *nrow = nr; *ndim = NODE;
+    for (i = 0; i < nr && i < maxrow; i++) {
+      t[i] = ts[i];
+      for (k = 0; k < NODE; k++) u[(size_t)i * NODE + k] = us[(size_t)i * NODE + k];
+    }
+    free(ts); free(us);
+    return 0;
+  }
+  snprintf(path, sizeof path, "%s.s", this_auto_file);
+  fp = fopen(path, "r");
+  if (fp == NULL) {
+    snprintf(errbuf, sizeof errbuf, "AUTO has stored no solutions yet (%s)", path);
+    return -1;
+  }
+  if (!read_solution_header(fp, lab, &ntpl, &nar) || ntpl < 1 || nar < 2) {
+    fclose(fp);
+    snprintf(errbuf, sizeof errbuf, "label %d is not in AUTO's stored solutions", lab);
+    return -1;
+  }
+  *nrow = ntpl; *ndim = nar - 1;
+  if (maxrow >= ntpl) {
+    for (i = 0; i < ntpl; i++) {
+      if (fscanf(fp, "%lg", t + i) != 1) break;
+      for (k = 0; k < nar - 1; k++)
+        if (fscanf(fp, "%lg", u + (size_t)i * (nar - 1) + k) != 1) break;
+      if (k < nar - 1) break;
+    }
+    if (i < ntpl) {
+      fclose(fp);
+      snprintf(errbuf, sizeof errbuf, "AUTO's stored solution of label %d is cut short", lab);
+      return -1;
+    }
+  }
+  fclose(fp);
+  return 0;
+}
+
+/* The state where the last integration stopped, in double precision (XPP
+   integrates in MyData; the data browser keeps floats): x[0..NODE+NMarkov)
+   and the time.  Returns -1 if nothing has been integrated. */
+EXPORT int pyxpp_last_state(double *x, double *t) {
+  int i;
+  if (!INFLAG) return -1;
+  for (i = 0; i < NODE + NMarkov; i++) x[i] = MyData[i];
+  *t = MyTime;
+  return 0;
+}

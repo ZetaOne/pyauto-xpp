@@ -107,6 +107,18 @@ class Point:
         return self._eig
 
     @property
+    def solution(self):
+        """(t, U): the solution AUTO stored for this labelled point, on AUTO's
+        mesh (NTST*NCOL + 1 points; one row for an equilibrium).  t is AUTO's
+        normalised time on [0, 1]: for a periodic orbit the real time is
+        t * self.period (m.auto.solution(p, real_time=True) does that).  U
+        has one column per variable (the Diagram's .vars), in double
+        precision as AUTO wrote it.  Only labelled points are stored."""
+        if self._model is None:
+            raise XPPError("this point has no model")
+        return self._model.auto.solution(self)
+
+    @property
     def type(self):
         return bif_type(self.itp)
 
@@ -303,6 +315,37 @@ class Auto:
                 p.stable_override = q.pt < 0
         return Diagram(pts, vars_)
 
+    def solution(self, point, real_time=False):
+        """The solution AUTO stored for a labelled point (a Point or a
+        label) as (t, U) on AUTO's mesh: t on [0, 1] (AUTO's normalised time;
+        real_time=True multiplies it by the period of a periodic orbit), U
+        with one row per mesh point and one column per variable.  See
+        Point.solution."""
+        if not isinstance(point, Point):
+            point = self.diagram.label(int(point))
+        if not point.label:
+            raise XPPError("only labelled points have a stored solution "
+                           "(AUTO labels every NPr-th point and the special ones; lower npr for more)")
+        nrow, ndim = ctypes.c_int(), ctypes.c_int()
+        dummy = (ctypes.c_double * 1)()
+        c = self._c
+        args = (int(point.branch), int(point.label), float(point.period))
+        if c.pyxpp_auto_solution(*args, 0, ctypes.byref(nrow), ctypes.byref(ndim), dummy, dummy) != 0:
+            raise XPPError(c.pyxpp_error().decode(errors="replace"))
+        n, k = nrow.value, ndim.value
+        t = np.empty(n)
+        u = np.empty((n, k))
+        rc = c.pyxpp_auto_solution(*args, n, ctypes.byref(nrow), ctypes.byref(ndim),
+                                   t.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                                   u.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
+        if rc != 0:
+            raise XPPError(c.pyxpp_error().decode(errors="replace"))
+        node = c.pyxpp_node()
+        u = u[:, :node].copy()       # two-parameter runs store extra components after the variables
+        if real_time and point.periodic:
+            t = t * point.period
+        return t, u
+
     def lyapunov(self, point):
         """First Lyapunov coefficient at an HB point or a point of a
         two-parameter Hopf curve (XPP 8.1, hopf_l1.c): returns (l1, omega).
@@ -433,7 +476,7 @@ class Auto:
         self._m._press_auto(["f", "r"], (True,) if self._count() > 0 else ())
 
     def run(self, param=None, *, start=None, grab=None, choice=None, y=None,
-            param2=None, answers=(), **numerics):
+            param2=None, answers=(), initial=None, **numerics):
         """Run AUTO and return the new points as a Diagram.
 
         From scratch (nothing grabbed):  start = steady | periodic |
@@ -449,6 +492,18 @@ class Auto:
         Remaining keyword arguments go to numerics().  `answers` are extra
         replies for anything else XPP asks.
 
+        initial: the solution a run from scratch with start="periodic",
+            "bdry value", "homoclinic" or "heteroclinic" starts from, as
+            (t, U) (times, and one row per time with a column per variable
+            of m.vars) or a Trajectory.  Without it XPP starts from what is
+            in the data browser (the last integration).  The data are put
+            into the data browser (see Model.load_data), resampled at equal
+            time steps if they are not equally spaced already (XPP reads the
+            starting orbit at equally spaced rows).  For "periodic" the
+            data are one period, U[-1] close to U[0], and the period is
+            t[-1] - t[0]; for "bdry value" t runs over the problem's
+            interval (XPP's boundary value problems are posed on [0, 1]).
+
         Two-parameter runs (choice="two param", or from a fold of equilibria)
         use epsl = epsu = Auto.two_par_tol (1e-7) unless you give them, and put
         AUTO's settings back afterwards: AUTO's default 1e-4 leaves errors of
@@ -461,6 +516,8 @@ class Auto:
             self.numerics(**numerics)
         if grab is not None:
             self.grab(grab)
+        if initial is not None:
+            self._load_initial(initial, start)
         # two-parameter curves: AUTO's default epsl = epsu = 1e-4 leaves errors of ~1e-4
         # along the curve; tighten them for this run only (unless given), then restore
         restore = None
@@ -474,6 +531,29 @@ class Auto:
         finally:
             if restore:
                 self.numerics(**restore)
+
+    def _load_initial(self, initial, start):
+        from .model import _orbit_arrays
+        kind = str(start or "").strip().lower()
+        if self.settings["grabbed"]:
+            raise ValueError("initial= starts a run from scratch: clear the grab first "
+                             "(m.auto.clear_grab()) or do not grab a point")
+        if not kind or kind[0] not in "pbhe":
+            raise ValueError("initial= needs start='periodic', 'bdry value', 'homoclinic' or "
+                             f"'heteroclinic' (got start={start!r})")
+        t, U = _orbit_arrays(self._m, initial)
+        maxstor = self._m.numerics["maxstor"]
+        n = len(t)
+        dt = np.diff(t)
+        uniform = n > 1 and np.ptp(dt) <= 1e-9 * max(abs(t[-1] - t[0]), 1e-300)
+        if not uniform or n > maxstor:
+            # XPP reads the starting orbit at equally spaced rows (get_start_orbit)
+            n = int(min(maxstor, max(n, 2001)))
+            tt = np.linspace(t[0], t[-1], n)
+            U = np.column_stack([np.interp(tt, t, U[:, j]) for j in range(U.shape[1])])
+            t = tt
+        # XPP takes the period of a periodic start from the last stored time: start at 0
+        self._m.load_data(t - t[0], U)
 
     #: epsl/epsu used for two-parameter runs when not given (None: AUTO's own settings)
     two_par_tol = 1e-7
@@ -500,13 +580,20 @@ class Auto:
             if self._count() > 0:
                 reply.append(True)  # "Destroy AUTO diagram & files?"
                 before = 0          # the old points are gone; the new run starts at index 0
-        elif choice is not None:
-            reply.append(choice)
+        else:
+            self._check_restart_label()
+            if choice is not None:
+                reply.append(choice)
         reply.extend(answers)
+        log0 = self._log_size()
         self._m._press_auto(["r"], reply)
         d = self.diagram
         new = [p for p in d.points if p.index >= before]
         if not new:
+            said = self._log_since(log0)
+            if "Restart label" in said and "not found" in said:
+                raise XPPError("AUTO computed nothing: the grabbed label is not in AUTO's stored "
+                               "solutions (" + said.strip().splitlines()[-1].strip() + ")")
             # a menu XPP opened got no answer: say so instead of returning nothing
             unanswered = [ln.split("menu", 1)[1].split("->")[0].strip()
                           for ln in self._m.transcript.splitlines()
@@ -517,6 +604,37 @@ class Auto:
                     "Pass choice=... (on a periodic branch e.g. choice='extend' or 'fixed period'; "
                     "at PD: 'doubling', 'two param', ...; see Auto.run's docstring).")
         return Diagram(new, d.vars)
+
+    def _check_restart_label(self):
+        """AUTO restarts from the grabbed label's solution in its .s file; if
+        that is missing AUTO itself would crash the process: say so instead."""
+        if self._m.has_delays:
+            return          # delay periodic orbits are kept in memory, not in the file
+        lab = self.settings["grab_label"]
+        if lab <= 0:
+            return
+        n, k = ctypes.c_int(), ctypes.c_int()
+        dummy = (ctypes.c_double * 1)()
+        if self._c.pyxpp_auto_solution(0, int(lab), 0.0, 0, ctypes.byref(n), ctypes.byref(k),
+                                       dummy, dummy) != 0:
+            raise XPPError("cannot restart AUTO from label %d: %s"
+                           % (lab, self._c.pyxpp_error().decode(errors="replace")))
+
+    def _log_size(self):
+        self._c.pyxpp_flush_log()
+        try:
+            return self._m._lib.logpath.stat().st_size
+        except OSError:
+            return 0
+
+    def _log_since(self, pos):
+        self._c.pyxpp_flush_log()
+        try:
+            with open(self._m._lib.logpath, "rb") as f:
+                f.seek(pos)
+                return f.read().decode(errors="replace")
+        except OSError:
+            return ""
 
     def _count(self):
         """number of real diagram points (XPP keeps one empty node until the

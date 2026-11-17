@@ -388,3 +388,94 @@ def test_two_parameter_curves_use_tight_tolerances():
             cc = np.sqrt(1 - e * b)
             errs.append(min(abs(p.x - (s * (cc**3 / 3 - cc + cc / b) + a / b)) for s in (-1, 1)))
     assert np.median(errs) < 1e-8 and max(errs) < 1e-5
+
+
+# ---- 2026-11-17: starting orbits, stored solutions, double final state, long meshes ----
+HOPF_NF = """
+x'=mu*x-w*y-x*(x^2+y^2)
+y'=w*x+mu*y-y*(x^2+y^2)
+par mu=1,w=2
+init x=0.1,y=0
+@ total=5,dt=0.01
+done
+"""
+
+
+def _hopf_branch_from_given_orbit(t=None):
+    """periodic orbits of the Hopf normal form (radius sqrt(mu), period 2 pi / w),
+    started from a given orbit, not from the data browser"""
+    m = pyxpp.load(text=HOPF_NF)
+    m.run()                                     # the browser holds a spiral, not an orbit
+    if t is None:
+        t = np.linspace(0, np.pi, 301)
+    U = np.column_stack([np.cos(2 * t), np.sin(2 * t)])
+    m.auto.parameters("mu", "w")
+    d = m.auto.run("mu", start="periodic", initial=(t, U), ntst=50, nmax=30, npr=10,
+                   ds=0.02, dsmax=0.1, parmin=0.1, parmax=3)
+    return m, d
+
+
+def test_periodic_run_from_a_given_orbit():
+    m, d = _hopf_branch_from_given_orbit()
+    assert len(d) > 10 and all(p.periodic for p in d)
+    # the first point is the starting data (period in single precision); then AUTO's own
+    for p in d.points[1:]:
+        assert p.period == pytest.approx(np.pi, abs=1e-8)
+        assert p.umax["x"] == pytest.approx(np.sqrt(p.x), abs=1e-6)
+    # unevenly spaced times are resampled; a Trajectory works as well
+    t = np.pi * np.linspace(0, 1, 400) ** 1.5
+    m2, d2 = _hopf_branch_from_given_orbit(t)
+    assert d2[3].period == pytest.approx(np.pi, abs=1e-8)
+    tr = m.load_data(t, np.column_stack([np.cos(2 * t), np.sin(2 * t)]))
+    assert len(tr) == 400 and tr["y"][-1] == pytest.approx(np.sin(2 * t[-1]), abs=1e-6)
+    with pytest.raises(ValueError):
+        m.auto.run("mu", start="steady", initial=tr)
+
+
+def test_point_solution_matches_a_simulation():
+    m, d = _hopf_branch_from_given_orbit()
+    p = [q for q in d.labeled() if q.type == ""][0]
+    t, U = p.solution
+    assert t[0] == 0 and t[-1] == pytest.approx(1) and U.shape == (50 * 4 + 1, 2)
+    assert np.allclose(np.hypot(U[:, 0], U[:, 1]), np.sqrt(p.x), atol=1e-8)
+    tr, Ur = m.auto.solution(p.label, real_time=True)
+    assert tr[-1] == pytest.approx(p.period)
+    with m.using(mu=p.x, x=Ur[0, 0], y=Ur[0, 1], total=p.period, dt=p.period / 20000, meth="rk4"):
+        m.run()
+        s = m.data
+    for j, v in enumerate(("x", "y")):
+        assert np.abs(np.interp(tr, s["t"], s[v]) - Ur[:, j]).max() < 1e-6
+    with pytest.raises(pyxpp.XPPError):
+        m.auto.solution([q for q in d if not q.label][0])
+
+
+def test_last_state_is_double_precision():
+    m = pyxpp.load(text="x'=3*t^2\ny'=-y\ninit x=0,y=1\n@ total=1.37,dt=0.001,meth=rk4\ndone\n")
+    with pytest.raises(pyxpp.XPPError):
+        m.last_state()
+    m.run()
+    s = m.last_state()
+    assert s["t"] == pytest.approx(1.37, abs=1e-12)
+    assert abs(s["x"] - s["t"] ** 3) < 1e-12               # RK4 is exact for a cubic
+    assert abs(s["Y"] - np.exp(-s["t"])) < 1e-12           # RK4 error ~ dt^4
+    assert abs(m.last_point()["X"] - s["t"] ** 3) > 1e-10   # the browser keeps floats
+
+
+def test_long_meshes_restart_without_crashing():
+    # NTST*NCOL >= ~5000 used to make AUTO's .s header unreadable; restarting from a
+    # label then crashed the whole process
+    m = pyxpp.load(text=HOPF_NF.replace("w=2", "w=1"))
+    m.run()
+    m.auto.parameters("mu", "w")
+    t = np.linspace(0, 2 * np.pi, 501)
+    d = m.auto.run("mu", start="periodic", initial=(t, np.column_stack([np.cos(t), np.sin(t)])),
+                   ntst=1400, ncol=4, nmax=8, npr=4, ds=0.01, dsmax=0.05, parmin=0, parmax=2)
+    lab = [p for p in d.labeled() if p.type == ""][0]
+    assert lab.solution[0].shape == (1400 * 4 + 1,)
+    e = m.auto.run(grab=lab.label, choice="extend", nmax=4)
+    assert len(e) == 4 and e[-1].period == pytest.approx(2 * np.pi, abs=1e-8)
+    # a label whose stored solution is gone: an XPPError, not a crash
+    for f in (m.workdir / ".pyxpp" / "auto").glob("*.s"):
+        f.unlink()
+    with pytest.raises(pyxpp.XPPError, match="restart"):
+        m.auto.run(grab=e.labeled()[-1].label, choice="extend", nmax=4)

@@ -529,6 +529,46 @@ class Model:
             raise XPPError("no data; run first")
         return {v: float(d[v][-1]) for v in self.vars}
 
+    def last_state(self):
+        """Where the last integration stopped, in double precision:
+        {"t": final time, var: value, ...} (variables in .ode order; the
+        names are case-insensitive).
+
+        XPP integrates in double precision but keeps the data browser
+        (m.data, last_point()) in single precision, about 7 digits; this
+        reads XPP's own double state.  It is the state where the integration
+        stopped (also with nOut > 1, a transient or a Poincare map, where the
+        last stored row may be another point).  Importing an AUTO orbit into
+        the data browser (File > Import orbit) reuses that state, so read it
+        right after the run."""
+        n = len(self.vars)
+        x = (ctypes.c_double * max(n, 1))()
+        t = ctypes.c_double()
+        if self._c.pyxpp_last_state(x, ctypes.byref(t)) != 0:
+            raise XPPError("no integration yet: run first")
+        from .auto import CIDict
+        return CIDict([("t", t.value)] + [(v, float(x[i])) for i, v in enumerate(self.vars)])
+
+    def load_data(self, t, U=None):
+        """Put given data into XPP's data browser, as if an integration had
+        produced it: `t` (n) and `U` (n x len(m.vars)), or a Trajectory.  The
+        auxiliary quantities are computed by XPP; the values are stored in
+        single precision, like XPP's own.  Returns m.data.
+
+        This is what AUTO's runs from scratch ("periodic", "bdry value",
+        "homoclinic") start from; m.auto.run(..., initial=...) uses it."""
+        t, U = _orbit_arrays(self, t, U)
+        maxstor = self.numerics["maxstor"]
+        if not 2 <= len(t) <= maxstor:
+            raise XPPError(f"{len(t)} rows do not fit in XPP's storage (2 to MAXSTOR = {maxstor}; "
+                           "raise it with m.set(maxstor=...))")
+        rows = np.ascontiguousarray(np.column_stack([t, U]), dtype=float)
+        rc = self._c.pyxpp_load_storage(len(t), U.shape[1],
+                                        rows.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
+        if rc != 0:
+            raise XPPError(self._c.pyxpp_error().decode(errors="replace"))
+        return self.data
+
     def sweep(self, name, values, **settings):
         """Run once per value of parameter (or initial condition) `name`,
         restoring it afterwards.  Returns a list of Trajectories.  (The GUI's
@@ -712,6 +752,42 @@ class Model:
     def __repr__(self):
         return (f"<pyxpp.Model {self.path.name}: vars={self.vars} aux={self.aux} "
                 f"pars={len(self.par_names)}>")
+
+
+def _orbit_arrays(model, t, U=None):
+    """(t, U) from (t, U), a Trajectory or an (n x (1 + nvars)) array with t
+    first; U gets one column per model variable (m.vars), in that order."""
+    names = model.vars
+    if U is None and isinstance(t, Trajectory):
+        tr = t
+        missing = [v for v in names if v.lower() not in tr._idx]
+        if missing:
+            raise ValueError(f"the Trajectory has no column(s) {missing}")
+        t, U = tr["t"], np.column_stack([tr[v] for v in names])
+    elif U is None:
+        if isinstance(t, (tuple, list)) and len(t) == 2:
+            t, U = t
+        else:
+            a = np.asarray(t, dtype=float)
+            if a.ndim != 2:
+                raise ValueError("give (t, U), a Trajectory, or an array with t in column 0")
+            t, U = a[:, 0], a[:, 1:]
+    if isinstance(U, dict):
+        U = np.column_stack([np.asarray(U[v], dtype=float) for v in names])
+    t = np.asarray(t, dtype=float).ravel()
+    U = np.asarray(U, dtype=float)
+    if U.ndim == 1:
+        U = U[:, None]
+    if U.shape[0] != len(t) and U.shape[1] == len(t):
+        U = U.T
+    if U.shape != (len(t), len(names)):
+        raise ValueError(f"U must be {len(t)} x {len(names)} (rows = times, columns = {names}); "
+                         f"got {U.shape}")
+    if not np.all(np.isfinite(t)) or not np.all(np.isfinite(U)):
+        raise ValueError("t and U must be finite")
+    if len(t) > 1 and not np.all(np.diff(t) > 0):
+        raise ValueError("t must be strictly increasing")
+    return t, U
 
 
 def _remove_workdir(path, libs):

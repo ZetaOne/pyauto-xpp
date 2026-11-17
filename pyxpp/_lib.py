@@ -85,6 +85,9 @@ _PROTOS = {
     "pyxpp_auto_par_name": (c_char_p, [c_int]),
     "pyxpp_set_auto_dir": (None, [c_char_p]),
     "pyxpp_real_to_pixel": (None, [c_double, c_double, P_int, P_int]),
+    "pyxpp_load_storage": (c_int, [c_int, c_int, P_double]),
+    "pyxpp_auto_solution": (c_int, [c_int, c_int, c_double, c_int, P_int, P_int, P_double, P_double]),
+    "pyxpp_last_state": (c_int, [P_double, P_double]),
     "pyxpp_shutdown": (None, []),
 }
 if _WINDOWS:

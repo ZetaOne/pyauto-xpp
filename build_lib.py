@@ -82,6 +82,27 @@ PATCHES = [
      "  if(fp8_is_open&&fp8!=NULL){fclose(fp8);fp8=NULL;}  /* pyxpp */\n  /*    if(fp8_is_open){"),
     # per-model AUTO scratch directory
     ("auto_nox.c", r'char\* HOME = getenv\("HOME"\);', 'char* HOME = pyxpp_auto_home();'),
+    # AUTO bug: the header line of every solution in fort.8 (.s) is written with "%5ld"
+    # fields and no separator.  Once a field needs 5 digits it runs into the one before
+    # (nrowpr = rows per solution >= 10000: NTST*NCOL >= ~5000/(rows per mesh point),
+    # e.g. NTST >= 1249 with NCOL 4 for a 2-variable orbit), every reader then misparses
+    # the header, a restart from a label fails ("Restart label not found") and XPP
+    # crashed on the missing fort.8.  " %4ld" is byte-identical for values below 10000
+    # and keeps larger ones apart (all readers parse by whitespace).
+    ("autlib1.c", r'fprintf\(fp8,"%5ld",', 'fprintf(fp8," %4ld",', 21),
+    # ... and if AUTO wrote no fort.8 at all (restart label not found), appending it to
+    # the .s file read a NULL FILE*
+    ("auto_nox.c", r'^ fo=fopen\(old,"r"\);\n fn=fopen\(new,"r"\);$',
+     ' fo=fopen(old,"r");\n if(fo==NULL)return;  /* pyxpp */\n fn=fopen(new,"r");'),
+    # ... and copying a missing .s file to fort.3 (restart after the files were removed)
+    ("auto_nox.c", r'^ fo=fopen\(old,"r"\);\n fn=fopen\(new,"w"\);$',
+     ' fo=fopen(old,"r");\n if(fo==NULL)return;  /* pyxpp */\n fn=fopen(new,"w");\n'
+     ' if(fn==NULL){fclose(fo);return;}'),
+    # File > Import orbit (and draw-labelled) copy a stored solution into the data
+    # storage without checking its length against MAXSTOR (a heap overflow for long meshes)
+    ("auto_nox.c", r"^  nstor=ndim;$",
+     '  nstor=ndim;\n  if(flg!=0&&nrow>MAXSTOR){auto_err("Orbit longer than the storage: increase MAXSTOR");'
+     'fclose(fp);return;}  /* pyxpp */'),
 ]
 # auto_nox.c needs a prototype for pyxpp_auto_home
 PROTOTYPES = {"auto_nox.c": "char *pyxpp_auto_home(void);\n"}
@@ -96,13 +117,17 @@ def apply_patches():
     if SRC.exists():
         shutil.rmtree(SRC)
     shutil.copytree(UPSTREAM, SRC)
-    for fname, pat, rep in PATCHES:
+    for fname, pat, rep, *count in PATCHES:
         p = SRC / fname
         text = p.read_text(errors="replace")
         rx = re.compile(pat, re.M)
         hits = rx.findall(text)
+        # an optional 4th element is the exact number of matches expected;
         # the HOME replacement legitimately matches twice in auto_nox.c
-        if len(hits) == 0 or (len(hits) > 1 and "HOME" not in pat and "item" not in pat):
+        if count:
+            if len(hits) != count[0]:
+                sys.exit(f"patch failed: {fname}: {pat!r} matched {len(hits)} times, not {count[0]}")
+        elif len(hits) == 0 or (len(hits) > 1 and "HOME" not in pat and "item" not in pat):
             sys.exit(f"patch failed: {fname}: {pat!r} matched {len(hits)} times")
         text = rx.sub(rep.replace("\\", "\\\\"), text)
         p.write_text(text)

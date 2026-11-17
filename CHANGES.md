@@ -4,6 +4,38 @@ This folder starts from pyxpp by Youngmin Park
 (https://github.com/youngmp/pyxpp, GPL-2.0-or-later; copy in
 `../resources/pyxpp`). The Python import name is still `pyxpp` for now.
 
+## 2026-11-17
+
+- **AUTO from a given orbit.** `m.auto.run(param, start="periodic" | "bdry value"
+  | "homoclinic" | "heteroclinic", initial=(t, U))` (or `initial=` a
+  Trajectory) starts a run from scratch from the given solution instead of
+  the data browser. XPP reads the starting orbit from its data storage at
+  equally spaced rows and takes the period from the last time, so the data
+  are resampled to equal steps if needed and shifted to start at t = 0.
+  `m.load_data(t, U)` puts data into the browser on its own (new export
+  `pyxpp_load_storage`; XPP computes the auxiliary columns).
+- **Stored solutions.** `Point.solution` -> `(t, U)`: the solution AUTO stored
+  for a labelled point (the `.s` file), on AUTO's mesh, t normalised to
+  [0, 1]; `m.auto.solution(point, real_time=True)` multiplies by the period.
+  Periodic orbits of delay equations come from XPP's in-memory store (new
+  export `pyxpp_auto_solution`).
+- **Double-precision final state.** `m.last_state()` -> `{"t": ..., var: ...}`
+  from XPP's own integration state (`MyData`, `MyTime`), not the
+  single-precision data browser (new export `pyxpp_last_state`).
+- **Fixed: AUTO crashed the process for long meshes.** AUTO wrote each
+  solution header in `.s`/fort.8 as `%5ld` fields with no separator; once the
+  rows-per-solution count reached 10000 (NTST*NCOL*rows per mesh point, e.g.
+  NTST >= 1249 with NCOL 4 for 2 variables) it ran into the previous field,
+  the label was then never found on restart ("Restart label not found") and
+  XPP read a NULL `FILE*` while appending the missing fort.8. The fields are
+  now written `" %4ld"` (identical output below 10000; a `build_lib.py`
+  patch, which now takes an optional expected match count). Also patched:
+  `appendf`/`copyf` return on a missing file, and File > Import orbit refuses
+  an orbit longer than MAXSTOR instead of overflowing the storage. Before a
+  restart pyxpp checks the grabbed label is stored and raises `XPPError`
+  otherwise; a "Restart label not found" from AUTO also raises `XPPError`.
+- Tests for each (39 in all).
+
 ## 2026-11-16
 
 - **Windows.** `build_lib.py` builds `pyxpp/_libxpp.dll` with MinGW-w64 gcc
