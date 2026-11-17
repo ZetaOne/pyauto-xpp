@@ -3,6 +3,7 @@
 <img src="site/icon-192.png" width="128" align="right" alt="The pyauto-xpp icon: an auto-rickshaw with Python-coloured wheels doing a wheelie on the stable firing branch of the Hodgkin-Huxley bifurcation diagram, over its direction field">
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ZetaOne/pyauto-xpp/HEAD?urlpath=lab/tree/tutorials)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ZetaOne/pyauto-xpp/blob/main/tutorials/worked-examples/01_first-steps.ipynb)
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/ZetaOne/pyauto-xpp?quickstart=1)
 [![Release](https://img.shields.io/github/v/release/ZetaOne/pyauto-xpp?label=release)](https://github.com/ZetaOne/pyauto-xpp/releases/latest)
 [![Python](https://img.shields.io/badge/python-3.9%E2%80%933.15-blue)](https://github.com/ZetaOne/pyauto-xpp/releases/latest)
@@ -163,6 +164,8 @@ have taught many of us how to explore dynamical systems. Every number in
 pyauto-xpp comes from his code. Thank you, Prof. Ermentrout.
 
 ## Credits and licence
+
+Made by [Jeevan Kumar Gochhayat](https://github.com/ZetaOne).
 
 **GNU General Public License, version 3 or later** (GPL-3.0-or-later). See
 [`LICENSE`](LICENSE).
