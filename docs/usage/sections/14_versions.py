@@ -1,7 +1,7 @@
 # %% [markdown]
 # ## The XPP inside: versions and what each source drop changed
 #
-# The package carries Bard Ermentrout's XPPAUT 8.1 source (`csrc/xppaut/`),
+# The package carries Bard Ermentrout's XPPAUT 8.2 source (`csrc/xppaut/`),
 # updated as new drops arrive; `CHANGES.md` lists each one. The version XPP
 # reports is in the log.
 
@@ -20,6 +20,7 @@ print(next(l for l in m.log.splitlines() if "XPPAUT" in l).strip())
 # |---|---|---|
 # | 8.1 (11 Nov 2026) | Initialconds > Periodic; phase reduction in Averaging (isostable I, Floquet rho, B correction, H2); subcritical Hopf curves and GH points in AUTO | `buttons.initialconds.periodic`, `buttons.numerics.averaging.isostable` / `floquet_rho` / `b_correction` / `h2` (section "Analysis tools"); `auto.lyapunov(point)` and `auto.gh_points(curve)` (section "AUTO II": XPP finds GH points while drawing, so headless they are found in Python the same way) |
 # | update (13 Nov 2026) | every GIF carries the model, parameters, numerics and a note; Fourier and histograms work on whatever the data browser shows (`get_browser_rows`) | `m.data` reads the browser, so the histogram, Fourier, adjoint, H come back as data (section "Analysis tools") |
+# | 8.2 (15 Nov 2026) | AUTO for delay equations: equilibria and periodic orbits (`dde_po.c`), with period-doubling and torus detection and two-parameter curves; the characteristic roots of delay equations (`del_spec.c`); a rotatable surface view | `m.auto.run` works on delay equations unchanged; `m.equilibrium()` returns the rightmost characteristic roots; `m.history()` |
 # | 13 Nov 2026, later | window-manager close button on every window, bevelled buttons, an X error handler, "OK"/"Close" labels; the integrator draws its progress bar and checks for Esc about 50 times a second instead of at every output point | no window, so nothing to see; results identical; same speed (below) |
 #
 # **The integrator change, timed.** In the X11 GUI each progress/Esc check

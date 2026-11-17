@@ -1,7 +1,7 @@
 # %% [markdown]
 # ## AUTO I: one-parameter diagrams
 #
-# `m.auto` is XPP's own AUTO window (XPP 8.1's built-in AUTO, not
+# `m.auto` is XPP's own AUTO window (XPP's built-in AUTO, not
 # AUTO-07p). A run returns the new points as a `Diagram`; `m.auto.diagram`
 # is the whole diagram so far.
 #
@@ -48,8 +48,11 @@ print("period at the last point:", round(po[-1].period, 1), " at iapp =", round(
 #
 # **The Diagram and its Points.** A `Point` has the parameter values
 # (`par`), the state (`u0`; for an orbit also `umax`, `umin`, `ubar`), the
-# period, the norm, the eigenvalues (Floquet multipliers for an orbit),
-# stability, the AUTO branch, point number, label and type. `par` holds
+# period, the norm, `multipliers` (what AUTO stores: Floquet multipliers on an
+# orbit, exp(eigenvalue) at an equilibrium), `eigenvalues` (an equilibrium's
+# own eigenvalues, computed by XPP at that point), `solution` (the whole orbit
+# on AUTO's mesh, for labelled points), stability, the AUTO branch, point
+# number, label and type. `par` holds
 # AUTO's parameter list (at most 8; see `parameters()` below).
 
 # %%
@@ -58,7 +61,7 @@ print(p.type, p.label, "branch", p.branch, "point", p.pt, " periodic:", p.period
 print("  par:", {k: round(v, 5) for k, v in p.par.items()})
 print("  max v", round(p.umax["v"], 4), " min v", round(p.umin["v"], 4), " mean v", round(p.ubar["v"], 4))
 print("  period", round(p.period, 4), " norm", round(p.norm, 4))
-print("  multipliers:", np.round(p.eigenvalues, 4))
+print("  multipliers:", np.round(p.multipliers, 4))
 d = m.auto.diagram
 print("whole diagram:", d, " labels", [q.label for q in d.labeled()][:6], "...")
 print("label 2:", d.label(2).type, " branches:", [len(b) for b in d.branches()])

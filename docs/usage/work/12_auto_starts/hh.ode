@@ -10,5 +10,5 @@ m'=am(v)*(1-m) - bm(v)*m
 h'=ah(v)*(1-h) - bh(v)*h
 n'=an(v)*(1-n) - bn(v)*n
 init v=-65,m=0.053,h=0.596,n=0.318
-@ total=300,dt=0.01,meth=rk4,maxstor=100000
+@ total=300,dt=0.01,meth=rungekutta,maxstor=100000
 done

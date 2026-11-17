@@ -52,7 +52,7 @@ print(md_.path.parent.name, "/", md_.path.name, "  workdir:", md_.workdir.name,
 # %% [markdown]
 # **Numbers and derived quantities.** `number` is a constant that is not a
 # parameter; `derived` (`!name=...`) is recomputed whenever a parameter
-# changes; `initial_value` writes `x(0)=...`. XPP 8.1 takes a number there
+# changes; `initial_value` writes `x(0)=...`. XPP takes a number there
 # for a single variable (a formula such as `exp(1)` gives 0), and a formula
 # in `[j]` for an array.
 

@@ -5,8 +5,8 @@ description: Every part of pyauto-xpp with an example that has been run
 
 # pyauto-xpp: usage and examples
 
-pyauto-xpp runs XPPAUT 8.1 and its own AUTO from Python, without the X11
-window. Every example below was run with the package when this page was
+pyauto-xpp runs XPPAUT 8.2 and its own AUTO from Python, for batch work and
+Python workflows. Every example below was run with the package when this page was
 built (`docs/usage/build_usage.py`); the output under each example is what it
 printed, and each figure is what it saved. The import name is `pyxpp`.
 
@@ -25,13 +25,12 @@ printed, and each figure is what it saved. The import name is `pyxpp`.
 11. [AUTO II: two-parameter curves](#auto-ii-two-parameter-curves)
 12. [AUTO III: branch points, periodic starts, period doubling, maps](#auto-iii-branch-points-periodic-starts-period-doubling-maps)
 13. [AUTO IV: many initial conditions, files and buttons](#auto-iv-many-initial-conditions-files-and-buttons)
-14. [AUTO V: starting orbits, stored solutions, the final state](#auto-v-starting-orbits-stored-solutions-the-final-state)
-15. [Errors, limits and tips](#errors-limits-and-tips)
-16. [The XPP inside: versions and what each source drop changed](#the-xpp-inside-versions-and-what-each-source-drop-changed)
+14. [Errors, limits and tips](#errors-limits-and-tips)
+15. [The XPP inside: versions and what each source drop changed](#the-xpp-inside-versions-and-what-each-source-drop-changed)
 
 ## Getting started
 
-**Build and install.** The package compiles XPP 8.1 (with AUTO) into a
+**Build and install.** The package compiles XPP 8.2 (with AUTO) into a
 shared library the first time it is built. Only a C compiler is needed;
 X11 is not.
 
@@ -136,7 +135,7 @@ print(vdp.log.strip().splitlines()[-3:])
 ```
 
 ```text
-['Used 7 constants and 109 symbols ', 'XPPAUT 8.1.1 Copyright (C) 2002-now  Bard Ermentrout ', 'TrueColor visual:  no colormap needed']
+['Used 7 constants and 109 symbols ', 'XPPAUT 8.2.2 Copyright (C) 2002-now  Bard Ermentrout ', 'TrueColor visual:  no colormap needed']
 ```
 
 **Command-line options.** `args=` passes XPP's command-line flags, e.g.
@@ -250,7 +249,7 @@ output / decay_out.ode   workdir: output   files: ['decay_out.ode', 'run.set']
 
 **Numbers and derived quantities.** `number` is a constant that is not a
 parameter; `derived` (`!name=...`) is recomputed whenever a parameter
-changes; `initial_value` writes `x(0)=...`. XPP 8.1 takes a number there
+changes; `initial_value` writes `x(0)=...`. XPP takes a number there
 for a single variable (a formula such as `exp(1)` gives 0), and a formula
 in `[j]` for an array.
 
@@ -526,7 +525,7 @@ print(m.numerics)
 ```
 
 ```text
-{'total': 250.0, 'dt': 0.02, 't0': 0.0, 'trans': 0.0, 'nout': 1, 'bound': 100.0, 'meth': 'rungekutta', 'tol': 0.001, 'atol': 0.001, 'dtmin': 1e-12, 'dtmax': 1.0, 'maxstor': 50000, 'delay': 0.0, 'newt_tol': 0.001, 'evec_tol': 0.001, 'newt_iter': 100, 'poimap': 0}
+{'total': 250.0, 'dt': 0.02, 't0': 0.0, 'trans': 0.0, 'nout': 1, 'bound': 100.0, 'meth': 'rungekutta', 'tol': 0.001, 'atol': 0.001, 'dtmin': 1e-12, 'dtmax': 1.0, 'maxstor': 50000, 'delay': 0.0, 'newt_tol': 0.001, 'jac_eps': 0.001, 'newt_iter': 100, 'poimap': 0}
 ```
 
 `set_option(name, value)` is the `@`-option part on its own; `get(name)`
@@ -1346,7 +1345,7 @@ print("x-y view: max", round(c2["max_px"], 2), "px;  3D view: max", round(c3["ma
 ```
 
 ```text
-v vs t: {'xpp_points': 3001, 'data_points': 3001, 'max_px': 0.5070497799249551, 'mean_px': 0.3334538358612596, 'ok': True}
+v vs t: {'xpp_points': 3001, 'data_points': 3001, 'max_px': 0.5070497799248415, 'mean_px': 0.33345383586125993, 'ok': True}
 x-y view: max 0.51 px;  3D view: max 0.51 px
 ```
 
@@ -1559,9 +1558,9 @@ ax.legend(); ax.set_xlabel("t"); fig.tight_layout(); fig.savefig(FIG / "delay.pn
 ```
 
 ```text
-tau = 1.0: |x| at the end 8.56e-09
-tau = 1.5: |x| at the end 0.135
-tau = 1.65: |x| at the end 3.92
+tau = 1.0: |x| at the end 1.76e-09
+tau = 1.5: |x| at the end 0.272
+tau = 1.65: |x| at the end 1.51
 ```
 
 ![delay.png](figures/08_analysis/delay.png)
@@ -1596,7 +1595,7 @@ variance at t=5: 0.0431   theory 0.045
 
 ## AUTO I: one-parameter diagrams
 
-`m.auto` is XPP's own AUTO window (XPP 8.1's built-in AUTO, not
+`m.auto` is XPP's own AUTO window (XPP's built-in AUTO, not
 AUTO-07p). A run returns the new points as a `Diagram`; `m.auto.diagram`
 is the whole diagram so far.
 
@@ -1658,8 +1657,11 @@ marks the last point MX.
 
 **The Diagram and its Points.** A `Point` has the parameter values
 (`par`), the state (`u0`; for an orbit also `umax`, `umin`, `ubar`), the
-period, the norm, the eigenvalues (Floquet multipliers for an orbit),
-stability, the AUTO branch, point number, label and type. `par` holds
+period, the norm, `multipliers` (what AUTO stores: Floquet multipliers on an
+orbit, exp(eigenvalue) at an equilibrium), `eigenvalues` (an equilibrium's
+own eigenvalues, computed by XPP at that point), `solution` (the whole orbit
+on AUTO's mesh, for labelled points), stability, the AUTO branch, point
+number, label and type. `par` holds
 AUTO's parameter list (at most 8; see `parameters()` below).
 
 ```python
@@ -1668,7 +1670,7 @@ print(p.type, p.label, "branch", p.branch, "point", p.pt, " periodic:", p.period
 print("  par:", {k: round(v, 5) for k, v in p.par.items()})
 print("  max v", round(p.umax["v"], 4), " min v", round(p.umin["v"], 4), " mean v", round(p.ubar["v"], 4))
 print("  period", round(p.period, 4), " norm", round(p.norm, 4))
-print("  multipliers:", np.round(p.eigenvalues, 4))
+print("  multipliers:", np.round(p.multipliers, 4))
 d = m.auto.diagram
 print("whole diagram:", d, " labels", [q.label for q in d.labeled()][:6], "...")
 print("label 2:", d.label(2).type, " branches:", [len(b) for b in d.branches()])
@@ -1800,8 +1802,8 @@ for c in (up, down):
 
 ```text
 fold at h = 0.384900  (exact 2/(3 sqrt 3) = 0.384900)
-25 points, two_par=True, max |4r^3 - 27h^2| = 1.3e-03
-76 points, two_par=True, max |4r^3 - 27h^2| = 1.2e-03
+26 points, two_par=True, max |4r^3 - 27h^2| = 6.4e-08
+77 points, two_par=True, max |4r^3 - 27h^2| = 6.5e-08
 ```
 
 **Morris-Lecar in (iapp, gca):** the fold curve of equilibria and the Hopf
@@ -1832,7 +1834,7 @@ fig.tight_layout(); fig.savefig(FIG / "lecar_two_par.png", dpi=110)
 ```
 
 ```text
-fold curve: 490 points;  Hopf curve: 445 points
+fold curve: 492 points;  Hopf curve: 446 points
 special points on them: []
 ```
 
@@ -1854,8 +1856,8 @@ for g in ghs:
 
 ```text
 Hopf at gca = 1: l1 = 17.692, omega = 1.2605
-GH at iapp = 0.3082, gca = 0.6182  (l1 +0.194 -> -0.836)
-GH at iapp = 0.1251, gca = 0.5534  (l1 -0.784 -> +0.216)
+GH at iapp = 0.3082, gca = 0.6182  (l1 +0.921 -> -0.093)
+GH at iapp = 0.1252, gca = 0.5534  (l1 -0.501 -> +0.503)
 ```
 
 **Checked:** between the two GH points the Hopf point should be
@@ -1905,7 +1907,7 @@ print("max |b - (1 + a^2)| on the Hopf curve:", f"{max(abs(b - 1 - a * a) for a,
 
 ```text
 Hopf at b = 2.000000 for a = 1 (exact 2)
-max |b - (1 + a^2)| on the Hopf curve: 5.3e-04
+max |b - (1 + a^2)| on the Hopf curve: 8.6e-07
 ```
 
 The curve is as accurate as AUTO's convergence criteria allow: with
@@ -1928,7 +1930,7 @@ print("with epsl = epsu = 1e-8: max |b - (1 + a^2)| =", f"{max(abs(b - 1 - a * a
 ```
 
 ```text
-after the runs: a = 0.0866  b = 1.0075 (AUTO leaves the last point's values)
+after the runs: a = 0.0873  b = 1.0076 (AUTO leaves the last point's values)
 with epsl = epsu = 1e-8: max |b - (1 + a^2)| = 9.9e-08
 ```
 
@@ -2207,113 +2209,6 @@ file    SVG (*.svg) -> diagram.svg
 
 ![xpp_auto_diagram.svg](figures/12_auto_starts/xpp_auto_diagram.svg)
 
-## AUTO V: starting orbits, stored solutions, the final state
-
-**A periodic run from a given orbit.** XPP starts "Periodic", "Bdry Value"
-and "Homoclinic" runs from scratch from the data browser (normally the last
-integration), with the period taken from the last time. `initial=(t, U)`
-hands AUTO an orbit directly: `t` the times, `U` one row per time and one
-column per variable (`m.vars`), or a `Trajectory`. For "periodic" give one
-period (U[-1] close to U[0]); the period is `t[-1] - t[0]`. Times that are
-not equally spaced are resampled (XPP reads the orbit at equally spaced
-rows). The data end up in the data browser (`m.load_data(t, U)` does only
-that step). Here the Hopf normal form, whose orbits have radius sqrt(mu)
-and period 2 pi / w, from the circle of radius 1:
-
-**Stored solutions.** `Point.solution` is the solution AUTO stored for a
-labelled point, as `(t, U)` on AUTO's mesh (NTST*NCOL + 1 points, double
-precision): `t` is AUTO's normalised time on [0, 1]; multiply by
-`p.period` for real time, or ask `m.auto.solution(p, real_time=True)`.
-Only labelled points are stored (every `npr`-th point and the special ones).
-
-```python
-import numpy as np
-import pyxpp
-
-hopf = pyxpp.load(text="""
-x'=mu*x-w*y-x*(x^2+y^2)
-y'=w*x+mu*y-y*(x^2+y^2)
-par mu=1,w=2
-init x=0.1,y=0
-@ total=5,dt=0.01
-done
-""")
-hopf.auto.parameters("mu", "w")
-t = np.linspace(0, np.pi, 301)                       # one period of the orbit of radius 1
-U = np.column_stack([np.cos(2 * t), np.sin(2 * t)])  # one row per time, one column per variable
-po = hopf.auto.run("mu", start="periodic", initial=(t, U), ntst=50, npr=10,
-                   nmax=30, ds=0.02, dsmax=0.1, parmin=0.1, parmax=3)
-print(po)
-print("periods:", sorted({round(p.period, 10) for p in po.points[1:]}), " (pi =", round(np.pi, 10), ")")
-p = po.label(2)
-s, X = p.solution                                    # AUTO's mesh, s on [0, 1]
-print(f"label 2: mu = {p.x:.4f}, {len(s)} mesh points, s from {s[0]} to {s[-1]}")
-print("radius on the mesh:", np.hypot(X[:, 0], X[:, 1]).min().round(10), "- sqrt(mu) =", np.sqrt(p.x).round(10))
-tt, X = hopf.auto.solution(p, real_time=True)        # t = s * period
-print("real time ends at", round(tt[-1], 10))
-```
-
-```text
-<Diagram 25 points, labels 1:EP 2: 3: 4:EP>
-periods: [3.1415926534, 3.1415926536]  (pi = 3.1415926536 )
-label 2: mu = 1.6502, 201 mesh points, s from 0.0 to 1.0
-radius on the mesh: 1.2846100701 - sqrt(mu) = 1.2846100702
-real time ends at 3.1415926536
-```
-
-(The first point of the run is the starting data itself, with the period
-in XPP's single precision; AUTO's own points follow.)
-
-**Boundary value problems** (`b` lines in the .ode file) are posed on
-0 <= t <= 1 in XPP; `initial=` gives AUTO the first solution, here of
-x'' = -a, x(0) = x(1) = 0, whose solution is x = a t (1 - t) / 2.
-Below it, **`m.last_state()`**: where the last integration stopped, in
-double precision (`m.data` and `last_point()` hold XPP's single-precision
-copy).
-
-```python
-import numpy as np
-import pyxpp
-bvp = pyxpp.load(text="""
-x'=y
-y'=-a
-par a=1
-b x
-b x'
-@ total=1,dt=0.01
-done
-""")
-bvp.auto.parameters("a")
-t = np.linspace(0, 1, 101)
-U = np.column_stack([t * (1 - t) / 2, (1 - 2 * t) / 2])     # x = a t (1 - t) / 2 at a = 1
-br = bvp.auto.run("a", start="bdry value", initial=(t, U), ntst=20, npr=5,
-                  nmax=20, ds=0.05, dsmax=0.2, parmin=0, parmax=5)
-p = br.label(3)
-s, X = p.solution
-print(f"label 3: a = {p.x:.4f}, largest error {np.abs(X[:, 0] - p.x * s * (1 - s) / 2).max():.1e}")
-
-m = pyxpp.load(text="x'=3*t^2\ny'=-y\ninit x=0,y=1\n@ total=1.37,dt=0.001,meth=rk4\ndone\n")
-m.run()
-s = m.last_state()
-print(s)
-print(f"x - t^3: last_state {s['x'] - s['t']**3:.1e},  last_point {m.last_point()['X'] - s['t']**3:.1e}")
-```
-
-```text
-label 3: a = 2.4835, largest error 4.9e-12
-{'t': 1.36999999999996, 'X': 2.5713529999999545, 'Y': 0.25410695955280305}
-x - t^3: last_state 1.8e-13,  last_point -4.1e-08
-```
-
-**Long meshes.** AUTO wrote the header of each stored solution in
-five-character columns with no space between them; once a solution needed
-10 000 or more lines (NTST*NCOL*(rows per mesh point) of about 10 000, e.g.
-NTST >= 1249 with NCOL = 4 for a 2-variable orbit) the columns ran
-together, a restart from a label then failed and the whole process
-crashed. pyxpp's XPP writes the columns apart, so long meshes work (tested
-with NTST = 3000); restarting from a label whose stored solution is
-missing raises `XPPError`.
-
 ## Errors, limits and tips
 
 **Errors.** Anything XPP refuses raises `pyxpp.XPPError` with XPP's
@@ -2353,7 +2248,7 @@ AUTO with nothing to start from  -> ValueError: nothing grabbed: give start='ste
   AUTO Axes > Scroll, Viewaxes > Toon, Kinescope (blank frames).
 - Mouse buttons (Initialconds > Mouse, zoom boxes, text placement) take
   pixel answers `"ix,iy"` / `"x1,y1,x2,y2"`.
-- Storage is not a limit: XPP 8.1 enlarges it when a run needs more rows
+- Storage is not a limit: XPP (8.1 and later) enlarges it when a run needs more rows
   than `maxstor` (a 200 001-row run works with the default 5000).
 - A crash inside XPP's C code (a segfault) ends the Python process. Run
   doubtful models in a subprocess.
@@ -2370,8 +2265,7 @@ AUTO with nothing to start from  -> ValueError: nothing grabbed: give start='ste
 - To learn what a button asks, call it with no answers and read
   `m.transcript`; a wrong dialog field or menu entry lists the right ones.
 - XPP stores data in single precision: compare stored values to about
-  1e-7 relative. `m.last_state()` gives the final state in double
-  precision, `Point.solution` AUTO's orbits.
+  1e-7 relative.
 - Every model has its own XPP; to run many in parallel, use processes
   (e.g. `concurrent.futures.ProcessPoolExecutor`), one model each.
 
@@ -2394,7 +2288,7 @@ with cf.ThreadPoolExecutor(1) as ex:          # (processes in real use; one thre
 
 ## The XPP inside: versions and what each source drop changed
 
-The package carries Bard Ermentrout's XPPAUT 8.1 source (`csrc/xppaut/`),
+The package carries Bard Ermentrout's XPPAUT 8.2 source (`csrc/xppaut/`),
 updated as new drops arrive; `CHANGES.md` lists each one. The version XPP
 reports is in the log.
 
@@ -2410,13 +2304,14 @@ print(next(l for l in m.log.splitlines() if "XPPAUT" in l).strip())
 ```
 
 ```text
-XPPAUT 8.1.1 Copyright (C) 2002-now  Bard Ermentrout
+XPPAUT 8.2.2 Copyright (C) 2002-now  Bard Ermentrout
 ```
 
 | source | what changed | in pyauto-xpp |
 |---|---|---|
 | 8.1 (11 Nov 2026) | Initialconds > Periodic; phase reduction in Averaging (isostable I, Floquet rho, B correction, H2); subcritical Hopf curves and GH points in AUTO | `buttons.initialconds.periodic`, `buttons.numerics.averaging.isostable` / `floquet_rho` / `b_correction` / `h2` (section "Analysis tools"); `auto.lyapunov(point)` and `auto.gh_points(curve)` (section "AUTO II": XPP finds GH points while drawing, so headless they are found in Python the same way) |
 | update (13 Nov 2026) | every GIF carries the model, parameters, numerics and a note; Fourier and histograms work on whatever the data browser shows (`get_browser_rows`) | `m.data` reads the browser, so the histogram, Fourier, adjoint, H come back as data (section "Analysis tools") |
+| 8.2 (15 Nov 2026) | AUTO for delay equations: equilibria and periodic orbits (`dde_po.c`), with period-doubling and torus detection and two-parameter curves; the characteristic roots of delay equations (`del_spec.c`); a rotatable surface view | `m.auto.run` works on delay equations unchanged; `m.equilibrium()` returns the rightmost characteristic roots; `m.history()` |
 | 13 Nov 2026, later | window-manager close button on every window, bevelled buttons, an X error handler, "OK"/"Close" labels; the integrator draws its progress bar and checks for Esc about 50 times a second instead of at every output point | no window, so nothing to see; results identical; same speed (below) |
 
 **The integrator change, timed.** In the X11 GUI each progress/Esc check
@@ -2433,6 +2328,6 @@ for label, kw in (("rk4, dt = 0.05, every step stored", dict(meth="rk4", dt=0.05
 ```
 
 ```text
-rk4, dt = 0.05, every step stored           283 ms for 200001 rows, v at t = 10000: -0.2914104
-rk4, dt = 0.05, every 20th step stored      234 ms for  10001 rows, v at t = 10000: -0.2914104
+rk4, dt = 0.05, every step stored           297 ms for 200001 rows, v at t = 10000: -0.2914104
+rk4, dt = 0.05, every 20th step stored      249 ms for  10001 rows, v at t = 10000: -0.2914104
 ```

@@ -30,7 +30,7 @@ for what, call in (
 #   AUTO Axes > Scroll, Viewaxes > Toon, Kinescope (blank frames).
 # - Mouse buttons (Initialconds > Mouse, zoom boxes, text placement) take
 #   pixel answers `"ix,iy"` / `"x1,y1,x2,y2"`.
-# - Storage is not a limit: XPP 8.1 enlarges it when a run needs more rows
+# - Storage is not a limit: XPP (8.1 and later) enlarges it when a run needs more rows
 #   than `maxstor` (a 200 001-row run works with the default 5000).
 # - A crash inside XPP's C code (a segfault) ends the Python process. Run
 #   doubtful models in a subprocess.
