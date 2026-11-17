@@ -14,11 +14,27 @@
 <meta property="og:description" content="XPPAUT 8.2 and AUTO as a Python module, with 70 tutorials.">
 <meta property="og:image" content="https://zetaone.github.io/pyauto-xpp/gallery/16_2D-FLOWS_morris-lecar-bifurcation_ml-bifurcation.png">
 <script>
-  // apply the saved theme before the page is drawn (no flash of the wrong colours)
-  // new visitors get Funky 2 (Night Owl); a saved choice (also "system") wins
-  var t = 'funky2';
-  try { t = localStorage.getItem('pyauto-xpp-theme') || 'funky2' } catch (e) {}
-  if (t !== 'system') document.documentElement.dataset.theme = t;
+  // apply the saved display choices before the page is drawn (no flash of the wrong colours or size);
+  // new visitors get Funky 2 (Night Owl), 100 % text and the system font
+  (function () {
+    var d = document.documentElement, q = {}, DARK = {"system": null, "light": false, "dark": true, "midnight": true, "solarized-light": false, "solarized-dark": true, "nord": true, "dracula": true, "sepia": false, "contrast": true, "funky1": true, "funky2": true, "funky3": true}, FONTS = {"system": "", "serif": "", "atkinson": "https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap", "lexend": "https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap"}, SIZES = ["90", "100", "112", "125"];
+    function get(k) { try { return localStorage.getItem(k) } catch (e) { return null } }
+    try { new URLSearchParams(location.search).forEach(function (v, k) { q[k] = v }) } catch (e) {}
+    var t = q.theme || get('pyauto-xpp-theme') || 'funky2'; if (!(t in DARK)) t = 'funky2';
+    var z = q.textsize || get('pyauto-xpp-textsize') || '100'; if (SIZES.indexOf(z) < 0) z = '100';
+    var f = q.font || get('pyauto-xpp-font') || 'system'; if (!(f in FONTS)) f = 'system';
+    if (t !== 'system') d.dataset.theme = t;
+    d.dataset.textsize = z; d.dataset.font = f;
+    var dark = t === 'system' ? matchMedia('(prefers-color-scheme: dark)').matches : DARK[t];
+    d.dataset.code = dark ? 'dark' : 'light';
+    var ls = document.querySelectorAll('link[data-code]');
+    for (var i = 0; i < ls.length; i++) ls[i].media = ls[i].dataset.code === d.dataset.code ? 'all' : 'not all';
+    if (FONTS[f]) {
+      var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = FONTS[f]; l.id = 'webfont-' + f;
+      document.head.appendChild(l);
+    }
+    window.PYX_DISPLAY = { theme: t, size: z, font: f, DARK: DARK, FONTS: FONTS, SIZES: SIZES };
+  })();
 </script>
 <style>
 :root {
@@ -262,53 +278,101 @@
   --term-fg: #f4eee4;
   --stripe: linear-gradient(90deg, #ff7edb, #36f9f6, #fede5d, #f97e72, #72f1b8);
 }
-/* ---- funky themes: a multi-coloured stripe under the toolbar (as XPPAUT-Web) */
-:root[data-theme^='funky'] .bar { border-bottom: 3px solid transparent; border-image: var(--stripe) 1 }
-:root[data-theme^='funky'] .hero { background: var(--desk) }
 
+/* ---- toolbar and menus (shared by the main page and the manual) ------------- */
 * { box-sizing: border-box }
-html { scroll-behavior: smooth; scroll-padding-top: 64px; -webkit-text-size-adjust: 100% }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto } }
-body { margin: 0; background: var(--bg); color: var(--fg); font-size: 15px; line-height: 1.55; overflow-x: hidden }
-a { color: var(--accent) }
-a.btn { color: var(--accent-fg) } a.btn.ghost { color: var(--fg) }
-code, pre, kbd, .mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
-.skip { position: absolute; left: -999px; top: 8px; z-index: 10; padding: 8px 12px; background: var(--bar); border: 1px solid var(--line); border-radius: 4px }
+.skip { position: absolute; left: -999px; top: 8px; z-index: 40; padding: 8px 12px; background: var(--bar); color: var(--fg); border: 1px solid var(--line); border-radius: 4px }
 .skip:focus { left: 8px }
-.muted { color: var(--muted) }
 .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap }
-
-/* ---- top bar (XPPAUT-Web's .bar) ----------------------------------------- */
 .bar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 16px; padding: 6px 12px;
-       min-height: 48px; background: var(--bar); border-bottom: 1px solid var(--line); font-size: 14px }
+       min-height: 48px; background: var(--bar); border-bottom: 1px solid var(--line); font-size: .875rem }
+/* funky themes: a multi-coloured stripe under the toolbar (as XPPAUT-Web) */
+:root[data-theme^='funky'] .bar { border-bottom: 3px solid transparent; border-image: var(--stripe) 1 }
 .brand { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; font-weight: 600; color: var(--fg); text-decoration: none; white-space: nowrap }
 .brand img { width: 22px; height: 22px; border-radius: 5px; flex: none }
-.ver { font: 12px ui-monospace, Menlo, Consolas, monospace; padding: 1px 6px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); text-decoration: none }
-.nav { display: flex; align-items: center; gap: 2px; flex-wrap: wrap }
-.nav a { color: var(--fg); text-decoration: none; padding: 5px 9px; border-radius: 4px }
-.nav a:hover, .nav a[aria-current='true'] { background: var(--panel-bar-active) }
 .right { margin-left: auto; display: flex; align-items: center; gap: 10px }
 .bar details { position: relative }
 .bar summary { list-style: none } .bar summary::-webkit-details-marker { display: none }
-summary.round { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--line);
+.round { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--line); flex: none;
        border-radius: 50%; background: var(--bg); color: var(--fg); cursor: pointer }
-summary.round:hover, details[open] > summary.round { background: var(--panel-bar-active) }
+.round:hover, details[open] > summary.round { background: var(--panel-bar-active) }
 .panel { position: absolute; z-index: 100; top: calc(100% + 6px); right: 0; display: grid; gap: 2px; min-width: 220px;
        max-height: calc(100vh - 70px); overflow: auto; padding: 6px; background: var(--bar); border: 1px solid var(--line);
        border-radius: 6px; box-shadow: 0 6px 20px rgb(0 0 0 / 0.25) }
 .panel button, .panel a { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 8px; border: 0; border-radius: 4px;
        background: transparent; color: var(--fg); font: inherit; text-align: left; text-decoration: none; cursor: pointer }
 .panel button:hover, .panel a:hover, .panel button[aria-checked='true'] { background: var(--panel-bar-active) }
-.panel .head { padding: 4px 8px 2px; font-size: 12px; color: var(--muted) }
+.panel .head { padding: 4px 8px 2px; font-size: .75rem; color: var(--muted) }
 .swatch { display: inline-flex; width: 34px; height: 18px; overflow: hidden; border: 1px solid rgb(127 127 127 / 0.5); border-radius: 3px; flex: none }
 .swatch i { flex: 1 }
+@media (pointer: coarse) {
+  .panel button, .panel a { min-height: 44px }
+  .round { width: 40px; height: 40px }
+}
+
+
+/* ---- display: text size and font (see DISPLAY_* in make_site.py) ------------ */
+/* XPPAUT-Web's theme sets 14px on :root; here 1rem is the reader's text size */
+:root { font-size: 100%; --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+        --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif }
+:root[data-textsize='90'] { font-size: 90% }
+:root[data-textsize='112'] { font-size: 112% }
+:root[data-textsize='125'] { font-size: 125% }
+:root[data-font='serif'] { --font-body: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif }
+:root[data-font='atkinson'] { --font-body: 'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif }
+:root[data-font='lexend'] { --font-body: 'Lexend', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif }
+body { font-family: var(--font-body) }
+code, pre, kbd, samp { font-family: var(--font-mono) }
+/* the panel */
+.dpanel { width: min(300px, calc(100vw - 24px)); gap: 0 }
+.dpanel .head { padding: 8px 8px 4px; font-weight: 600 }
+.dpanel .head:first-child { padding-top: 2px }
+.dpanel .grp { display: grid; gap: 2px }
+.dpanel .sep { height: 1px; margin: 6px 2px 0; background: var(--line) }
+.dpanel .seg { grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 0 2px }
+.dpanel .seg button { flex-direction: column; justify-content: center; gap: 0; padding: 4px 0; border: 1px solid var(--line); text-align: center }
+.dpanel .seg button[aria-checked='true'] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent) }
+.dpanel .seg b { line-height: 1.15 }
+.dpanel .seg small { font-size: .6875rem; color: var(--muted) }
+.dpanel .fontlist button[aria-checked='true'], .dpanel .themelist button[aria-checked='true'] { box-shadow: inset 3px 0 0 var(--accent) }
+.dpanel .fontlist span { flex: 1 }
+.dpanel .fontlist small { color: var(--muted); font-size: .75rem; font-family: var(--font-body) }
+
+:root[data-theme^='funky'] .hero { background: var(--desk) }
+
+* { box-sizing: border-box }
+html { scroll-behavior: smooth; scroll-padding-top: 64px; -webkit-text-size-adjust: 100% }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto } }
+body { margin: 0; background: var(--bg); color: var(--fg); font-size: .9375rem; line-height: 1.55; overflow-x: hidden }
+a { color: var(--accent) }
+a.btn { color: var(--accent-fg) } a.btn.ghost { color: var(--fg) }
+code, pre, kbd, .mono { font-family: var(--font-mono); font-size: .8125rem }
+.muted { color: var(--muted) }
+
+/* ---- top bar: the shared parts (.bar, .brand, menus) are in TOOLBAR_CSS ---- */
+.ver { font: .75rem ui-monospace, Menlo, Consolas, monospace; padding: 1px 6px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); text-decoration: none }
+.nav { display: flex; align-items: center; gap: 2px; flex-wrap: wrap }
+.nav a { color: var(--fg); text-decoration: none; padding: 5px 9px; border-radius: 4px }
+.nav a:hover, .nav a[aria-current='true'] { background: var(--panel-bar-active) }
 .menu { display: none }
+/* the section links fold into the menu when they do not fit: on phones (below), earlier with larger
+   text (here), and whenever the script finds that they wrap (.bar.fold, e.g. with a wide font) */
+.bar.fold .nav, .bar.fold .ver { display: none }
+.bar.fold .menu { display: block }
+@media (max-width: 900px) {
+  :root[data-textsize='112'] .nav, :root[data-textsize='112'] .bar .ver { display: none }
+  :root[data-textsize='112'] .menu { display: block }
+}
+@media (max-width: 1000px) {
+  :root[data-textsize='125'] .nav, :root[data-textsize='125'] .bar .ver { display: none }
+  :root[data-textsize='125'] .menu { display: block }
+}
 
 /* ---- buttons --------------------------------------------------------------- */
 .btn { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 7px 14px; border-radius: 6px;
        background: var(--accent); color: var(--accent-fg); border: 1px solid var(--accent); text-decoration: none;
-       font: inherit; font-size: 14px; font-weight: 600; cursor: pointer }
+       font: inherit; font-size: .875rem; font-weight: 600; cursor: pointer }
 .btn:hover { filter: brightness(1.08) }
 .btn.ghost { background: var(--bar); color: var(--fg); border-color: var(--line); font-weight: 500 }
 .btn.ghost:hover { background: var(--panel-bar-active); filter: none }
@@ -318,10 +382,10 @@ summary.round:hover, details[open] > summary.round { background: var(--panel-bar
 main { display: block }
 .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px }
 section { padding: 30px 0 6px }
-h2 { font-size: 20px; margin: 0 0 6px; display: flex; align-items: baseline; gap: 10px }
-h2 a.anchor { font-size: 14px; color: var(--muted); text-decoration: none; opacity: 0 }
+h2 { font-size: 1.25rem; margin: 0 0 6px; display: flex; align-items: baseline; gap: 10px }
+h2 a.anchor { font-size: .875rem; color: var(--muted); text-decoration: none; opacity: 0 }
 h2:hover a.anchor, h2 a.anchor:focus { opacity: 1 }
-h3 { font-size: 15px; margin: 0 0 4px }
+h3 { font-size: .9375rem; margin: 0 0 4px }
 .lead { margin: 0 0 14px; color: var(--muted); max-width: 70ch }
 .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
 
@@ -329,41 +393,41 @@ h3 { font-size: 15px; margin: 0 0 4px }
 .hero .wrap { display: grid; grid-template-columns: auto 1fr; gap: 22px; align-items: center; padding-top: 30px; padding-bottom: 28px }
 .mark-wrap { position: relative; margin: 0; outline: none }
 .mark-tip { position: absolute; left: 0; top: calc(100% + 10px); z-index: 5; width: min(340px, 80vw); padding: 12px 14px;
-  border-radius: 12px; background: var(--bar); color: var(--fg); border: 1px solid var(--accent); font-size: 14px; line-height: 1.45;
+  border-radius: 12px; background: var(--bar); color: var(--fg); border: 1px solid var(--accent); font-size: .875rem; line-height: 1.45;
   box-shadow: 0 10px 28px rgb(0 0 0 / 0.35); opacity: 0; transform: translateY(-6px); pointer-events: none; transition: opacity .18s, transform .18s }
 .mark-wrap:hover .mark-tip, .mark-wrap:focus .mark-tip, .mark-wrap:focus-within .mark-tip { opacity: 1; transform: none }
 .hero img.mark { cursor: help; width: 150px; height: 150px; border-radius: 22px; box-shadow: 0 6px 22px rgb(0 0 0 / 0.25) }
-.hero h1 { margin: 0; font-size: 30px; line-height: 1.15 }
+.hero h1 { margin: 0; font-size: 1.875rem; line-height: 1.15 }
 .hero p { margin: 8px 0 14px; max-width: 64ch }
-.facts { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 16px; padding: 0; list-style: none; font-size: 13px; color: var(--muted) }
-.facts li::before { content: '\25CF'; color: var(--accent); margin-right: 6px; font-size: 9px; vertical-align: 2px }
+.facts { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 16px; padding: 0; list-style: none; font-size: .8125rem; color: var(--muted) }
+.facts li::before { content: '\25CF'; color: var(--accent); margin-right: 6px; font-size: .5625rem; vertical-align: 2px }
 
 /* ---- gallery --------------------------------------------------------------- */
 .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px }
 .shot { margin: 0; background: var(--bar); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column }
 .shot button { display: block; padding: 0; border: 0; background: var(--bar); cursor: zoom-in; aspect-ratio: 16 / 10; width: 100% }
 .shot img { width: 100%; height: 100%; object-fit: contain; display: block }
-.shot figcaption { padding: 8px 12px 10px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); flex: 1 }
-.shot figcaption b { display: block; color: var(--fg); font-size: 14px }
+.shot figcaption { padding: 8px 12px 10px; font-size: .8125rem; color: var(--muted); border-top: 1px solid var(--line); flex: 1 }
+.shot figcaption b { display: block; color: var(--fg); font-size: .875rem }
 dialog.lightbox { width: min(1200px, calc(100vw - 24px)); max-height: calc(100vh - 24px); padding: 0; border: 1px solid var(--line);
        border-radius: 8px; background: var(--bar); color: var(--fg) }
 dialog.lightbox::backdrop { background: rgb(0 0 0 / 0.7) }
 dialog.lightbox img { display: block; width: 100%; height: auto; max-height: calc(100vh - 140px); object-fit: contain; background: var(--bar) }
 .lb-bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; flex-wrap: wrap }
-.lb-bar .t { flex: 1 1 220px; font-size: 13px; color: var(--muted) } .lb-bar .t b { color: var(--fg) }
-.iconbtn { min-width: 38px; min-height: 38px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); font: inherit; font-size: 18px; cursor: pointer }
+.lb-bar .t { flex: 1 1 220px; font-size: .8125rem; color: var(--muted) } .lb-bar .t b { color: var(--fg) }
+.iconbtn { min-width: 38px; min-height: 38px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); font: inherit; font-size: 1.125rem; cursor: pointer }
 .iconbtn:hover { background: var(--panel-bar-active) }
 
 /* ---- quick start ------------------------------------------------------------ */
 .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none }
 .tabs button { flex: none; padding: 9px 14px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--muted);
-       font: inherit; font-size: 14px; cursor: pointer; margin-bottom: -1px }
+       font: inherit; font-size: .875rem; cursor: pointer; margin-bottom: -1px }
 .tabs button[aria-selected='true'] { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600 }
 .tabs button:hover { color: var(--fg) }
 .tabpanel { padding: 14px 0 0 }
 .tabpanel p { margin: 0 0 10px; max-width: 75ch }
 .os { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin-bottom: 10px }
-.os button { padding: 6px 12px; border: 0; background: var(--bar); color: var(--fg); font: inherit; font-size: 13px; cursor: pointer; min-height: 34px }
+.os button { padding: 6px 12px; border: 0; background: var(--bar); color: var(--fg); font: inherit; font-size: .8125rem; cursor: pointer; min-height: 34px }
 .os button + button { border-left: 1px solid var(--line) }
 .os button[aria-pressed='true'] { background: var(--accent); color: var(--accent-fg) }
 .code { position: relative; margin: 0 0 12px }
@@ -371,43 +435,43 @@ dialog.lightbox img { display: block; width: 100%; height: auto; max-height: cal
        overflow-x: auto; line-height: 1.5; border: 1px solid var(--line) }
 .code pre .c { color: #8f9aa5 }
 .copy { position: absolute; top: 7px; right: 7px; padding: 3px 9px; min-height: 28px; border: 1px solid #ffffff33; border-radius: 4px;
-       background: var(--term-head); color: var(--term-fg); font: 12px system-ui, sans-serif; cursor: pointer }
+       background: var(--term-head); color: var(--term-fg); font: .75rem system-ui, sans-serif; cursor: pointer }
 .copy:hover { background: #ffffff22 }
-.note { padding: 9px 12px; border-left: 3px solid var(--accent); background: var(--panel-bar); border-radius: 0 6px 6px 0; font-size: 14px; max-width: 80ch }
+.note { padding: 9px 12px; border-left: 3px solid var(--accent); background: var(--panel-bar); border-radius: 0 6px 6px 0; font-size: .875rem; max-width: 80ch }
 
 /* ---- downloads -------------------------------------------------------------- */
 .dl { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px }
 .dl a.box { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; min-height: 64px; background: var(--bar); border: 1px solid var(--line);
        border-radius: 8px; color: var(--fg); text-decoration: none }
 .dl a.box:hover { border-color: var(--accent); background: var(--panel-bar-active) }
-.dl a.box b { display: flex; align-items: center; gap: 8px; font-size: 14px }
-.dl a.box span { font-size: 12.5px; color: var(--muted) }
-.dl a.box .mono { font-size: 12px }
+.dl a.box b { display: flex; align-items: center; gap: 8px; font-size: .875rem }
+.dl a.box span { font-size: .78125rem; color: var(--muted) }
+.dl a.box .mono { font-size: .75rem }
 .dl a.box.soon { opacity: 0.75; border-style: dashed }
 
 /* ---- tutorials -------------------------------------------------------------- */
-.filters { display: grid; gap: 10px; margin: 6px 0 12px; position: sticky; top: 48px; z-index: 3; background: var(--bg); padding: 8px 0;
+.filters { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin: 6px 0 12px; position: sticky; top: 48px; z-index: 3; background: var(--bg); padding: 8px 0;
        border-bottom: 1px solid var(--line) }
-.search { position: relative; flex: 1 1 260px; max-width: 420px }
-.search input { width: 100%; font: inherit; font-size: 15px; min-height: 38px; padding: 6px 10px 6px 34px; border-radius: 6px;
+.search { position: relative; flex: 1 1 260px; max-width: 420px; min-width: 0 }   /* min-width: no wider than a phone */
+.search input { width: 100%; font: inherit; font-size: .9375rem; min-height: 38px; padding: 6px 10px 6px 34px; border-radius: 6px;
        border: 1px solid var(--line); background: var(--bar); color: var(--fg) }
 .search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted) }
 .chips { display: flex; gap: 6px; flex-wrap: wrap }
 .chip { padding: 4px 11px; min-height: 32px; border: 1px solid var(--line); border-radius: 16px; background: var(--bar); color: var(--fg);
-       font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap }
+       font: inherit; font-size: .8125rem; cursor: pointer; white-space: nowrap }
 .chip:hover { background: var(--panel-bar-active) }
 .chip[aria-pressed='true'] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent) }
 .chip small { opacity: 0.75; margin-left: 3px }
-.count { font-size: 13px; color: var(--muted) }
+.count { font-size: .8125rem; color: var(--muted) }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px }
 .card { display: flex; flex-direction: column; background: var(--bar); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px 8px }
-.card .k { display: flex; gap: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted) }
+.card .k { display: flex; gap: 6px; font-size: .6875rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted) }
 .card .k .nb { color: var(--accent) }
-.card h3 { margin: 4px 0 2px; font-size: 14.5px }
-.card p { margin: 2px 0 6px; font-size: 13px; color: var(--muted); flex: 1 }
-.card .f { font-size: 11.5px; color: var(--muted); overflow-wrap: anywhere }
+.card h3 { margin: 4px 0 2px; font-size: .90625rem }
+.card p { margin: 2px 0 6px; font-size: .8125rem; color: var(--muted); flex: 1 }
+.card .f { font-size: .71875rem; color: var(--muted); overflow-wrap: anywhere }
 .card .links { display: flex; gap: 2px; margin: 6px -6px 0; flex-wrap: wrap }
-.card .links a { padding: 5px 6px; font-size: 13px; border-radius: 4px; text-decoration: none }
+.card .links a { padding: 5px 6px; font-size: .8125rem; border-radius: 4px; text-decoration: none }
 .card .links a:hover { background: var(--panel-bar-active) }
 .empty { padding: 20px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 8px }
 .empty button { font: inherit; color: var(--accent); background: none; border: 0; text-decoration: underline; cursor: pointer }
@@ -418,10 +482,10 @@ dialog.lightbox img { display: block; width: 100%; height: auto; max-height: cal
   background: linear-gradient(120deg, color-mix(in srgb, var(--accent) 16%, var(--bar)), var(--bar) 70%);
   box-shadow: 0 8px 26px color-mix(in srgb, var(--accent) 22%, transparent); transition: transform .15s, box-shadow .15s }
 .sister:hover { transform: translateY(-2px); box-shadow: 0 12px 32px color-mix(in srgb, var(--accent) 32%, transparent) }
-.sister b { font-size: 21px }
-.sister p { margin: 4px 0 0; color: var(--muted); font-size: 15px }
+.sister b { font-size: 1.3125rem }
+.sister p { margin: 4px 0 0; color: var(--muted); font-size: .9375rem }
 .sister .logo { width: 96px; height: 96px; border-radius: 20px; box-shadow: 0 4px 14px rgb(0 0 0 / 0.25) }
-footer { margin-top: 36px; padding: 22px 0 30px; border-top: 1px solid var(--line); background: var(--bar); font-size: 13.5px; color: var(--muted) }
+footer { margin-top: 36px; padding: 22px 0 30px; border-top: 1px solid var(--line); background: var(--bar); font-size: .84375rem; color: var(--muted) }
 footer ul { margin: 6px 0 12px; padding-left: 18px }
 footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
 
@@ -432,7 +496,7 @@ footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
   .bar { gap: 8px }
   .hero .wrap { grid-template-columns: 1fr; gap: 12px; padding-top: 20px; padding-bottom: 20px }
   .hero img.mark { width: 120px; height: 120px; border-radius: 20px }
-  .hero h1 { font-size: 25px }
+  .hero h1 { font-size: 1.5625rem }
   .sister { grid-template-columns: auto 1fr }
   .sister .btn { grid-column: 1 / -1; justify-content: center }
   .sister .logo { width: 72px; height: 72px }
@@ -475,12 +539,21 @@ footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
       </summary>
       <div class="panel" role="menu"><a role="menuitem" href="#gallery">Gallery</a><a role="menuitem" href="#install">Quick start</a><a role="menuitem" href="#downloads">Downloads</a><a role="menuitem" href="#tutorials">Tutorials</a><a role="menuitem" href="manual/">Manual</a><a role="menuitem" href="https://github.com/ZetaOne/pyauto-xpp">GitHub</a></div>
     </details>
-    <details class="themes" id="themes">
-      <summary class="round" title="Theme" aria-label="Theme">
+    <details class="display" id="themes">
+      <summary class="round" title="Display: theme, text size, font" aria-label="Display: theme, text size and font">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none"
           stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg>
       </summary>
-      <div class="panel" id="themelist" role="menu" aria-label="Theme"><div class="head">Theme (as XPPAUT-Web)</div></div>
+      <div class="panel dpanel" id="displaypanel" role="group" aria-label="Display">
+        <div class="head" id="dh-size">Text size</div>
+        <div class="grp seg" id="sizelist" role="radiogroup" aria-labelledby="dh-size"></div>
+        <div class="sep"></div>
+        <div class="head" id="dh-font">Font</div>
+        <div class="grp fontlist" id="fontlist" role="radiogroup" aria-labelledby="dh-font"></div>
+        <div class="sep"></div>
+        <div class="head" id="dh-theme">Theme (as XPPAUT-Web)</div>
+        <div class="grp themelist" id="themelist" role="radiogroup" aria-labelledby="dh-theme"></div>
+      </div>
     </details>
   </div>
 </header>
@@ -680,57 +753,115 @@ d.special("HB")</code></pre></div>
 </dialog>
 
 <script>
-const THEMES = [{"id": "system", "name": "System (light/dark)", "swatch": ["#ffffff", "#5c6670", "#222326", "#2a3038"]}, {"id": "light", "name": "Light", "swatch": ["#ffffff", "#e6e6e1", "#5c6670", "#2f5d8a"]}, {"id": "dark", "name": "Dark", "swatch": ["#222326", "#34363a", "#2a3038", "#4b7fb3"]}, {"id": "midnight", "name": "Midnight Blue", "swatch": ["#101d36", "#1c3158", "#14274a", "#3d7bd9"]}, {"id": "solarized-light", "name": "Solarized Light", "swatch": ["#fdf6e3", "#eee8d5", "#586e75", "#268bd2"]}, {"id": "solarized-dark", "name": "Solarized Dark", "swatch": ["#002b36", "#073642", "#0a3a47", "#268bd2"]}, {"id": "nord", "name": "Nord", "swatch": ["#3b4252", "#4c566a", "#434c5e", "#5e81ac"]}, {"id": "dracula", "name": "Dracula", "swatch": ["#282a36", "#44475a", "#343746", "#bd93f9"]}, {"id": "sepia", "name": "Sepia", "swatch": ["#faf4e6", "#ebdfc4", "#7a6344", "#8b5a2b"]}, {"id": "contrast", "name": "High Contrast", "swatch": ["#000000", "#ffffff", "#000000", "#ffff00"]}, {"id": "funky1", "name": "Funky 1 (Fairy Floss)", "swatch": ["#5a5475", "#ffb8d1", "#c2ffdf", "#c5a3ff"]}, {"id": "funky2", "name": "Funky 2 (Night Owl)", "swatch": ["#011627", "#82aaff", "#c792ea", "#addb67"]}, {"id": "funky3", "name": "Funky 3 (Synthwave)", "swatch": ["#241b2f", "#ff7edb", "#36f9f6", "#fede5d"]}], ITEMS = [{"kind": "example", "group": "Level 1 \u2014 First steps", "file": "tutorials/worked-examples/01_first-steps.ipynb", "title": "FitzHugh\u2013Nagumo", "what": "phase plane, excitability, Hopf points (exact), periodic orbits"}, {"kind": "example", "group": "Level 1 \u2014 First steps", "file": "tutorials/worked-examples/01_first-steps.ipynb", "title": "genetic toggle switch", "what": "bistability, basins, folds and the cusp in (a1, a2)"}, {"kind": "example", "group": "Level 1 \u2014 First steps", "file": "tutorials/worked-examples/01_first-steps.ipynb", "title": "bouncing ball", "what": "event times, restitution, Zeno time"}, {"kind": "example", "group": "Level 1 \u2014 First steps", "file": "tutorials/worked-examples/01_first-steps.ipynb", "title": "integrate-and-fire with adaptation", "what": "exact intervals, f\u2013I curves, rheobase"}, {"kind": "example", "group": "Level 1 \u2014 First steps", "file": "tutorials/worked-examples/01_first-steps.ipynb", "title": "logistic map", "what": "orbit diagram, Liapunov exponent, period doubling (exact points)"}, {"kind": "example", "group": "Level 1 \u2014 First steps", "file": "tutorials/worked-examples/01_first-steps.ipynb", "title": "H\u00e9non map", "what": "strange attractor, both Liapunov exponents"}, {"kind": "example", "group": "Level 1 \u2014 First steps", "file": "tutorials/worked-examples/01_first-steps.ipynb", "title": "Lorenz", "what": "pitchfork and Hopf (exact), Liapunov exponent, Lorenz map"}, {"kind": "example", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/worked-examples/02_bifurcations-with-auto.ipynb", "title": "Wilson\u2013Cowan", "what": "S-shaped branch with folds, Hopf in the inhibitory time constant"}, {"kind": "example", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/worked-examples/02_bifurcations-with-auto.ipynb", "title": "Morris\u2013Lecar (Hopf regime)", "what": "f\u2013I curve, class II onset, hysteresis"}, {"kind": "example", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/worked-examples/02_bifurcations-with-auto.ipynb", "title": "Hodgkin\u2013Huxley", "what": "period, Hopf points, fold of orbits, bistability"}, {"kind": "example", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/worked-examples/02_bifurcations-with-auto.ipynb", "title": "van der Pol, mu = 1000", "what": "stiff solvers, relaxation-oscillation period"}, {"kind": "example", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/worked-examples/02_bifurcations-with-auto.ipynb", "title": "driven pendulum", "what": "rest vs rotation, hysteresis, Melnikov onset"}, {"kind": "example", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/worked-examples/02_bifurcations-with-auto.ipynb", "title": "delayed logistic map", "what": "Neimark\u2013Sacker at a = 2, invariant curve"}, {"kind": "example", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/worked-examples/02_bifurcations-with-auto.ipynb", "title": "R\u00f6ssler", "what": "equilibria, period doubling in c"}, {"kind": "example", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/worked-examples/02_bifurcations-with-auto.ipynb", "title": "Lorenz 84", "what": "folds and Hopf of the westerly flow, Hadley state"}, {"kind": "example", "group": "Level 3 \u2014 Two parameters and global bifurcations", "file": "tutorials/worked-examples/03_two-parameters-and-global-bifurcations.ipynb", "title": "Morris\u2013Lecar", "what": "one- and two-parameter diagrams, GH points"}, {"kind": "example", "group": "Level 3 \u2014 Two parameters and global bifurcations", "file": "tutorials/worked-examples/03_two-parameters-and-global-bifurcations.ipynb", "title": "Morris\u2013Lecar with a saddle", "what": "period blow-up at a homoclinic orbit"}, {"kind": "example", "group": "Level 3 \u2014 Two parameters and global bifurcations", "file": "tutorials/worked-examples/03_two-parameters-and-global-bifurcations.ipynb", "title": "interacting saddle-nodes", "what": "equilibria from a quartic, folds, Hopf at mu = 0"}, {"kind": "example", "group": "Level 3 \u2014 Two parameters and global bifurcations", "file": "tutorials/worked-examples/03_two-parameters-and-global-bifurcations.ipynb", "title": "Nagumo front", "what": "front speed by shooting vs (1 - 2a)/sqrt(2)"}, {"kind": "example", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/worked-examples/04_forcing-tori-and-phase.ipynb", "title": "forced Duffing", "what": "stroboscopic map, period doubling to chaos"}, {"kind": "example", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/worked-examples/04_forcing-tori-and-phase.ipynb", "title": "forced phase oscillator", "what": "devil's staircase, Arnold tongues"}, {"kind": "example", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/worked-examples/04_forcing-tori-and-phase.ipynb", "title": "phase oscillators with a table", "what": "locking band from the tabulated coupling"}, {"kind": "example", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/worked-examples/04_forcing-tori-and-phase.ipynb", "title": "standard map", "what": "invariant curves vs chaos, area preservation"}, {"kind": "example", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/worked-examples/04_forcing-tori-and-phase.ipynb", "title": "piecewise affine map", "what": "periods and islands at the golden mean"}, {"kind": "example", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/worked-examples/04_forcing-tori-and-phase.ipynb", "title": "Ginzburg\u2013Landau oscillator", "what": "adjoint, H and H2 against exact formulas"}, {"kind": "example", "group": "Level 5 \u2014 Noise and space", "file": "tutorials/worked-examples/05_noise-and-space.ipynb", "title": "FitzHugh\u2013Nagumo with white noise", "what": "coherence resonance (seeded, reproducible)"}, {"kind": "example", "group": "Level 5 \u2014 Noise and space", "file": "tutorials/worked-examples/05_noise-and-space.ipynb", "title": "FitzHugh\u2013Nagumo with a Markov input", "what": "dwell times, fraction on, firing only when on"}, {"kind": "example", "group": "Level 5 \u2014 Noise and space", "file": "tutorials/worked-examples/05_noise-and-space.ipynb", "title": "chain of 20 FitzHugh\u2013Nagumo cells", "what": "travelling spikes, speed ~ sqrt(d)"}, {"kind": "example", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/worked-examples/06a_delay-equations-simulation.ipynb", "title": "Hutchinson equation", "what": "Hopf at r tau = pi/2 from simulations"}, {"kind": "example", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/worked-examples/06a_delay-equations-simulation.ipynb", "title": "Mackey\u2013Glass", "what": "maxima against tau, delay embedding"}, {"kind": "example", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/worked-examples/06a_delay-equations-simulation.ipynb", "title": "gamma-kernel Volterra equation", "what": "Volterra vs linear-chain ODE, onset at r tau = 2"}, {"kind": "example", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/worked-examples/06b_delay-equations-with-auto.ipynb", "title": "equation with two delays", "what": "Hopf points with two delays"}, {"kind": "example", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/worked-examples/06b_delay-equations-with-auto.ipynb", "title": "Hutchinson equation", "what": "AUTO on a delay equation: Hopf and periodic orbits"}, {"kind": "example", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/worked-examples/06b_delay-equations-with-auto.ipynb", "title": "cusp with a delay", "what": "folds and delay-induced Hopf points"}, {"kind": "example", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/worked-examples/06b_delay-equations-with-auto.ipynb", "title": "two delay-coupled neurons", "what": "Hopf points and the (a, tau) Hopf curve"}, {"kind": "example", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/worked-examples/06b_delay-equations-with-auto.ipynb", "title": "Wilson\u2013Cowan with delay", "what": "(P, tau) Hopf curve"}, {"kind": "example", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/worked-examples/06b_delay-equations-with-auto.ipynb", "title": "Mackey\u2013Glass", "what": "period-doubling cascade with AUTO"}, {"kind": "example", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/worked-examples/06b_delay-equations-with-auto.ipynb", "title": "delayed Stuart\u2013Landau", "what": "rotating waves and their folds"}, {"kind": "example", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/worked-examples/06b_delay-equations-with-auto.ipynb", "title": "two delay-coupled Stuart\u2013Landau", "what": "torus bifurcations of the in-phase wave"}, {"kind": "notebook", "group": "Level 1 \u2014 First steps", "file": "tutorials/notebooks/01_fitzhugh_nagumo.ipynb", "title": "FitzHugh-Nagumo: an excitable membrane", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 1 \u2014 First steps", "file": "tutorials/notebooks/02_toggle_switch.ipynb", "title": "Genetic toggle switch: bistability", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 1 \u2014 First steps", "file": "tutorials/notebooks/03_bouncing_ball.ipynb", "title": "Bouncing ball: global events", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 1 \u2014 First steps", "file": "tutorials/notebooks/04_integrate_and_fire.ipynb", "title": "Integrate-and-fire neuron with adaptation", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 1 \u2014 First steps", "file": "tutorials/notebooks/05_logistic_map.ipynb", "title": "The logistic map: period doubling to chaos", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 1 \u2014 First steps", "file": "tutorials/notebooks/06_henon_map.ipynb", "title": "The H\u00e9non map: a strange attractor", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 1 \u2014 First steps", "file": "tutorials/notebooks/07_lorenz.ipynb", "title": "The Lorenz equations", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/notebooks/08_wilson_cowan.ipynb", "title": "Wilson-Cowan: excitatory and inhibitory populations", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/notebooks/09_morris_lecar.ipynb", "title": "Morris-Lecar: a neuron with a Hopf onset", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/notebooks/10_hodgkin_huxley.ipynb", "title": "Hodgkin-Huxley: the squid giant axon", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/notebooks/11_stiff_van_der_pol.ipynb", "title": "Stiff van der Pol: when to use a stiff solver", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/notebooks/12_driven_pendulum.ipynb", "title": "Damped driven pendulum on a cylinder", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/notebooks/13_delayed_logistic_map.ipynb", "title": "Delayed logistic map: a Neimark-Sacker bifurcation", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/notebooks/14_rossler.ipynb", "title": "The R\u00f6ssler system: period doubling in c", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/notebooks/15_lorenz_84.ipynb", "title": "Lorenz 84: a model of the atmosphere", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 3 \u2014 Two parameters and global bifurcations", "file": "tutorials/notebooks/16_morris_lecar_bifurcation.ipynb", "title": "Morris-Lecar: one- and two-parameter diagrams", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 3 \u2014 Two parameters and global bifurcations", "file": "tutorials/notebooks/17_morris_lecar_homoclinic.ipynb", "title": "Morris-Lecar with a saddle: a homoclinic orbit", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 3 \u2014 Two parameters and global bifurcations", "file": "tutorials/notebooks/18_interacting_saddle_nodes.ipynb", "title": "Interacting saddle-nodes", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 3 \u2014 Two parameters and global bifurcations", "file": "tutorials/notebooks/19_nagumo_front.ipynb", "title": "Nagumo travelling front: a heteroclinic orbit", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/notebooks/20_forced_duffing.ipynb", "title": "Periodically forced Duffing oscillator", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/notebooks/21_forced_phase_oscillator.ipynb", "title": "Forced phase oscillator on a torus: Arnold tongues", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/notebooks/22_phase_oscillators_table.ipynb", "title": "Two phase oscillators with a tabulated coupling", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/notebooks/23_chirikov_taylor_map.ipynb", "title": "Chirikov-Taylor (standard) map", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/notebooks/24_piecewise_affine_map.ipynb", "title": "A piecewise affine map on the unit square", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/notebooks/25_coupled_ginzburg_landau.ipynb", "title": "Ginzburg-Landau oscillator: phase reduction", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 5 \u2014 Noise and space", "file": "tutorials/notebooks/26_noisy_fhn_sde.ipynb", "title": "Noisy FitzHugh-Nagumo: coherence from noise", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 5 \u2014 Noise and space", "file": "tutorials/notebooks/27_telegraph_fhn_markov.ipynb", "title": "FitzHugh-Nagumo with a random on/off input", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 5 \u2014 Noise and space", "file": "tutorials/notebooks/28_fhn_chain_arrays.ipynb", "title": "A chain of FitzHugh-Nagumo cells: waves", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/notebooks/29_delayed_logistic.ipynb", "title": "Hutchinson's delayed logistic equation", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/notebooks/30_mackey_glass.ipynb", "title": "Mackey-Glass: delay-induced chaos", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/notebooks/31_distributed_delay_volterra.ipynb", "title": "Distributed delay as a Volterra integral", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}], SHOTS = [{"src": "gallery/16_2D-FLOWS_morris-lecar-bifurcation_ml-bifurcation.gif", "poster": "gallery/16_2D-FLOWS_morris-lecar-bifurcation_ml-bifurcation.png", "w": 960, "h": 600, "title": "Morris-Lecar in AUTO", "cap": "Equilibria in the applied current i (red stable, thin line unstable), the two Hopf points, and the periodic orbits between them (green stable, blue unstable).", "file": "tutorials/worked-examples/03_two-parameters-and-global-bifurcations.ipynb"}, {"src": "gallery/01_2D-FLOWS_fitzhugh-nagumo_phase_plane.gif", "poster": "gallery/01_2D-FLOWS_fitzhugh-nagumo_phase_plane.png", "w": 960, "h": 600, "title": "FitzHugh-Nagumo phase plane", "cap": "Nullclines, direction field and trajectories that all end on the stable equilibrium.", "file": "tutorials/worked-examples/01_first-steps.ipynb"}, {"src": "gallery/37_DELAYS_mackey-glass-period-doubling_orbit_diagram.gif", "poster": "gallery/37_DELAYS_mackey-glass-period-doubling_orbit_diagram.png", "w": 960, "h": 600, "title": "Mackey-Glass, a delay equation", "cap": "AUTO's periodic orbits and period doublings, drawn over the maxima of simulations: the route to chaos.", "file": "tutorials/worked-examples/06b_delay-equations-with-auto.ipynb"}, {"src": "gallery/07_3D-FLOWS_lorenz_attractor.gif", "poster": "gallery/07_3D-FLOWS_lorenz_attractor.png", "w": 960, "h": 600, "title": "The Lorenz attractor", "cap": "r = 27, in 3-D and projected on (x, z), with the two unstable equilibria.", "file": "tutorials/worked-examples/01_first-steps.ipynb"}, {"src": "gallery/28_SPACE_fhn-chain-arrays_space_time.gif", "poster": "gallery/28_SPACE_fhn-chain-arrays_space_time.png", "w": 960, "h": 600, "title": "Waves along a chain", "cap": "A chain of 20 FitzHugh-Nagumo cells driven at one end: voltage against cell and time.", "file": "tutorials/worked-examples/05_noise-and-space.ipynb"}, {"src": "gallery/06_MAPS_henon-map_attractor.gif", "poster": "gallery/06_MAPS_henon-map_attractor.png", "w": 960, "h": 600, "title": "The Henon map", "cap": "Its strange attractor and the layers seen when zooming in near a fixed point.", "file": "tutorials/worked-examples/01_first-steps.ipynb"}];
+
+(function () {
+  const D = window.PYX_DISPLAY, root = document.documentElement, $ = id => document.getElementById(id);
+  const THEMES = [{"id": "system", "name": "System (light/dark)", "swatch": ["#ffffff", "#5c6670", "#222326", "#2a3038"]}, {"id": "light", "name": "Light", "swatch": ["#ffffff", "#e6e6e1", "#5c6670", "#2f5d8a"]}, {"id": "dark", "name": "Dark", "swatch": ["#222326", "#34363a", "#2a3038", "#4b7fb3"]}, {"id": "midnight", "name": "Midnight Blue", "swatch": ["#101d36", "#1c3158", "#14274a", "#3d7bd9"]}, {"id": "solarized-light", "name": "Solarized Light", "swatch": ["#fdf6e3", "#eee8d5", "#586e75", "#268bd2"]}, {"id": "solarized-dark", "name": "Solarized Dark", "swatch": ["#002b36", "#073642", "#0a3a47", "#268bd2"]}, {"id": "nord", "name": "Nord", "swatch": ["#3b4252", "#4c566a", "#434c5e", "#5e81ac"]}, {"id": "dracula", "name": "Dracula", "swatch": ["#282a36", "#44475a", "#343746", "#bd93f9"]}, {"id": "sepia", "name": "Sepia", "swatch": ["#faf4e6", "#ebdfc4", "#7a6344", "#8b5a2b"]}, {"id": "contrast", "name": "High Contrast", "swatch": ["#000000", "#ffffff", "#000000", "#ffff00"]}, {"id": "funky1", "name": "Funky 1 (Fairy Floss)", "swatch": ["#5a5475", "#ffb8d1", "#c2ffdf", "#c5a3ff"]}, {"id": "funky2", "name": "Funky 2 (Night Owl)", "swatch": ["#011627", "#82aaff", "#c792ea", "#addb67"]}, {"id": "funky3", "name": "Funky 3 (Synthwave)", "swatch": ["#241b2f", "#ff7edb", "#36f9f6", "#fede5d"]}], FONTS = [["system", "System (default)", "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"], ["serif", "Serif (Charter, Georgia)", "Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif"], ["atkinson", "Atkinson Hyperlegible", "'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"], ["lexend", "Lexend", "'Lexend', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"]];
+  const store = {
+    get(k) { try { return localStorage.getItem(k) } catch (e) { return null } },
+    set(k, v) { try { localStorage.setItem(k, v) } catch (e) {} },
+  };
+  const changed = () => document.dispatchEvent(new CustomEvent('pyx-display'));
+  const check = (box, key, v) => { for (const b of box.querySelectorAll('button')) b.setAttribute('aria-checked', String(b.dataset[key] === v)) };
+  // the code colours follow the theme: VS Code Dark+ on dark themes, Light+ on light ones
+  function setCode(scheme) {
+    const dark = D.theme === 'system' ? matchMedia('(prefers-color-scheme: dark)').matches : D.DARK[D.theme];
+    root.dataset.code = scheme || (dark ? 'dark' : 'light');
+    for (const l of document.querySelectorAll('link[data-code]')) l.media = l.dataset.code === root.dataset.code ? 'all' : 'not all';
+  }
+  function applyTheme(id) {
+    D.theme = id;
+    if (id === 'system') delete root.dataset.theme; else root.dataset.theme = id;
+    check($('themelist'), 'theme', id);
+    setCode();
+    // the phone's status bar takes the toolbar's colour
+    const bar = getComputedStyle(root).getPropertyValue('--bar').trim(), meta = document.querySelector('meta[name="theme-color"]');
+    if (bar && meta) meta.setAttribute('content', bar);
+    changed();
+  }
+  function applySize(z) { D.size = z; root.dataset.textsize = z; check($('sizelist'), 'size', z); changed() }
+  function applyFont(f) {
+    D.font = f; root.dataset.font = f; check($('fontlist'), 'font', f);
+    // a web font is downloaded only when it is chosen
+    if (D.FONTS[f] && !$('webfont-' + f)) {
+      const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = D.FONTS[f]; l.id = 'webfont-' + f;
+      l.onload = changed; document.head.append(l);
+    }
+    if (document.fonts) document.fonts.ready.then(changed);
+    changed();
+  }
+  window.pyxSetCode = setCode;
+  const button = (box, attrs, html, onclick) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.setAttribute('role', 'radio');
+    for (const k in attrs) b.dataset[k] = attrs[k];
+    b.innerHTML = html; b.addEventListener('click', onclick); box.append(b); return b;
+  };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  for (const z of D.SIZES) {
+    const b = button($('sizelist'), { size: z }, '<b style="font-size:' + (0.95 * z / 100) + 'rem">A</b><small>' + z + '%</small>',
+      () => { applySize(z); store.set('pyauto-xpp-textsize', z) });
+    b.setAttribute('aria-label', 'Text size ' + z + '%');
+  }
+  for (const [id, name, stack] of FONTS)
+    button($('fontlist'), { font: id }, '<span style="font-family:' + esc(stack) + '">' + esc(name) + '</span>' +
+      (D.FONTS[id] ? '<small>web font</small>' : ''), () => { applyFont(id); store.set('pyauto-xpp-font', id) });
+  for (const t of THEMES)
+    button($('themelist'), { theme: t.id }, '<span class="swatch">' + t.swatch.map(c => '<i style="background:' + c + '"></i>').join('') +
+      '</span>' + esc(t.name), () => { applyTheme(t.id); store.set('pyauto-xpp-theme', t.id); closeMenus(true) });
+  applyTheme(D.theme); applySize(D.size); applyFont(D.font);
+  matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => applyTheme(D.theme));
+  // printing: light code colours on white paper
+  addEventListener('beforeprint', () => setCode('light'));
+  addEventListener('afterprint', () => setCode());
+
+  // ---- toolbar menus: Esc or a click elsewhere closes them; arrows move inside --
+  const menus = () => [...document.querySelectorAll('header details')];
+  function closeMenus(refocus) {
+    for (const d of menus()) if (d.open) { d.open = false; if (refocus) d.querySelector('summary').focus() }
+  }
+  for (const d of menus()) {
+    d.addEventListener('toggle', () => {
+      if (!d.open) return;
+      for (const o of menus()) if (o !== d) o.open = false;
+      const items = [...d.querySelectorAll('.panel button, .panel a')];
+      (items.find(b => b.getAttribute('aria-checked') === 'true') || items[0])?.focus();
+    });
+    d.addEventListener('keydown', e => {
+      const items = [...d.querySelectorAll('.panel button, .panel a')], i = items.indexOf(document.activeElement);
+      if (!d.open || i < 0) return;
+      const go = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: items.length - 1 }[e.key];
+      if (go === undefined) return;
+      e.preventDefault(); items[(go + items.length) % items.length].focus();
+    });
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && menus().some(d => d.open)) { e.preventDefault(); closeMenus(true) } });
+  document.addEventListener('pointerdown', e => { for (const d of menus()) if (d.open && !d.contains(e.target)) d.open = false });
+})();
+
+</script>
+<script>
+const ITEMS = [{"kind": "example", "group": "Level 1 \u2014 First steps", "file": "tutorials/worked-examples/01_first-steps.ipynb", "title": "FitzHugh\u2013Nagumo", "what": "phase plane, excitability, Hopf points (exact), periodic orbits"}, {"kind": "example", "group": "Level 1 \u2014 First steps", "file": "tutorials/worked-examples/01_first-steps.ipynb", "title": "genetic toggle switch", "what": "bistability, basins, folds and the cusp in (a1, a2)"}, {"kind": "example", "group": "Level 1 \u2014 First steps", "file": "tutorials/worked-examples/01_first-steps.ipynb", "title": "bouncing ball", "what": "event times, restitution, Zeno time"}, {"kind": "example", "group": "Level 1 \u2014 First steps", "file": "tutorials/worked-examples/01_first-steps.ipynb", "title": "integrate-and-fire with adaptation", "what": "exact intervals, f\u2013I curves, rheobase"}, {"kind": "example", "group": "Level 1 \u2014 First steps", "file": "tutorials/worked-examples/01_first-steps.ipynb", "title": "logistic map", "what": "orbit diagram, Liapunov exponent, period doubling (exact points)"}, {"kind": "example", "group": "Level 1 \u2014 First steps", "file": "tutorials/worked-examples/01_first-steps.ipynb", "title": "H\u00e9non map", "what": "strange attractor, both Liapunov exponents"}, {"kind": "example", "group": "Level 1 \u2014 First steps", "file": "tutorials/worked-examples/01_first-steps.ipynb", "title": "Lorenz", "what": "pitchfork and Hopf (exact), Liapunov exponent, Lorenz map"}, {"kind": "example", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/worked-examples/02_bifurcations-with-auto.ipynb", "title": "Wilson\u2013Cowan", "what": "S-shaped branch with folds, Hopf in the inhibitory time constant"}, {"kind": "example", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/worked-examples/02_bifurcations-with-auto.ipynb", "title": "Morris\u2013Lecar (Hopf regime)", "what": "f\u2013I curve, class II onset, hysteresis"}, {"kind": "example", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/worked-examples/02_bifurcations-with-auto.ipynb", "title": "Hodgkin\u2013Huxley", "what": "period, Hopf points, fold of orbits, bistability"}, {"kind": "example", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/worked-examples/02_bifurcations-with-auto.ipynb", "title": "van der Pol, mu = 1000", "what": "stiff solvers, relaxation-oscillation period"}, {"kind": "example", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/worked-examples/02_bifurcations-with-auto.ipynb", "title": "driven pendulum", "what": "rest vs rotation, hysteresis, Melnikov onset"}, {"kind": "example", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/worked-examples/02_bifurcations-with-auto.ipynb", "title": "delayed logistic map", "what": "Neimark\u2013Sacker at a = 2, invariant curve"}, {"kind": "example", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/worked-examples/02_bifurcations-with-auto.ipynb", "title": "R\u00f6ssler", "what": "equilibria, period doubling in c"}, {"kind": "example", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/worked-examples/02_bifurcations-with-auto.ipynb", "title": "Lorenz 84", "what": "folds and Hopf of the westerly flow, Hadley state"}, {"kind": "example", "group": "Level 3 \u2014 Two parameters and global bifurcations", "file": "tutorials/worked-examples/03_two-parameters-and-global-bifurcations.ipynb", "title": "Morris\u2013Lecar", "what": "one- and two-parameter diagrams, GH points"}, {"kind": "example", "group": "Level 3 \u2014 Two parameters and global bifurcations", "file": "tutorials/worked-examples/03_two-parameters-and-global-bifurcations.ipynb", "title": "Morris\u2013Lecar with a saddle", "what": "period blow-up at a homoclinic orbit"}, {"kind": "example", "group": "Level 3 \u2014 Two parameters and global bifurcations", "file": "tutorials/worked-examples/03_two-parameters-and-global-bifurcations.ipynb", "title": "interacting saddle-nodes", "what": "equilibria from a quartic, folds, Hopf at mu = 0"}, {"kind": "example", "group": "Level 3 \u2014 Two parameters and global bifurcations", "file": "tutorials/worked-examples/03_two-parameters-and-global-bifurcations.ipynb", "title": "Nagumo front", "what": "front speed by shooting vs (1 - 2a)/sqrt(2)"}, {"kind": "example", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/worked-examples/04_forcing-tori-and-phase.ipynb", "title": "forced Duffing", "what": "stroboscopic map, period doubling to chaos"}, {"kind": "example", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/worked-examples/04_forcing-tori-and-phase.ipynb", "title": "forced phase oscillator", "what": "devil's staircase, Arnold tongues"}, {"kind": "example", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/worked-examples/04_forcing-tori-and-phase.ipynb", "title": "phase oscillators with a table", "what": "locking band from the tabulated coupling"}, {"kind": "example", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/worked-examples/04_forcing-tori-and-phase.ipynb", "title": "standard map", "what": "invariant curves vs chaos, area preservation"}, {"kind": "example", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/worked-examples/04_forcing-tori-and-phase.ipynb", "title": "piecewise affine map", "what": "periods and islands at the golden mean"}, {"kind": "example", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/worked-examples/04_forcing-tori-and-phase.ipynb", "title": "Ginzburg\u2013Landau oscillator", "what": "adjoint, H and H2 against exact formulas"}, {"kind": "example", "group": "Level 5 \u2014 Noise and space", "file": "tutorials/worked-examples/05_noise-and-space.ipynb", "title": "FitzHugh\u2013Nagumo with white noise", "what": "coherence resonance (seeded, reproducible)"}, {"kind": "example", "group": "Level 5 \u2014 Noise and space", "file": "tutorials/worked-examples/05_noise-and-space.ipynb", "title": "FitzHugh\u2013Nagumo with a Markov input", "what": "dwell times, fraction on, firing only when on"}, {"kind": "example", "group": "Level 5 \u2014 Noise and space", "file": "tutorials/worked-examples/05_noise-and-space.ipynb", "title": "chain of 20 FitzHugh\u2013Nagumo cells", "what": "travelling spikes, speed ~ sqrt(d)"}, {"kind": "example", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/worked-examples/06a_delay-equations-simulation.ipynb", "title": "Hutchinson equation", "what": "Hopf at r tau = pi/2 from simulations"}, {"kind": "example", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/worked-examples/06a_delay-equations-simulation.ipynb", "title": "Mackey\u2013Glass", "what": "maxima against tau, delay embedding"}, {"kind": "example", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/worked-examples/06a_delay-equations-simulation.ipynb", "title": "gamma-kernel Volterra equation", "what": "Volterra vs linear-chain ODE, onset at r tau = 2"}, {"kind": "example", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/worked-examples/06b_delay-equations-with-auto.ipynb", "title": "equation with two delays", "what": "Hopf points with two delays"}, {"kind": "example", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/worked-examples/06b_delay-equations-with-auto.ipynb", "title": "Hutchinson equation", "what": "AUTO on a delay equation: Hopf and periodic orbits"}, {"kind": "example", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/worked-examples/06b_delay-equations-with-auto.ipynb", "title": "cusp with a delay", "what": "folds and delay-induced Hopf points"}, {"kind": "example", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/worked-examples/06b_delay-equations-with-auto.ipynb", "title": "two delay-coupled neurons", "what": "Hopf points and the (a, tau) Hopf curve"}, {"kind": "example", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/worked-examples/06b_delay-equations-with-auto.ipynb", "title": "Wilson\u2013Cowan with delay", "what": "(P, tau) Hopf curve"}, {"kind": "example", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/worked-examples/06b_delay-equations-with-auto.ipynb", "title": "Mackey\u2013Glass", "what": "period-doubling cascade with AUTO"}, {"kind": "example", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/worked-examples/06b_delay-equations-with-auto.ipynb", "title": "delayed Stuart\u2013Landau", "what": "rotating waves and their folds"}, {"kind": "example", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/worked-examples/06b_delay-equations-with-auto.ipynb", "title": "two delay-coupled Stuart\u2013Landau", "what": "torus bifurcations of the in-phase wave"}, {"kind": "notebook", "group": "Level 1 \u2014 First steps", "file": "tutorials/notebooks/01_fitzhugh_nagumo.ipynb", "title": "FitzHugh-Nagumo: an excitable membrane", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 1 \u2014 First steps", "file": "tutorials/notebooks/02_toggle_switch.ipynb", "title": "Genetic toggle switch: bistability", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 1 \u2014 First steps", "file": "tutorials/notebooks/03_bouncing_ball.ipynb", "title": "Bouncing ball: global events", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 1 \u2014 First steps", "file": "tutorials/notebooks/04_integrate_and_fire.ipynb", "title": "Integrate-and-fire neuron with adaptation", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 1 \u2014 First steps", "file": "tutorials/notebooks/05_logistic_map.ipynb", "title": "The logistic map: period doubling to chaos", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 1 \u2014 First steps", "file": "tutorials/notebooks/06_henon_map.ipynb", "title": "The H\u00e9non map: a strange attractor", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 1 \u2014 First steps", "file": "tutorials/notebooks/07_lorenz.ipynb", "title": "The Lorenz equations", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/notebooks/08_wilson_cowan.ipynb", "title": "Wilson-Cowan: excitatory and inhibitory populations", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/notebooks/09_morris_lecar.ipynb", "title": "Morris-Lecar: a neuron with a Hopf onset", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/notebooks/10_hodgkin_huxley.ipynb", "title": "Hodgkin-Huxley: the squid giant axon", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/notebooks/11_stiff_van_der_pol.ipynb", "title": "Stiff van der Pol: when to use a stiff solver", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/notebooks/12_driven_pendulum.ipynb", "title": "Damped driven pendulum on a cylinder", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/notebooks/13_delayed_logistic_map.ipynb", "title": "Delayed logistic map: a Neimark-Sacker bifurcation", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/notebooks/14_rossler.ipynb", "title": "The R\u00f6ssler system: period doubling in c", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 2 \u2014 Bifurcations with AUTO", "file": "tutorials/notebooks/15_lorenz_84.ipynb", "title": "Lorenz 84: a model of the atmosphere", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 3 \u2014 Two parameters and global bifurcations", "file": "tutorials/notebooks/16_morris_lecar_bifurcation.ipynb", "title": "Morris-Lecar: one- and two-parameter diagrams", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 3 \u2014 Two parameters and global bifurcations", "file": "tutorials/notebooks/17_morris_lecar_homoclinic.ipynb", "title": "Morris-Lecar with a saddle: a homoclinic orbit", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 3 \u2014 Two parameters and global bifurcations", "file": "tutorials/notebooks/18_interacting_saddle_nodes.ipynb", "title": "Interacting saddle-nodes", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 3 \u2014 Two parameters and global bifurcations", "file": "tutorials/notebooks/19_nagumo_front.ipynb", "title": "Nagumo travelling front: a heteroclinic orbit", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/notebooks/20_forced_duffing.ipynb", "title": "Periodically forced Duffing oscillator", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/notebooks/21_forced_phase_oscillator.ipynb", "title": "Forced phase oscillator on a torus: Arnold tongues", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/notebooks/22_phase_oscillators_table.ipynb", "title": "Two phase oscillators with a tabulated coupling", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/notebooks/23_chirikov_taylor_map.ipynb", "title": "Chirikov-Taylor (standard) map", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/notebooks/24_piecewise_affine_map.ipynb", "title": "A piecewise affine map on the unit square", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 4 \u2014 Forcing, tori and phase", "file": "tutorials/notebooks/25_coupled_ginzburg_landau.ipynb", "title": "Ginzburg-Landau oscillator: phase reduction", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 5 \u2014 Noise and space", "file": "tutorials/notebooks/26_noisy_fhn_sde.ipynb", "title": "Noisy FitzHugh-Nagumo: coherence from noise", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 5 \u2014 Noise and space", "file": "tutorials/notebooks/27_telegraph_fhn_markov.ipynb", "title": "FitzHugh-Nagumo with a random on/off input", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 5 \u2014 Noise and space", "file": "tutorials/notebooks/28_fhn_chain_arrays.ipynb", "title": "A chain of FitzHugh-Nagumo cells: waves", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/notebooks/29_delayed_logistic.ipynb", "title": "Hutchinson's delayed logistic equation", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/notebooks/30_mackey_glass.ipynb", "title": "Mackey-Glass: delay-induced chaos", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}, {"kind": "notebook", "group": "Level 6 \u2014 Delay equations", "file": "tutorials/notebooks/31_distributed_delay_volterra.ipynb", "title": "Distributed delay as a Volterra integral", "what": "Interactive notebook: sliders, direction field, clickable phase plane, AUTO panel."}], SHOTS = [{"src": "gallery/16_2D-FLOWS_morris-lecar-bifurcation_ml-bifurcation.gif", "poster": "gallery/16_2D-FLOWS_morris-lecar-bifurcation_ml-bifurcation.png", "w": 960, "h": 600, "title": "Morris-Lecar in AUTO", "cap": "Equilibria in the applied current i (red stable, thin line unstable), the two Hopf points, and the periodic orbits between them (green stable, blue unstable).", "file": "tutorials/worked-examples/03_two-parameters-and-global-bifurcations.ipynb"}, {"src": "gallery/01_2D-FLOWS_fitzhugh-nagumo_phase_plane.gif", "poster": "gallery/01_2D-FLOWS_fitzhugh-nagumo_phase_plane.png", "w": 960, "h": 600, "title": "FitzHugh-Nagumo phase plane", "cap": "Nullclines, direction field and trajectories that all end on the stable equilibrium.", "file": "tutorials/worked-examples/01_first-steps.ipynb"}, {"src": "gallery/37_DELAYS_mackey-glass-period-doubling_orbit_diagram.gif", "poster": "gallery/37_DELAYS_mackey-glass-period-doubling_orbit_diagram.png", "w": 960, "h": 600, "title": "Mackey-Glass, a delay equation", "cap": "AUTO's periodic orbits and period doublings, drawn over the maxima of simulations: the route to chaos.", "file": "tutorials/worked-examples/06b_delay-equations-with-auto.ipynb"}, {"src": "gallery/07_3D-FLOWS_lorenz_attractor.gif", "poster": "gallery/07_3D-FLOWS_lorenz_attractor.png", "w": 960, "h": 600, "title": "The Lorenz attractor", "cap": "r = 27, in 3-D and projected on (x, z), with the two unstable equilibria.", "file": "tutorials/worked-examples/01_first-steps.ipynb"}, {"src": "gallery/28_SPACE_fhn-chain-arrays_space_time.gif", "poster": "gallery/28_SPACE_fhn-chain-arrays_space_time.png", "w": 960, "h": 600, "title": "Waves along a chain", "cap": "A chain of 20 FitzHugh-Nagumo cells driven at one end: voltage against cell and time.", "file": "tutorials/worked-examples/05_noise-and-space.ipynb"}, {"src": "gallery/06_MAPS_henon-map_attractor.gif", "poster": "gallery/06_MAPS_henon-map_attractor.png", "w": 960, "h": 600, "title": "The Henon map", "cap": "Its strange attractor and the layers seen when zooming in near a fixed point.", "file": "tutorials/worked-examples/01_first-steps.ipynb"}];
 const GH = "https://github.com/ZetaOne/pyauto-xpp", RAW = "https://raw.githubusercontent.com/ZetaOne/pyauto-xpp/main/", BINDER = "https://mybinder.org/v2/gh/ZetaOne/pyauto-xpp/HEAD?urlpath=lab/tree/";
 const $ = id => document.getElementById(id);
 const root = document.documentElement;
-const store = {
-  get(k) { try { return localStorage.getItem(k) } catch (e) { return null } },
-  set(k, v) { try { localStorage.setItem(k, v) } catch (e) {} },
-};
 
-// ---- themes (XPPAUT-Web's list; the choice is remembered) --------------------
-function applyTheme(id) {
-  if (id === 'system') delete root.dataset.theme; else root.dataset.theme = id;
-  for (const b of $('themelist').querySelectorAll('button')) b.setAttribute('aria-checked', String(b.dataset.theme === id));
-  // the phone's status bar takes the toolbar's colour
-  const bar = getComputedStyle(root).getPropertyValue('--bar').trim();
-  if (bar) document.querySelector('meta[name="theme-color"]').setAttribute('content', bar);
-}
-for (const t of THEMES) {
-  const b = document.createElement('button');
-  b.type = 'button'; b.setAttribute('role', 'menuitemradio'); b.dataset.theme = t.id;
-  b.innerHTML = '<span class="swatch">' + t.swatch.map(c => '<i style="background:' + c + '"></i>').join('') + '</span>';
-  b.append(t.name);
-  b.addEventListener('click', () => { applyTheme(t.id); store.set('pyauto-xpp-theme', t.id); closeMenus(true) });
-  $('themelist').append(b);
-}
-applyTheme(store.get('pyauto-xpp-theme') || 'funky2');
-matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => applyTheme(store.get('pyauto-xpp-theme') || 'funky2'));
-
-// ---- toolbar menus: Esc or a click elsewhere closes them; arrows move inside --
-const menus = () => [...document.querySelectorAll('header details')];
-function closeMenus(refocus) {
-  for (const d of menus()) if (d.open) { d.open = false; if (refocus) d.querySelector('summary').focus() }
-}
-for (const d of menus()) {
-  d.addEventListener('toggle', () => {
-    if (!d.open) return;
-    for (const o of menus()) if (o !== d) o.open = false;
-    const items = [...d.querySelectorAll('.panel button, .panel a')];
-    (items.find(b => b.getAttribute('aria-checked') === 'true') || items[0])?.focus();
-  });
-  d.addEventListener('keydown', e => {
-    const items = [...d.querySelectorAll('.panel button, .panel a')], i = items.indexOf(document.activeElement);
-    if (!d.open || i < 0) return;
-    const go = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: items.length - 1 }[e.key];
-    if (go === undefined) return;
-    e.preventDefault(); items[(go + items.length) % items.length].focus();
-  });
-}
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && menus().some(d => d.open)) { e.preventDefault(); closeMenus(true) } });
-document.addEventListener('pointerdown', e => { for (const d of menus()) if (d.open && !d.contains(e.target)) d.open = false });
+// themes, text size, font and the toolbar menus: DISPLAY_JS (the script above, shared with the manual)
 for (const a of document.querySelectorAll('#menu .panel a')) a.addEventListener('click', () => { $('menu').open = false });
+
+// the section links fold into the menu when they wrap (large text, a wide font, a narrow window)
+{
+  const bar = document.querySelector('.bar'), nav = document.querySelector('.nav');
+  const fit = () => {
+    bar.classList.remove('fold');
+    if (getComputedStyle(nav).display === 'none') return;
+    const a = nav.querySelector('a');
+    if (nav.offsetHeight > a.offsetHeight * 1.5 || bar.scrollWidth > bar.clientWidth + 1) bar.classList.add('fold');
+  };
+  addEventListener('resize', fit); document.addEventListener('pyx-display', fit);
+  if (document.fonts) document.fonts.ready.then(fit);
+  fit();
+}
 
 // the section in view is marked in the toolbar
 {
