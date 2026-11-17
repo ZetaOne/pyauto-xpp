@@ -175,6 +175,6 @@ Made by [Jeevan Kumar Gochhayat](https://github.com/ZetaOne).
 - **AUTO** is by E. Doedel and collaborators.
 - **pyxpp**, the headless Python bridge this package grew from, is by Youngmin
   Park.
-- **The tutorial models** come from the examples of XPP Studio (Peter Ashwin and
+- **The tutorial models** come from the examples of [XPP Studio](https://xpp-studio.github.io/xpp-studio/) (Peter Ashwin and
   Bard Ermentrout, GPL-3.0) and from the delay-equation examples that come with
   XPPAUT 8.2.

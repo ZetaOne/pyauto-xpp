@@ -29,7 +29,7 @@ notebook writes its model files to `odes/<section>.ode` and its figures to
 
 The models come from two sources:
 
-- the examples of XPP Studio (Peter Ashwin and Bard Ermentrout, GPL-3.0);
+- the examples of [XPP Studio](https://xpp-studio.github.io/xpp-studio/) (Peter Ashwin and Bard Ermentrout, GPL-3.0);
 - the delay-equation examples that come with XPPAUT 8.2.
 
 Work through them in order: each level builds on the one before.
