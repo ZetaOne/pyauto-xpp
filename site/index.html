@@ -611,7 +611,8 @@ footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
         <button data-os="unix" aria-pressed="true">Linux / macOS</button><button data-os="win" aria-pressed="false">Windows</button>
       </div>
       <div data-for="unix">
-        <div class="code"><pre><code>curl -fsSL https://pixi.sh/install.sh | bash   <span class="c"># once, then open a new terminal</span>
+        <div class="code"><pre><code>curl -fsSL https://pixi.sh/install.sh | bash   <span class="c"># installs pixi, once</span>
+export PATH="$HOME/.pixi/bin:$PATH"            <span class="c"># use it in this terminal (new terminals have it)</span>
 git clone https://github.com/ZetaOne/pyauto-xpp &amp;&amp; cd pyauto-xpp
 pixi run lab        <span class="c"># JupyterLab with the tutorials opens in your browser</span>
 pixi run examples   <span class="c"># every worked-example notebook, one line each</span>

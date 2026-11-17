@@ -70,6 +70,8 @@ examples; more in the [gallery](https://zetaone.github.io/pyauto-xpp/#gallery).*
 Install [pixi](https://pixi.sh) once, then:
 
 ```bash
+curl -fsSL https://pixi.sh/install.sh | bash   # installs pixi, once
+export PATH="$HOME/.pixi/bin:$PATH"            # use it in this terminal (new terminals have it)
 git clone https://github.com/ZetaOne/pyauto-xpp && cd pyauto-xpp
 pixi run lab        # JupyterLab with the tutorials opens in your browser
 pixi run examples   # every worked-example notebook, one line each
