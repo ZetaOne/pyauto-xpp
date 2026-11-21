@@ -486,6 +486,13 @@ dialog.lightbox img { display: block; width: 100%; height: auto; max-height: cal
 .sister b { font-size: 1.3125rem }
 .sister p { margin: 4px 0 0; color: var(--muted); font-size: .9375rem }
 .sister .logo { width: 96px; height: 96px; border-radius: 20px; box-shadow: 0 4px 14px rgb(0 0 0 / 0.25) }
+/* the smaller card under it (the isochron book) */
+.sister.mini { margin-top: 10px; gap: 12px; padding: 4px 6px 4px 10px; border-width: 1.5px; border-radius: 10px; box-shadow: 0 3px 10px color-mix(in srgb, var(--accent) 14%, transparent) }
+.sister.mini > div { display: flex; align-items: baseline; gap: 10px; min-width: 0 }
+.sister.mini b { font-size: .9375rem; white-space: nowrap }
+.sister.mini p { margin: 0; font-size: .8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0 }
+.sister.mini .logo { width: 28px; height: 28px; border-radius: 7px; box-shadow: 0 1px 5px rgb(0 0 0 / 0.2) }
+.sister.mini .btn { padding: 3px 10px; font-size: .75rem; min-height: 0 }
 footer { margin-top: 36px; padding: 22px 0 30px; border-top: 1px solid var(--line); background: var(--bar); font-size: .84375rem; color: var(--muted) }
 footer ul { margin: 6px 0 12px; padding-left: 18px }
 footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
@@ -501,6 +508,7 @@ footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
   .sister { grid-template-columns: auto 1fr }
   .sister .btn { grid-column: 1 / -1; justify-content: center }
   .sister .logo { width: 72px; height: 72px }
+  .sister.mini .btn { display: none }
   .gallery { grid-template-columns: 1fr }
   .filters { top: 48px }
   .search { max-width: none }
@@ -776,6 +784,11 @@ d.special("HB")</code></pre></div>
       <div><b>XPPAUT-Web</b><p>The full XPPAUT 8.2, with its own windows, menus and AUTO, right in your browser
         and as an Android app. Nothing to install: open a model and start exploring.</p></div>
       <span class="btn">Try XPPAUT-Web &rarr;</span>
+    </a>
+    <a class="sister mini" href="https://zetaone.github.io/isochron-book/" target="_blank" rel="noopener">
+      <img class="logo" src="isochron-book.png" alt="" width="28" height="28">
+      <div><b>Isochrons: Where Phase Lives</b><p>A book, slide decks, code and a study kit on the global isochrons of Osinga &amp; Moehlis (2010).</p></div>
+      <span class="btn">Open the book &rarr;</span>
     </a>
   </section>
 </div>
