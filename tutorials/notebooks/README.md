@@ -1,7 +1,7 @@
 # pyauto-xpp tutorials
 
 Interactive notebooks built on the examples of [XPP Studio](https://xpp-studio.github.io/xpp-studio/) (Peter Ashwin and Bard Ermentrout,
-GPL-3.0). Each notebook writes its model with `ModelBuilder` and explores it with XPPAUT 8.4
+GPL-3.0). Each notebook writes its model with `ModelBuilder` and explores it with XPPAUT 8.2
 and its AUTO through pyauto-xpp.
 
 Open a notebook in JupyterLab (`pixi run lab`) and run all cells. `xpptut.py` is the
