@@ -10,7 +10,7 @@
 [![Platforms](https://img.shields.io/badge/wheels-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](https://github.com/ZetaOne/pyauto-xpp/releases/latest)
 [![Licence](https://img.shields.io/badge/licence-GPL--3.0--or--later-green)](LICENSE)
 
-[XPPAUT](https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html) 8.2, the dynamical-systems tool by [Bard Ermentrout](https://sites.pitt.edu/~phase/), and its AUTO,
+[XPPAUT](https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html) 8.4, the dynamical-systems tool by [Bard Ermentrout](https://sites.pitt.edu/~phase/), and its AUTO,
 made available to Python. It is meant for batch work and Python workflows:
 every XPP command is a Python call, AUTO runs from scripts, and models can be
 written in Python. For interactive exploration XPPAUT itself remains the place
@@ -38,7 +38,7 @@ examples; more in the [gallery](https://zetaone.github.io/pyauto-xpp/#gallery).*
 
 ## Features
 
-- **The real XPPAUT 8.2**: Bard Ermentrout's C sources (in `csrc/xppaut`),
+- **The real XPPAUT 8.4**: Bard Ermentrout's C sources (in `csrc/xppaut`),
   built as a library that Python can load. Results are XPP's own.
 - **Every button is a call**: Initialconds, Sing pts, nullclines, Numerics
   and the rest, as `m.buttons...`, with trajectories returned as NumPy arrays
@@ -46,6 +46,8 @@ examples; more in the [gallery](https://zetaone.github.io/pyauto-xpp/#gallery).*
 - **AUTO from Python**: steady states, periodic orbits, one- and two-parameter
   diagrams, special points (`HB`, `LP`, `PD`, ...), **also for delay
   equations** (new in XPPAUT 8.2).
+- **New in XPPAUT 8.4**: the full Lyapunov spectrum (`m.lyapunov_spectrum()`), and
+  AUTO runs that keep the diagram and number their labels on (`m.auto.run(..., keep=True)`).
 - **Models in Python**: `ModelBuilder` writes the `.ode` file for you, or load
   any existing `.ode` file.
 - **70 tutorials**: 39 worked examples (in seven notebooks, with equations,
@@ -140,7 +142,7 @@ them all with a search, and a View, Download and Open in Binder link for each.
 
 ## Sister project
 
-[**XPPAUT-Web**](https://zetaone.github.io/XPPAUT-Web/): the same XPPAUT 8.2
+[**XPPAUT-Web**](https://zetaone.github.io/XPPAUT-Web/): the same XPPAUT 8.4
 with its own windows, in the browser and as an Android app. Use it to click;
 use pyauto-xpp to script.
 
@@ -173,7 +175,7 @@ Made by [Jeevan Kumar Gochhayat](https://github.com/ZetaOne).
 [`LICENSE`](LICENSE).
 
 - **[XPPAUT](https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html)** is by [G. Bard Ermentrout](https://sites.pitt.edu/~phase/). The C sources in
-  `csrc/xppaut` are his version 8.2, including AUTO for delay equations.
+  `csrc/xppaut` are his version 8.4, including AUTO for delay equations.
 - **AUTO** is by E. Doedel and collaborators.
 - **pyxpp**, the headless Python bridge this package grew from, is by Youngmin
   Park.

@@ -10,11 +10,13 @@ void edit_start(int ibr, int ntot, int itp, int lab, int nfpar, double a, double
 void edit_diagram(DIAGRAM *d, int ibr, int ntot, int itp, int lab, int nfpar, double a, double *uhi, double *ulo, double *u0, double *ubar, double *par, double per, int n, int icp1, int icp2, int icp3, int icp4,int flag2, double *evr, double *evi, double tp);
 void add_diagram(int ibr, int ntot, int itp, int lab, int nfpar, double a, double *uhi, double *ulo, double *u0, double *ubar, double *par, double per, int n, int icp1, int icp2, int icp3,int icp4,int flag2, double *evr, double *evi);
 void kill_diagrams(void);
+void diagram_max_ids(int *maxlab, int *maxbr);
 void redraw_diagram(void);
 void write_info_out(void);
 void write_init_data_file(void);
 void write_pts(void);
 void post_auto(void);
+int auto_diagram_to_file(const char *filename,int svg);
 void svg_auto(void);
 void bound_diagram(double *xlo, double *xhi, double *ylo, double *yhi);
 int save_diagram(FILE *fp, int n);

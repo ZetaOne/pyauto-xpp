@@ -1,7 +1,7 @@
 # %% [markdown]
 # ## Getting started
 #
-# **Build and install.** The package compiles XPP 8.2 (with AUTO) into a
+# **Build and install.** The package compiles XPP 8.4 (with AUTO) into a
 # shared library the first time it is built. Only a C compiler is needed;
 # X11 is not.
 #

@@ -5,7 +5,7 @@ description: Every part of pyauto-xpp with an example that has been run
 
 # pyauto-xpp: usage and examples
 
-pyauto-xpp runs XPPAUT 8.2 and its own AUTO from Python, for batch work and
+pyauto-xpp runs XPPAUT 8.4 and its own AUTO from Python, for batch work and
 Python workflows. Every example below was run with the package when this page was
 built (`docs/usage/build_usage.py`); the output under each example is what it
 printed, and each figure is what it saved. The import name is `pyxpp`.
@@ -30,7 +30,7 @@ printed, and each figure is what it saved. The import name is `pyxpp`.
 
 ## Getting started
 
-**Build and install.** The package compiles XPP 8.2 (with AUTO) into a
+**Build and install.** The package compiles XPP 8.4 (with AUTO) into a
 shared library the first time it is built. Only a C compiler is needed;
 X11 is not.
 
@@ -135,7 +135,7 @@ print(vdp.log.strip().splitlines()[-3:])
 ```
 
 ```text
-['Used 7 constants and 109 symbols ', 'XPPAUT 8.2.2 Copyright (C) 2002-now  Bard Ermentrout ', 'TrueColor visual:  no colormap needed']
+['Used 7 constants and 109 symbols ', 'XPPAUT 8.4.2 Copyright (C) 2002-now  Bard Ermentrout ', 'TrueColor visual:  no colormap needed']
 ```
 
 **Command-line options.** `args=` passes XPP's command-line flags, e.g.
@@ -1345,7 +1345,7 @@ print("x-y view: max", round(c2["max_px"], 2), "px;  3D view: max", round(c3["ma
 ```
 
 ```text
-v vs t: {'xpp_points': 3001, 'data_points': 3001, 'max_px': 0.5070497799248415, 'mean_px': 0.33345383586125993, 'ok': True}
+v vs t: {'xpp_points': 3001, 'data_points': 3001, 'max_px': 0.5070497799249551, 'mean_px': 0.3334538358612596, 'ok': True}
 x-y view: max 0.51 px;  3D view: max 0.51 px
 ```
 
@@ -1414,7 +1414,7 @@ print(m.transcript.strip().splitlines()[-1])
 ```
 
 ```text
-message Maximal exponent is -0.00223792
+message Lyapunov: -0.0075595 -0.60795  (+-0.023)  sum -0.61551, div -0.61551  D_KY 0
 ```
 
 **Poincare map.** With a section set, XPP stores only the crossings
@@ -2204,7 +2204,7 @@ print((lm.workdir / "allinfo.dat").read_text().splitlines()[0][:100])
 
 ```text
 file    SVG (*.svg) -> diagram.svg
-2 1 0 0 0.333 0 -0.495617 0.00027 -0.495617 0.00027 0 0 0 0 
+2 1 0 0 0.333 0 -0.495617 0.000270383 -0.495617 0.000270383 0 0 0 0 
 ```
 
 ![xpp_auto_diagram.svg](figures/12_auto_starts/xpp_auto_diagram.svg)
@@ -2288,7 +2288,7 @@ with cf.ThreadPoolExecutor(1) as ex:          # (processes in real use; one thre
 
 ## The XPP inside: versions and what each source drop changed
 
-The package carries Bard Ermentrout's XPPAUT 8.2 source (`csrc/xppaut/`),
+The package carries Bard Ermentrout's XPPAUT 8.4 source (`csrc/xppaut/`),
 updated as new drops arrive; `CHANGES.md` lists each one. The version XPP
 reports is in the log.
 
@@ -2304,7 +2304,7 @@ print(next(l for l in m.log.splitlines() if "XPPAUT" in l).strip())
 ```
 
 ```text
-XPPAUT 8.2.2 Copyright (C) 2002-now  Bard Ermentrout
+XPPAUT 8.4.2 Copyright (C) 2002-now  Bard Ermentrout
 ```
 
 | source | what changed | in pyauto-xpp |
@@ -2312,6 +2312,9 @@ XPPAUT 8.2.2 Copyright (C) 2002-now  Bard Ermentrout
 | 8.1 (11 Nov 2026) | Initialconds > Periodic; phase reduction in Averaging (isostable I, Floquet rho, B correction, H2); subcritical Hopf curves and GH points in AUTO | `buttons.initialconds.periodic`, `buttons.numerics.averaging.isostable` / `floquet_rho` / `b_correction` / `h2` (section "Analysis tools"); `auto.lyapunov(point)` and `auto.gh_points(curve)` (section "AUTO II": XPP finds GH points while drawing, so headless they are found in Python the same way) |
 | update (13 Nov 2026) | every GIF carries the model, parameters, numerics and a note; Fourier and histograms work on whatever the data browser shows (`get_browser_rows`) | `m.data` reads the browser, so the histogram, Fourier, adjoint, H come back as data (section "Analysis tools") |
 | 8.2 (15 Nov 2026) | AUTO for delay equations: equilibria and periodic orbits (`dde_po.c`), with period-doubling and torus detection and two-parameter curves; the characteristic roots of delay equations (`del_spec.c`); a rotatable surface view | `m.auto.run` works on delay equations unchanged; `m.equilibrium()` returns the rightmost characteristic roots; `m.history()` |
+| 8.4 (19 Nov 2026) | a scripting language for the X11 interface (`xpp_script.c`: `set`, `keys`, `autokeys`, `ans`, `auto goto`, loops, `shot`), run with `-script FILE` | it drives XPP's windows, which a headless library does not have: Python is the scripting language here; nothing changes |
+| update (21 Nov 2026) | the full Lyapunov spectrum by the QR method (`lyapunov.c`, Numerics > stocHast > Liapunov): double precision, its own adaptive Dormand-Prince integrator (so independent of Dt and the method), error bars, the sum against the divergence of the flow, the Kaplan-Yorke dimension; recording scripts (File > recOrd script) | `m.lyapunov_spectrum()`, or `buttons.numerics.stochast.liapunov({...})` with the dialog's fields |
+| update (23 Nov 2026) | AUTO: a new start that keeps the diagram numbers its labels and branch after the diagram's own and keeps their restart data (a fix by the author of XPP Lab); fort.8 closed before it is renamed; a missing restart file is skipped; diagrams saved with 17 digits; the model's parameters put back when AUTO stops at NaN or far outside Par min/max | `m.auto.run(..., keep=True)` keeps the diagram on a new start; two of pyauto-xpp's own patches (closing fort.8, appending a missing fort.8) are now in XPP itself and were dropped |
 | 13 Nov 2026, later | window-manager close button on every window, bevelled buttons, an X error handler, "OK"/"Close" labels; the integrator draws its progress bar and checks for Esc about 50 times a second instead of at every output point | no window, so nothing to see; results identical; same speed (below) |
 
 **The integrator change, timed.** In the X11 GUI each progress/Esc check
@@ -2329,5 +2332,5 @@ for label, kw in (("rk4, dt = 0.05, every step stored", dict(meth="rk4", dt=0.05
 
 ```text
 rk4, dt = 0.05, every step stored           297 ms for 200001 rows, v at t = 10000: -0.2914104
-rk4, dt = 0.05, every 20th step stored      249 ms for  10001 rows, v at t = 10000: -0.2914104
+rk4, dt = 0.05, every 20th step stored      246 ms for  10001 rows, v at t = 10000: -0.2914104
 ```

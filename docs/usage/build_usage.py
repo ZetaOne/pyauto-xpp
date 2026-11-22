@@ -144,7 +144,7 @@ def render(results):
         "",
         "# pyauto-xpp: usage and examples",
         "",
-        "pyauto-xpp runs XPPAUT 8.2 and its own AUTO from Python, for batch work and",
+        "pyauto-xpp runs XPPAUT 8.4 and its own AUTO from Python, for batch work and",
         "Python workflows. Every example below was run with the package when this page was",
         "built (`docs/usage/build_usage.py`); the output under each example is what it",
         "printed, and each figure is what it saved. The import name is `pyxpp`.",

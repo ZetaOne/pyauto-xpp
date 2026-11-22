@@ -5,5 +5,5 @@
  All formulas are valid!!
  nvar=1 naux=0 nfix=0 nmark=0 NEQ=1 NODE=1 
 Used 6 constants and 106 symbols 
-XPPAUT 8.2.2 Copyright (C) 2002-now  Bard Ermentrout 
+XPPAUT 8.4.2 Copyright (C) 2002-now  Bard Ermentrout 
 TrueColor visual:  no colormap needed

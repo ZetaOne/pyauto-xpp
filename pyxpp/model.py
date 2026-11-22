@@ -744,6 +744,50 @@ class Model:
         return Equilibrium({self.vars[i]: x[i] for i in range(n)}, ev, discrete=disc)
 
     # ------------------------------------------------------------------
+    # Lyapunov exponents (XPPAUT 8.4)
+    # ------------------------------------------------------------------
+    def lyapunov_spectrum(self, n=None, time=0, transient=0, renorm=None, tol=None):
+        """Lyapunov exponents by XPP 8.4's QR method (Numerics > stocHast >
+        Liapunov).  Continues from the end of the last run, in double precision
+        with its own adaptive Dormand-Prince 5(4) integrator, so the result does
+        not depend on Dt or the chosen method.
+
+        n          number of exponents (default: all, up to 8)
+        time       integration time (0: the length of the last run)
+        transient  extra time integrated first and discarded
+        renorm     time between re-orthonormalisations (default: XPP's)
+        tol        tolerance of the integrator (default 1e-9)
+
+        Returns a dict: 'exponents' and 'errors' (NumPy arrays, the error from
+        10 blocks of the run), 'sum', 'divergence' (the average divergence of the
+        flow, equal to the sum when all exponents are computed) and
+        'kaplan_yorke' (or None).  Not for delay or Volterra equations, Markov or
+        Wiener terms, global events or a Poincare map."""
+        ans = {"Range(0/1)": 0, "Nexp": n if n is not None else min(len(self.vars), 8),
+               "Time(0=orbit)": time, "Extra transient": transient, "Save run(0/1)": 0}
+        if renorm is not None:
+            ans["Renorm interval"] = renorm
+        if tol is not None:
+            ans["Tolerance"] = tol
+        start = len(self.log)
+        self.buttons.numerics.stochast.liapunov(ans)
+        out = self.log[start:]
+        i = out.rfind("\nLyapunov exponents")
+        if i < 0:
+            raise XPPError("XPP computed no Lyapunov exponents:\n" + out.strip()[-500:])
+        out = out[i:]
+        num = r"([-+0-9.eEinfa]+)"
+        lam = re.findall(r"lambda\s+\d+\s*=\s*" + num + r"(?:\s*\+-\s*" + num + ")?", out)
+
+        def one(pat):
+            m = re.search(pat + r"\s*=\s*" + num, out)
+            return float(m.group(1)) if m else None
+        return {"exponents": np.array([float(a) for a, _ in lam]),
+                "errors": np.array([float(e) if e else np.nan for _, e in lam]),
+                "sum": one(r"sum"), "divergence": one(r"average divergence of the flow"),
+                "kaplan_yorke": one(r"Kaplan-Yorke dimension")}
+
+    # ------------------------------------------------------------------
     def close(self):
         self._lib.close()
         if getattr(self, "_cleanup", None) is not None:

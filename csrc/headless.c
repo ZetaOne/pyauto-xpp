@@ -318,6 +318,27 @@ int two_choice(char *c1, char *c2, char *q, char *key, int x, int y, Window w, c
 
 /* Apply "name=value;name=value" to a list of fields.  Field names are
    matched case-insensitively after stripping a trailing '=' and spaces. */
+/* index of the dialog field called lhs (nm gets its display name), or -1 */
+static int field_index(int n, char **names, const char *lhs, char *nm, size_t nmsize) {
+  int i;
+  for (i = 0; i < n; i++) {
+    const char *src = names[i];
+    char shortnm[256], *paren;
+    if (src[0] == '*' && isdigit((unsigned char)src[1])) src += 2;
+    snprintf(nm, nmsize, "%s", src);
+    if (strlen(nm) && nm[strlen(nm) - 1] == '=') nm[strlen(nm) - 1] = 0;
+    strip(nm);
+    snprintf(shortnm, sizeof shortnm, "%s", nm);
+    paren = strrchr(shortnm, '(');
+    if (paren && paren > shortnm && shortnm[strlen(shortnm) - 1] == ')') *paren = 0;
+    strip(shortnm);
+    if (strlen(shortnm) && shortnm[strlen(shortnm) - 1] == ':') shortnm[strlen(shortnm) - 1] = 0;
+    strip(shortnm);
+    if (strcasecmp(nm, lhs) == 0 || strcasecmp(shortnm, lhs) == 0) return i;
+  }
+  return -1;
+}
+
 static int apply_assignments(const char *spec, const char *title, int n, char **names,
                              char *values, int stride) {
   char *buf = strdup(spec), *save = NULL, *tok;
@@ -325,6 +346,19 @@ static int apply_assignments(const char *spec, const char *title, int n, char **
   for (tok = strtok_r(buf, ";\n", &save); tok; tok = strtok_r(NULL, ";\n", &save)) {
     char *eq = strchr(tok, '='), lhs[256], nm[256];
     if (!eq) continue;
+    /* a field name may itself hold '=' (8.4's "Time(0=orbit)"): split at the first
+       '=' whose left side is a field name, else at the first '=' */
+    {
+      char *e;
+      for (e = eq; e; e = strchr(e + 1, '=')) {
+        char try_lhs[256];
+        size_t len = (size_t)(e - tok);
+        if (len >= sizeof try_lhs) break;
+        memcpy(try_lhs, tok, len); try_lhs[len] = 0;
+        strip(try_lhs);
+        if (field_index(n, names, try_lhs, nm, sizeof nm) >= 0) { eq = e; break; }
+      }
+    }
     *eq = 0;
     snprintf(lhs, sizeof lhs, "%s", tok);
     strip(lhs);

@@ -1,7 +1,7 @@
 {
  "name": "pyauto-xpp",
  "short_name": "pyauto-xpp",
- "description": "XPPAUT 8.2 and its AUTO as a Python module, with tutorials.",
+ "description": "XPPAUT 8.4 and its AUTO as a Python module, with tutorials.",
  "start_url": "./",
  "scope": "./",
  "display": "browser",

@@ -1,4 +1,5 @@
 #include "dialog_box.h"
+#include "xpp_script.h"
 #include "pop_list.h"
 
 #include "many_pops.h"
@@ -43,7 +44,22 @@ extern int xor_flag,DCURY,DCURX,CURY_OFF,CURS_X,CURS_Y;
 double atof();
  Window make_window();
 
+int get_dialog_x(char *wname,char *name,char *value,char *ok,char *cancel,int max);
+/* the text dialog; the real work is in get_dialog_x() */
 int get_dialog(wname,name,value,ok,cancel,max)
+char *wname,*name,*value,*ok,*cancel;
+int max;
+{
+ int h,st;
+ char *init=strdup(value);
+ h=rec_text_begin(init);
+ st=get_dialog_x(wname,name,value,ok,cancel,max);
+ rec_text_end(h,st==ALL_DONE||st==DONE_WITH_THIS,name,value);
+ free(init);
+ return(st);
+}
+
+int get_dialog_x(wname,name,value,ok,cancel,max)
 char *wname,*name,*value,*ok,*cancel;
 int max;
 {
@@ -55,10 +71,15 @@ int max;
 
  int status;
   XTextProperty winname;
+  int sr;
 
  
 
  DIALOG d;
+ /* scripted answer ("ans text") */
+ sr=script_take_text(name,value,max+1);
+ if(sr==1)return(ALL_DONE);
+ if(sr==-1)return(FORGET_ALL);
  strcpy(d.mes_s,name);
  strcpy(d.input_s,value);
  strcpy(d.ok_s,ok);

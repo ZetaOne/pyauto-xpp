@@ -1277,7 +1277,7 @@ int ind;
        sum=0.0;
        for(i=0;i<ncon;i++){
          ij=j*ncon+i;
-	 sum+=(w[ij]*get_delay(i+in0,tau[ij]));
+	 sum+=(w[ij]*get_delay(i+in0-1,tau[ij]));
        }
        values[j]=sum;
      }
@@ -1302,7 +1302,7 @@ int ind;
 	 ij=i*ncon+j;
 	 k=(int)cc[ij];
          if(k>=0)
-	   sum+=(w[ij]*get_delay(k+in0,tau[ij]));
+	   sum+=(w[ij]*get_delay(k+in0-1,tau[ij]));
        }
        values[i]=sum;
      }  

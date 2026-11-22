@@ -1,7 +1,7 @@
 # Worked examples: pyauto-xpp in notebooks
 
 Thirty-nine models, from a first phase plane to AUTO on delay equations, in
-seven Jupyter notebooks, one per level. They use XPPAUT 8.2 and its AUTO
+seven Jupyter notebooks, one per level. They use XPPAUT 8.4 and its AUTO
 through pyauto-xpp (`pyxpp`). No widgets: each model is built in code with
 `ModelBuilder`, simulated and analysed, drawn with matplotlib, and its numbers
 are checked against exact or published values.

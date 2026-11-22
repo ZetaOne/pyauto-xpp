@@ -479,3 +479,49 @@ def test_long_meshes_restart_without_crashing():
         f.unlink()
     with pytest.raises(pyxpp.XPPError, match="restart"):
         m.auto.run(grab=e.labeled()[-1].label, choice="extend", nmax=4)
+
+
+LORENZ = """
+x'=s*(y-x)
+y'=x*(r-z)-y
+z'=x*y-b*z
+par s=10,r=28,b=2.6666667
+init x=1,y=1,z=20
+@ total=20,dt=0.01,meth=rk4,maxstor=20000
+done
+"""
+
+
+def test_lyapunov_spectrum_of_lorenz():
+    # XPPAUT 8.4's QR method: the classic values 0.906, 0, -14.57, whose sum is the divergence
+    m = pyxpp.load(text=LORENZ)
+    m.run()
+    ly = m.lyapunov_spectrum(time=1000, transient=50)
+    lam = ly["exponents"]
+    assert lam.shape == (3,)
+    assert lam[0] == pytest.approx(0.906, abs=0.03)
+    assert abs(lam[1]) < 0.01
+    assert lam[2] == pytest.approx(-14.57, abs=0.05)
+    assert ly["sum"] == pytest.approx(-(10 + 1 + 8 / 3), abs=1e-3)
+    assert ly["divergence"] == pytest.approx(ly["sum"], abs=1e-3)
+    assert ly["kaplan_yorke"] == pytest.approx(2.06, abs=0.01)
+
+
+def test_new_start_keeping_the_diagram_numbers_on():
+    # XPPAUT 8.4: a second run from scratch that keeps the diagram continues its labels
+    # and branch numbers, and the first run's points can still be continued from
+    m = pyxpp.load(LECAR)
+    m.run(total=200); m.run_last(total=200)
+    d1 = m.auto.run("iapp", start="steady", ds=0.002, dsmax=0.05, nmax=200, parmin=-0.1, parmax=0.4)
+    m.auto.clear_grab()
+    m.pars["iapp"] = 0.3
+    m.run(total=300); m.run_last(total=300)
+    d2 = m.auto.run("iapp", start="steady", keep=True, ds=-0.002, dsmax=0.05, nmax=50,
+                    parmin=-0.1, parmax=0.4)
+    l1, l2 = [p.label for p in d1.labeled()], [p.label for p in d2.labeled()]
+    assert min(l2) == max(l1) + 1
+    assert {abs(p.branch) for p in d2} == {max(abs(p.branch) for p in d1) + 1}
+    assert len(m.auto.diagram.labeled()) == len(l1) + len(l2)
+    hb = [p for p in d1.labeled() if p.type == "HB"][0]
+    po = m.auto.run(grab=hb.label, choice="periodic", nmax=20, ds=0.01)
+    assert len(po) == 20 and po[-1].periodic

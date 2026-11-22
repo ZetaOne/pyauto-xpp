@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>pyauto-xpp: XPPAUT and AUTO in Python</title>
-<meta name="description" content="XPPAUT 8.2 and its AUTO as a Python module (import pyxpp): simulations, phase planes, nullclines and bifurcation diagrams from Python, with 70 tutorials.">
+<meta name="description" content="XPPAUT 8.4 and its AUTO as a Python module (import pyxpp): simulations, phase planes, nullclines and bifurcation diagrams from Python, with 70 tutorials.">
 <meta name="theme-color" content="#ffffff">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <meta property="og:title" content="pyauto-xpp">
-<meta property="og:description" content="XPPAUT 8.2 and AUTO as a Python module, with 70 tutorials.">
+<meta property="og:description" content="XPPAUT 8.4 and AUTO as a Python module, with 70 tutorials.">
 <meta property="og:image" content="https://zetaone.github.io/pyauto-xpp/gallery/16_2D-FLOWS_morris-lecar-bifurcation_ml-bifurcation.png">
 <script>
   // apply the saved display choices before the page is drawn (no flash of the wrong colours or size);
@@ -539,7 +539,7 @@ footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
 <a class="skip" href="#main">Skip to content</a>
 <header class="bar">
   <a class="brand" href="#top"><img src="icon.svg" alt="" width="22" height="22">pyauto-xpp</a>
-  <a class="ver" href="https://github.com/ZetaOne/pyauto-xpp/releases/tag/v0.3.0" title="Latest release">v0.3.0</a>
+  <a class="ver" href="https://github.com/ZetaOne/pyauto-xpp/releases/tag/v0.4.0" title="Latest release">v0.4.0</a>
   <nav class="nav" aria-label="Sections"><a href="#gallery">Gallery</a><a href="#install">Quick start</a><a href="#downloads">Downloads</a><a href="#tutorials">Tutorials</a><a href="#isochrons">Isochrons</a><a href="manual/">Manual</a></nav>
   <div class="right">
     <details class="menu" id="menu">
@@ -578,7 +578,7 @@ footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
     </figure>
     <div>
       <h1>pyauto-xpp</h1>
-      <p><a href="https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html" target="_blank" rel="noopener">XPPAUT</a> 8.2, by <a href="https://sites.pitt.edu/~phase/" target="_blank" rel="noopener">Bard Ermentrout</a>, and its AUTO, made available to Python. For batch work and Python workflows: every XPP command
+      <p><a href="https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html" target="_blank" rel="noopener">XPPAUT</a> 8.4, by <a href="https://sites.pitt.edu/~phase/" target="_blank" rel="noopener">Bard Ermentrout</a>, and its AUTO, made available to Python. For batch work and Python workflows: every XPP command
          is a Python call, AUTO runs from scripts (also for delay equations), and models can be written in Python.
          For interactive exploration, <a href="https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html" target="_blank" rel="noopener">XPPAUT</a> itself remains the place to go;
          both share the same numerics.</p>
@@ -627,7 +627,7 @@ pixi run examples   <span class="c"># every worked-example notebook, one line ea
 pixi run test       <span class="c"># the package's tests</span></code></pre></div>
       </div>
       <div data-for="win" hidden>
-        <div class="code"><pre><code>python -m pip install pyauto_xpp-0.3.0-cp312-cp312-win_amd64.whl   <span class="c"># the wheel for your Python, from Releases</span>
+        <div class="code"><pre><code>python -m pip install pyauto_xpp-0.4.0-cp312-cp312-win_amd64.whl   <span class="c"># the wheel for your Python, from Releases</span>
 python -m pip install matplotlib jupyterlab ipywidgets plotly anywidget jupytext
 python tools/jupytext_default.py   <span class="c"># .py scripts open as notebooks</span>
 jupyter lab         <span class="c"># in the unzipped repository folder</span></code></pre></div>
@@ -650,7 +650,7 @@ jupyter lab         <span class="c"># in the unzipped repository folder</span></
 conda activate pyxpp                      <span class="c"># every time you use it</span></code></pre></div>
       <p>Then download the wheel for your system and Python version from the <a href="https://github.com/ZetaOne/pyauto-xpp/releases/latest">Releases page</a>
          (see <a href="#downloads">Downloads</a> below) and install it with the tutorial packages:</p>
-      <div class="code"><pre><code>python -m pip install pyauto_xpp-0.3.0-cp312-cp312-<span class="c">&lt;your system&gt;</span>.whl
+      <div class="code"><pre><code>python -m pip install pyauto_xpp-0.4.0-cp312-cp312-<span class="c">&lt;your system&gt;</span>.whl
 python -m pip install matplotlib jupyterlab ipywidgets plotly anywidget jupytext
 python -c "import pyxpp; print(pyxpp.__file__)"   <span class="c"># check</span>
 jupyter lab                                       <span class="c"># open the tutorials</span></code></pre></div>
@@ -689,7 +689,7 @@ d.special("HB")</code></pre></div>
 
   <section id="downloads" aria-labelledby="h-downloads">
     <h2 id="h-downloads">Downloads <a class="anchor" href="#downloads" aria-label="Link to Downloads">#</a></h2>
-    <p class="lead">Prebuilt wheels of v0.3.0 are on the Releases page, one per system and Python version (3.9 to 3.15).</p>
+    <p class="lead">Prebuilt wheels of v0.4.0 are on the Releases page, one per system and Python version (3.9 to 3.15).</p>
     <div class="dl"><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/releases/latest"><b>Linux x86_64</b><span>ends in <span class=mono>x86_64.whl</span></span></a><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/releases/latest"><b>Linux ARM</b><span>ends in <span class=mono>aarch64.whl</span></span></a><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/releases/latest"><b>macOS Intel</b><span>10.9+ (10.13+ / 10.15+ for newer Pythons), <span class=mono>x86_64.whl</span></span></a><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/releases/latest"><b>macOS Apple Silicon</b><span>11 or newer, <span class=mono>arm64.whl</span></span></a><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/releases/latest"><b>Windows x86_64</b><span>ends in <span class=mono>win_amd64.whl</span></span></a><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/archive/refs/heads/main.zip"><b>Everything (.zip)</b><span>package, C sources, tutorials, tests</span></a><a class="box" href="https://github.com/ZetaOne/pyauto-xpp/releases"><b>Release notes and all files</b><span>Releases page on GitHub</span></a></div>
   </section>
 
@@ -781,7 +781,7 @@ d.special("HB")</code></pre></div>
     <h2 id="h-sister">Sister project <a class="anchor" href="#xpp-web" aria-label="Link to Sister project">#</a></h2>
     <a class="sister" href="https://zetaone.github.io/XPPAUT-Web/" target="_blank" rel="noopener">
       <img class="logo" src="xppaut-web.png" alt="XPPAUT-Web logo" width="96" height="96">
-      <div><b>XPPAUT-Web</b><p>The full XPPAUT 8.2, with its own windows, menus and AUTO, right in your browser
+      <div><b>XPPAUT-Web</b><p>The full XPPAUT 8.4, with its own windows, menus and AUTO, right in your browser
         and as an Android app. Nothing to install: open a model and start exploring.</p></div>
       <span class="btn">Try XPPAUT-Web &rarr;</span>
     </a>
@@ -798,7 +798,7 @@ d.special("HB")</code></pre></div>
   <div class="wrap">
     <b style="color:var(--fg)">Credits</b>
     <ul>
-      <li><b><a href="https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html" target="_blank" rel="noopener">XPPAUT</a></b> is by <a href="https://sites.pitt.edu/~phase/" target="_blank" rel="noopener">G. Bard Ermentrout</a>; the C sources are his version 8.2, including AUTO for delay equations.</li>
+      <li><b><a href="https://sites.pitt.edu/~phase/bard/bardware/xpp/xpp.html" target="_blank" rel="noopener">XPPAUT</a></b> is by <a href="https://sites.pitt.edu/~phase/" target="_blank" rel="noopener">G. Bard Ermentrout</a>; the C sources are his version 8.4, including AUTO for delay equations.</li>
       <li><b>AUTO</b> is by E. Doedel and collaborators.</li>
       <li><b>pyxpp</b>, the headless Python bridge this package grew from, is by Youngmin Park.</li>
       <li><b>The tutorial models</b> come from the examples of <a href="https://xpp-studio.github.io/xpp-studio/" target="_blank" rel="noopener">XPP Studio</a> (Peter Ashwin and Bard Ermentrout, GPL-3.0) and from

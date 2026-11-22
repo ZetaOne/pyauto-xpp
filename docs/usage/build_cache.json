@@ -1,7 +1,7 @@
 {
  "01_start": [
   {
-   "md": "## Getting started\n\n**Build and install.** The package compiles XPP 8.2 (with AUTO) into a\nshared library the first time it is built. Only a C compiler is needed;\nX11 is not.\n\n```bash\ncd pyauto-xpp\npython build_lib.py          # builds pyxpp/_libxpp.so\npip install -e .             # or: put pyauto-xpp on PYTHONPATH\npython -m pytest tests -q    # 20 tests\n```\n\n**Load a model.** `pyxpp.load` reads an `.ode` file exactly as XPP does,\nincluding its `@` options, `set` blocks and AUTO settings. The Morris-Lecar\nfile shipped with the package is used in many examples below."
+   "md": "## Getting started\n\n**Build and install.** The package compiles XPP 8.4 (with AUTO) into a\nshared library the first time it is built. Only a C compiler is needed;\nX11 is not.\n\n```bash\ncd pyauto-xpp\npython build_lib.py          # builds pyxpp/_libxpp.so\npip install -e .             # or: put pyauto-xpp on PYTHONPATH\npython -m pytest tests -q    # 20 tests\n```\n\n**Load a model.** `pyxpp.load` reads an `.ode` file exactly as XPP does,\nincluding its `@` options, `set` blocks and AUTO settings. The Morris-Lecar\nfile shipped with the package is used in many examples below."
   },
   {
    "code": "from pathlib import Path\nimport pyxpp\n\nPKG = Path(pyxpp.__file__).resolve().parents[1]   # the pyauto-xpp folder (examples/lecar.ode is in it)\n\nLECAR = PKG / \"examples\" / \"lecar.ode\"\nm = pyxpp.load(LECAR)\nprint(m)\nprint(\"variables:\", m.vars)\nprint(\"auxiliary:\", m.aux)\nprint(\"columns of the data:\", m.columns)\nprint(\"parameters:\", m.par_names)",
@@ -25,7 +25,7 @@
    "code": "from pathlib import Path\n\nw = pyxpp.load(LECAR, workdir=\"lecar_work\")\nprint(w.workdir.resolve().relative_to(Path.cwd()))\nprint(sorted(p.name for p in w.workdir.iterdir()))",
    "out": "lecar_work\n['.pyxpp']",
    "figs": [],
-   "sec": 0.1
+   "sec": 0.0
   },
   {
    "md": "**Several models at once.** Each model runs in its own private copy of the\nXPP library (XPP keeps all its state in C global variables), so models in\none Python process do not interfere."
@@ -41,7 +41,7 @@
   },
   {
    "code": "vdp.run()\nprint(vdp.log.strip().splitlines()[-3:])",
-   "out": "['Used 7 constants and 109 symbols ', 'XPPAUT 8.2.2 Copyright (C) 2002-now  Bard Ermentrout ', 'TrueColor visual:  no colormap needed']",
+   "out": "['Used 7 constants and 109 symbols ', 'XPPAUT 8.4.2 Copyright (C) 2002-now  Bard Ermentrout ', 'TrueColor visual:  no colormap needed']",
    "figs": [],
    "sec": 0.0
   },
@@ -217,7 +217,7 @@
    "code": "import numpy as np\nimport matplotlib.pyplot as plt\nfrom pathlib import Path\nimport pyxpp\n\nPKG = Path(pyxpp.__file__).resolve().parents[1]   # the pyauto-xpp folder (examples/lecar.ode is in it)\n\nm = pyxpp.load(PKG / \"examples\" / \"lecar.ode\")\ntr = m.run(iapp=0.1, total=200, dt=0.05)\nprint(tr)\nprint(\"rows:\", len(tr), \" columns:\", tr.names)\nprint(\"t:\", tr.t[:3], \"...\", tr.t[-1])\nprint(\"v (any case):\", tr[\"v\"][:3], tr[\"V\"][:3])\nprint(\"as numpy:\", tr.array.shape, tr.array.dtype)\nprint(tr.to_pandas().describe().loc[[\"min\", \"max\"]].round(4))",
    "out": "<Trajectory 4001 rows x ['t', 'V', 'W', 'CUR', 'ICA', 'IK', 'RATE']>\nrows: 4001  columns: ['t', 'V', 'W', 'CUR', 'ICA', 'IK', 'RATE']\nt: [0.   0.05 0.1 ] ... 200.0\nv (any case): [0.         0.02012537 0.0420657 ] [0.         0.02012537 0.0420657 ]\nas numpy: (4001, 7) float64\n         t       V       W  CUR     ICA      IK   RATE\nmin    0.0 -0.3817  0.0000  0.1 -0.7612  0.0000  0.333\nmax  200.0  0.2831  0.4274  0.1 -0.0097  0.6935  0.333",
    "figs": [],
-   "sec": 0.2
+   "sec": 0.3
   },
   {
    "md": "Auxiliary quantities (`aux` lines) are columns too. The data are what XPP\nstored: single precision, every `nout`-th step, after `trans`."
@@ -257,7 +257,7 @@
    "figs": [
     "sweep.png"
    ],
-   "sec": 0.2
+   "sec": 0.1
   },
   {
    "md": "**XPP's own range integration.** Initialconds > Range (a dialog, answered\nwith a dict) integrates over a range in one go. With \"Reset storage\" = N\nthe runs are stored one after the other."
@@ -466,7 +466,7 @@
   },
   {
    "code": "lim = xplot.window(tr, \"v\")\nfig, ax = xplot.plot_x_vs_t(tr, \"v\", lim, title=\"v against t (matplotlib)\")\nfig.savefig(FIG / \"mpl_v_vs_t.png\", dpi=100)\nsvg = xplot.xpp_graph(m, \"v\", lim, \"check_v.svg\")\nprint(\"v vs t:\", xplot.compare_with_xpp_graph(tr, \"v\", svg))\n\nfig = xplot.plot_all_vs_t(rt, [\"x\", \"y\", \"z\"], title=\"Roessler\")\nfig.savefig(FIG / \"mpl_all_vs_t.png\", dpi=90)\nfig, ax = xplot.plot_3d(rt, \"x\", \"y\", \"z\", title=\"Roessler\")\nfig.savefig(FIG / \"mpl_3d.png\", dpi=90)\nsvg2 = xplot.xpp_graph2d(r, \"x\", \"y\", \"check_xy.svg\", tr=rt)\nsvg3 = xplot.xpp_graph3d(r, \"x\", \"y\", \"z\", \"check_xyz.svg\", tr=rt)\nc2 = xplot.compare_curve(rt, [\"x\", \"y\"], svg2)\nc3 = xplot.compare_curve(rt, [\"x\", \"y\", \"z\"], svg3)\nprint(\"x-y view: max\", round(c2[\"max_px\"], 2), \"px;  3D view: max\", round(c3[\"max_px\"], 2), \"px\")",
-   "out": "v vs t: {'xpp_points': 3001, 'data_points': 3001, 'max_px': 0.5070497799248415, 'mean_px': 0.33345383586125993, 'ok': True}\nx-y view: max 0.51 px;  3D view: max 0.51 px",
+   "out": "v vs t: {'xpp_points': 3001, 'data_points': 3001, 'max_px': 0.5070497799249551, 'mean_px': 0.3334538358612596, 'ok': True}\nx-y view: max 0.51 px;  3D view: max 0.51 px",
    "figs": [
     "mpl_3d.png",
     "mpl_all_vs_t.png",
@@ -492,9 +492,9 @@
   },
   {
    "code": "S.liapunov(0)                                     # 0: no range over parameters\nprint(m.transcript.strip().splitlines()[-1])",
-   "out": "message Maximal exponent is -0.00223792",
+   "out": "message Lyapunov: -0.0075595 -0.60795  (+-0.023)  sum -0.61551, div -0.61551  D_KY 0",
    "figs": [],
-   "sec": 0.0
+   "sec": 0.1
   },
   {
    "md": "**Poincare map.** With a section set, XPP stores only the crossings\n(here v = 0 going up); the times between them are the period."
@@ -659,7 +659,7 @@
    "code": "print(\"Hopf at gca = 1: l1 = %.3f, omega = %.4f\" % m.auto.lyapunov(hopf))\nghs = m.auto.gh_points(h1) + m.auto.gh_points(h2)\nfor g in ghs:\n    print(f\"GH at iapp = {g['par']:.4f}, gca = {g['par2']:.4f}  (l1 {g['l1_before']:+.3f} -> {g['l1_after']:+.3f})\")",
    "out": "Hopf at gca = 1: l1 = 17.692, omega = 1.2605\nGH at iapp = 0.3082, gca = 0.6182  (l1 +0.921 -> -0.093)\nGH at iapp = 0.1252, gca = 0.5534  (l1 -0.501 -> +0.503)",
    "figs": [],
-   "sec": 0.1
+   "sec": 0.2
   },
   {
    "md": "**Checked:** between the two GH points the Hopf point should be\nsupercritical, so the first orbits from it are stable (gca = 0.45 lies\nin that stretch of the curve, which crosses it twice); at gca = 1 it is\nsubcritical, so they start unstable (and fold, as in section AUTO I)."
@@ -717,7 +717,7 @@
    "code": "ext = r.auto.run(grab=p1[-1], choice=\"extend\", nmax=50, parmax=6)\nprint(\"extend the period-1 branch past its end (c = 4.5) with parmax = 6:\", len(ext),\n      \"more points, c up to\", round(max(p.x for p in ext), 4))",
    "out": "extend the period-1 branch past its end (c = 4.5) with parmax = 6: 49 more points, c up to 6.0076",
    "figs": [],
-   "sec": 0.4
+   "sec": 0.3
   },
   {
    "md": "**Maps.** For a difference equation (`meth=discrete`) AUTO follows fixed\npoints; a 2-cycle is a fixed point of the second iterate. Logistic map\nx -> r x (1 - x): the fixed point loses stability at r = 3, where its\nmultiplier passes -1 (a flip). XPP labels that point HB (AUTO's type 3);\na label with no type is a regular output point (every `npr` steps)."
@@ -739,7 +739,7 @@
    "figs": [
     "hh_starts.png"
    ],
-   "sec": 4.2
+   "sec": 4.1
   },
   {
    "md": "**Files.** `write_pts` writes XPP's text table of the diagram; `save` and\n`load` keep a whole diagram (`.auto` file) to reload later; `reset`\ndeletes the diagram and AUTO's files; `clear_grab` drops the grabbed\npoint."
@@ -755,7 +755,7 @@
   },
   {
    "code": "lm.auto.buttons.file.svg(\"diagram.svg\")\nprint(lm.transcript.strip().splitlines()[-1])\nimport shutil\nshutil.copy(lm.workdir / \"diagram.svg\", FIG / \"xpp_auto_diagram.svg\")\nlm.auto.buttons.file.all_info(\"allinfo.dat\")\nprint((lm.workdir / \"allinfo.dat\").read_text().splitlines()[0][:100])",
-   "out": "file    SVG (*.svg) -> diagram.svg\n2 1 0 0 0.333 0 -0.495617 0.00027 -0.495617 0.00027 0 0 0 0 ",
+   "out": "file    SVG (*.svg) -> diagram.svg\n2 1 0 0 0.333 0 -0.495617 0.000270383 -0.495617 0.000270383 0 0 0 0 ",
    "figs": [
     "xpp_auto_diagram.svg"
    ],
@@ -784,20 +784,20 @@
  ],
  "14_versions": [
   {
-   "md": "## The XPP inside: versions and what each source drop changed\n\nThe package carries Bard Ermentrout's XPPAUT 8.2 source (`csrc/xppaut/`),\nupdated as new drops arrive; `CHANGES.md` lists each one. The version XPP\nreports is in the log."
+   "md": "## The XPP inside: versions and what each source drop changed\n\nThe package carries Bard Ermentrout's XPPAUT 8.4 source (`csrc/xppaut/`),\nupdated as new drops arrive; `CHANGES.md` lists each one. The version XPP\nreports is in the log."
   },
   {
    "code": "import time\nfrom pathlib import Path\nimport pyxpp\n\nPKG = Path(pyxpp.__file__).resolve().parents[1]   # the pyauto-xpp folder (examples/lecar.ode is in it)\n\nm = pyxpp.load(PKG / \"examples\" / \"lecar.ode\")\nprint(next(l for l in m.log.splitlines() if \"XPPAUT\" in l).strip())",
-   "out": "XPPAUT 8.2.2 Copyright (C) 2002-now  Bard Ermentrout",
+   "out": "XPPAUT 8.4.2 Copyright (C) 2002-now  Bard Ermentrout",
    "figs": [],
    "sec": 0.0
   },
   {
-   "md": "| source | what changed | in pyauto-xpp |\n|---|---|---|\n| 8.1 (11 Nov 2026) | Initialconds > Periodic; phase reduction in Averaging (isostable I, Floquet rho, B correction, H2); subcritical Hopf curves and GH points in AUTO | `buttons.initialconds.periodic`, `buttons.numerics.averaging.isostable` / `floquet_rho` / `b_correction` / `h2` (section \"Analysis tools\"); `auto.lyapunov(point)` and `auto.gh_points(curve)` (section \"AUTO II\": XPP finds GH points while drawing, so headless they are found in Python the same way) |\n| update (13 Nov 2026) | every GIF carries the model, parameters, numerics and a note; Fourier and histograms work on whatever the data browser shows (`get_browser_rows`) | `m.data` reads the browser, so the histogram, Fourier, adjoint, H come back as data (section \"Analysis tools\") |\n| 8.2 (15 Nov 2026) | AUTO for delay equations: equilibria and periodic orbits (`dde_po.c`), with period-doubling and torus detection and two-parameter curves; the characteristic roots of delay equations (`del_spec.c`); a rotatable surface view | `m.auto.run` works on delay equations unchanged; `m.equilibrium()` returns the rightmost characteristic roots; `m.history()` |\n| 13 Nov 2026, later | window-manager close button on every window, bevelled buttons, an X error handler, \"OK\"/\"Close\" labels; the integrator draws its progress bar and checks for Esc about 50 times a second instead of at every output point | no window, so nothing to see; results identical; same speed (below) |\n\n**The integrator change, timed.** In the X11 GUI each progress/Esc check\nflushes the X connection, so checking 50 times a second instead of at\nevery stored point speeds up long runs there. Headless the check is a\nstub, so the speed is the same; the numbers are identical."
+   "md": "| source | what changed | in pyauto-xpp |\n|---|---|---|\n| 8.1 (11 Nov 2026) | Initialconds > Periodic; phase reduction in Averaging (isostable I, Floquet rho, B correction, H2); subcritical Hopf curves and GH points in AUTO | `buttons.initialconds.periodic`, `buttons.numerics.averaging.isostable` / `floquet_rho` / `b_correction` / `h2` (section \"Analysis tools\"); `auto.lyapunov(point)` and `auto.gh_points(curve)` (section \"AUTO II\": XPP finds GH points while drawing, so headless they are found in Python the same way) |\n| update (13 Nov 2026) | every GIF carries the model, parameters, numerics and a note; Fourier and histograms work on whatever the data browser shows (`get_browser_rows`) | `m.data` reads the browser, so the histogram, Fourier, adjoint, H come back as data (section \"Analysis tools\") |\n| 8.2 (15 Nov 2026) | AUTO for delay equations: equilibria and periodic orbits (`dde_po.c`), with period-doubling and torus detection and two-parameter curves; the characteristic roots of delay equations (`del_spec.c`); a rotatable surface view | `m.auto.run` works on delay equations unchanged; `m.equilibrium()` returns the rightmost characteristic roots; `m.history()` |\n| 8.4 (19 Nov 2026) | a scripting language for the X11 interface (`xpp_script.c`: `set`, `keys`, `autokeys`, `ans`, `auto goto`, loops, `shot`), run with `-script FILE` | it drives XPP's windows, which a headless library does not have: Python is the scripting language here; nothing changes |\n| update (21 Nov 2026) | the full Lyapunov spectrum by the QR method (`lyapunov.c`, Numerics > stocHast > Liapunov): double precision, its own adaptive Dormand-Prince integrator (so independent of Dt and the method), error bars, the sum against the divergence of the flow, the Kaplan-Yorke dimension; recording scripts (File > recOrd script) | `m.lyapunov_spectrum()`, or `buttons.numerics.stochast.liapunov({...})` with the dialog's fields |\n| update (23 Nov 2026) | AUTO: a new start that keeps the diagram numbers its labels and branch after the diagram's own and keeps their restart data (a fix by the author of XPP Lab); fort.8 closed before it is renamed; a missing restart file is skipped; diagrams saved with 17 digits; the model's parameters put back when AUTO stops at NaN or far outside Par min/max | `m.auto.run(..., keep=True)` keeps the diagram on a new start; two of pyauto-xpp's own patches (closing fort.8, appending a missing fort.8) are now in XPP itself and were dropped |\n| 13 Nov 2026, later | window-manager close button on every window, bevelled buttons, an X error handler, \"OK\"/\"Close\" labels; the integrator draws its progress bar and checks for Esc about 50 times a second instead of at every output point | no window, so nothing to see; results identical; same speed (below) |\n\n**The integrator change, timed.** In the X11 GUI each progress/Esc check\nflushes the X connection, so checking 50 times a second instead of at\nevery stored point speeds up long runs there. Headless the check is a\nstub, so the speed is the same; the numbers are identical."
   },
   {
    "code": "for label, kw in ((\"rk4, dt = 0.05, every step stored\", dict(meth=\"rk4\", dt=0.05, nout=1)),\n                  (\"rk4, dt = 0.05, every 20th step stored\", dict(meth=\"rk4\", dt=0.05, nout=20))):\n    best = min((lambda t0: (m.run(iapp=0.1, total=10000, v=-0.3, w=0, **kw), time.perf_counter() - t0)[1])(time.perf_counter())\n               for _ in range(3))\n    print(f\"{label:40s} {best * 1000:6.0f} ms for {len(m.data):6d} rows, v at t = 10000: {m.data['v'][-1]:.7f}\")",
-   "out": "rk4, dt = 0.05, every step stored           297 ms for 200001 rows, v at t = 10000: -0.2914104\nrk4, dt = 0.05, every 20th step stored      249 ms for  10001 rows, v at t = 10000: -0.2914104",
+   "out": "rk4, dt = 0.05, every step stored           297 ms for 200001 rows, v at t = 10000: -0.2914104\nrk4, dt = 0.05, every 20th step stored      246 ms for  10001 rows, v at t = 10000: -0.2914104",
    "figs": [],
    "sec": 1.7
   }

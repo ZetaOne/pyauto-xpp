@@ -476,7 +476,7 @@ class Auto:
         self._m._press_auto(["f", "r"], (True,) if self._count() > 0 else ())
 
     def run(self, param=None, *, start=None, grab=None, choice=None, y=None,
-            param2=None, answers=(), initial=None, **numerics):
+            param2=None, answers=(), initial=None, keep=False, **numerics):
         """Run AUTO and return the new points as a Diagram.
 
         From scratch (nothing grabbed):  start = steady | periodic |
@@ -504,6 +504,12 @@ class Auto:
             t[-1] - t[0]; for "bdry value" t runs over the problem's
             interval (XPP's boundary value problems are posed on [0, 1]).
 
+        keep: for a run from scratch when the diagram already has points,
+            keep them instead of starting a new diagram (XPP asks "Destroy
+            AUTO diagram & files?"; keep=True answers no).  With XPPAUT 8.4
+            the new run's labels and branch number follow the diagram's own
+            and the earlier points can still be continued from.
+
         Two-parameter runs (choice="two param", or from a fold of equilibria)
         use epsl = epsu = Auto.two_par_tol (1e-7) unless you give them, and put
         AUTO's settings back afterwards: AUTO's default 1e-4 leaves errors of
@@ -527,7 +533,7 @@ class Auto:
             restore = {"epsl": st["epsl"], "epsu": st["epsu"]}
             self.numerics(epsl=min(self.two_par_tol, st["epsl"]), epsu=min(self.two_par_tol, st["epsu"]))
         try:
-            return self._run_now(start, choice, answers)
+            return self._run_now(start, choice, answers, keep)
         finally:
             if restore:
                 self.numerics(**restore)
@@ -568,7 +574,7 @@ class Auto:
         pts = [p for p in self.diagram.points if p.label == st["grab_label"]]
         return bool(pts) and pts[0].type == "LP" and not pts[0].periodic
 
-    def _run_now(self, start, choice, answers):
+    def _run_now(self, start, choice, answers, keep=False):
         before = self._count()
         reply = []
         if not self.settings["grabbed"]:
@@ -578,8 +584,9 @@ class Auto:
             if ctypes.c_int.in_dll(self._c, "METHOD").value != 0:
                 reply.append(start)
             if self._count() > 0:
-                reply.append(True)  # "Destroy AUTO diagram & files?"
-                before = 0          # the old points are gone; the new run starts at index 0
+                reply.append(not keep)  # "Destroy AUTO diagram & files?"
+                if not keep:
+                    before = 0          # the old points are gone; the new run starts at index 0
         else:
             self._check_restart_label()
             if choice is not None:

@@ -1,3 +1,6 @@
+#include <sys/time.h>
+#include <sys/select.h>
+#include "xpp_script.h"
 #include "pop_list.h"
 
 #include "many_pops.h"
@@ -239,7 +242,21 @@ void scroll_popup(STRING_BOX *sb,SCROLLBOX *scrb)
 
 }
 
+int do_string_box_x(int n,int row,int col,char *title,char **names,char values[][MAX_LEN_SBOX],int maxchar);
+/* the form dialog; the real work is in do_string_box_x() */
 int do_string_box(n,row,col,title,names,values,maxchar)
+     int n,row,col,maxchar;
+     char **names,values[][MAX_LEN_SBOX],*title;
+
+{
+ int h,st;
+ h=rec_form_begin(n,names,(char *)values,MAX_LEN_SBOX);
+ st=do_string_box_x(n,row,col,title,names,values,maxchar);
+ rec_form_end(h,st==DONE_ALL,title,n,names,(char *)values,MAX_LEN_SBOX);
+ return(st);
+}
+
+int do_string_box_x(n,row,col,title,names,values,maxchar)
      int n,row,col,maxchar;
      char **names,values[][MAX_LEN_SBOX],*title;
 
@@ -249,6 +266,11 @@ int do_string_box(n,row,col,title,names,values,maxchar)
  int colm,pos;
  SCROLLBOX scrb;
  scrb.exist=0;
+
+ /* scripted answer ("ans ...") for this form */
+ status=script_take_form(title,n,names,(char *)values,MAX_LEN_SBOX);
+ if(status==1)return(DONE_ALL);
+ if(status==-1)return(FORGET_ALL);
 
   for(i=0;i<n;i++){
         sb.hh[i]=-1;
@@ -947,7 +969,7 @@ Window make_unmapped_icon_window(root,x,y,width,height,bw,icx,icy,icdata)
 		col=0;
 		row=-1;
 		z=0;
-		while (row<height)
+		while (row<height-1)   /* rows 0..height-1; "row<height" read one row past the icon data */
 		{
 			col=0;
 			row++;
@@ -1117,7 +1139,32 @@ void install_xpp_error_handler(void)
 void xpp_next_event(XEvent *ev)
 {
   int i;
-  XNextEvent(display,ev);
+  for(;;){
+    /* Scripting: whenever XPP is idle (no X events pending) the script
+       engine gets to run its next command.  See xpp_script.c.            */
+    if(script_is_active()){
+      int r,ms=0;
+      XSync(display,False);
+      if(XPending(display)==0){
+        r=script_poll(&ms,ev);
+        if(r==1)continue;
+        if(r==3)return;       /* a scripted key press */
+        if(r==2){
+          fd_set rd;
+          struct timeval tv;
+          FD_ZERO(&rd);
+          FD_SET(ConnectionNumber(display),&rd);
+          tv.tv_sec=ms/1000;
+          tv.tv_usec=(ms%1000)*1000;
+          select(ConnectionNumber(display)+1,&rd,NULL,NULL,&tv);
+          continue;
+        }
+      }
+    }
+    XNextEvent(display,ev);
+    if(script_is_active()&&script_filter_event(ev))continue;
+    break;
+  }
   wm_button_hover_event(ev);
   if(!is_wm_delete(ev))return;
   for(i=0;i<MAX_WM_CLOSE;i++){
@@ -1332,7 +1379,9 @@ void expose_resp_box(button,message,wb,wm,w)
 void respond_box(button,message)
     char *button,*message;
     {
-     int l1=strlen(message);
+     int l1;
+     if(script_message(message))return;
+     l1=strlen(message);
       int l2=strlen(button);
       int width;
       int height;
@@ -1424,7 +1473,21 @@ void expose_choice(choice1,choice2,msg,c1,c2,wm,w)
 	if(w==c2)Ftext(0,0,choice2,c2);
 }
 
+int two_choice_x(char *choice1,char *choice2,char *string,char *key,int x,int y,Window w,char *title);
+/* the yes/no box; the real work is in two_choice_x() */
 int two_choice(choice1,choice2,string,key,x,y,w,title)
+ char *choice1,*choice2,*string,*key,*title;
+ int x,y;
+  Window w;
+ {
+  int h,v;
+  h=rec_text_begin(NULL);
+  v=two_choice_x(choice1,choice2,string,key,x,y,w,title);
+  rec_choice_end(h,string,v,key);
+  return(v);
+ }
+
+int two_choice_x(choice1,choice2,string,key,x,y,w,title)
  char *choice1,*choice2,*string,*key,*title;
  int x,y;
   Window w;
@@ -1433,11 +1496,16 @@ int two_choice(choice1,choice2,string,key,x,y,w,title)
   XEvent ev;
   int not_done=1;
   int value=0;
+  int sidx,sr;
   int l1=strlen(choice1)*DCURX;
   int l2=strlen(choice2)*DCURX;
   int lm=strlen(string)*DCURX;
   int tot=lm,xm,x1,x2;
   
+   /* scripted answer ("ans y" / "ans n") */
+   sr=script_take_choice(string,key,&sidx);
+   if(sr==1)return((int)key[sidx]);
+   if(sr==-1)return((int)key[1]);
    if(lm<(l1+l2+4*DCURX))tot=(l1+l2+4*DCURX);
    tot=tot+6*DCURX;
     xm=(tot-lm)/2;
@@ -1580,6 +1648,7 @@ Window *root,hwin;
 			     for(i=0;i<n;i++){
 			     if(ev.xbutton.window==p.w[i]){
 				value=(int)p.key[i];
+				rec_menu_key(value);   /* File -> Record script */
 				done=1;
 				}
 			     }	
@@ -1611,6 +1680,7 @@ Window *root,hwin;
 	 XDestroySubwindows(display,p.base);
 	 XDestroyWindow(display,p.base);
          XFlush(display);
+        free(p.w);   /* allocated above; this is the only way out of the loop */
         if(value==13)value=(int)key[def];
 	return(value);
 

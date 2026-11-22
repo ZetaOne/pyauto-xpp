@@ -49,7 +49,7 @@ rate=phi
  All formulas are valid!!
  nvar=2 naux=4 nfix=1 nmark=0 NEQ=6 NODE=7 
 Used 18 constants and 127 symbols 
-XPPAUT 8.2.2 Copyright (C) 2002-now  Bard Ermentrout 
+XPPAUT 8.4.2 Copyright (C) 2002-now  Bard Ermentrout 
 TrueColor visual:  no colormap needed
 ICA is a duplicate name
  sym 0 loaded .. times 0 loaded .. sym 1 loaded .. times 1 loaded .. sym 2 loaded .. times 2 loaded .. sym 3 loaded .. times 3 loaded .. sym 4 loaded .. times 4 loaded ..
@@ -103,6 +103,6 @@ rate=phi
  All formulas are valid!!
  nvar=2 naux=4 nfix=1 nmark=0 NEQ=6 NODE=7 
 Used 18 constants and 127 symbols 
-XPPAUT 8.2.2 Copyright (C) 2002-now  Bard Ermentrout 
+XPPAUT 8.4.2 Copyright (C) 2002-now  Bard Ermentrout 
 TrueColor visual:  no colormap needed
 ICA is a duplicate name

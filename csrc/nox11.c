@@ -314,3 +314,6 @@ int XSync(Display *d, Bool discard) { (void)d; (void)discard; return 0; }
 int XStoreName(Display *d, Window w, _Xconst char *name) { (void)d; (void)w; (void)name; return 0; }
 Status XGetGCValues(Display *d, GC g, unsigned long mask, XGCValues *v) {
   (void)d; (void)g; (void)mask; if (v) memset(v, 0, sizeof *v); return 1; }
+
+/* used by XPP 8.4's scripting (xpp_script.c: keys pressed while a script runs) */
+KeySym XLookupKeysym(XKeyEvent *e, int index) { (void)e; (void)index; return NoSymbol; }

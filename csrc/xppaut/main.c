@@ -1,3 +1,4 @@
+#include "xpp_script.h"
 #include "main.h"
 
 #include "aniparse.h"
@@ -494,6 +495,7 @@ int argc;
   auto_load_dll();
   
 if(XPPBatch){
+      if(script_requested())fprintf(stderr,"-script needs the GUI and is ignored with -silent\n");
       MakeColormap();
     init_browser();
     init_all_graph();
@@ -1119,10 +1121,13 @@ unsigned int min_wid,min_hgt;
     run_the_commands(4);
     RunImmediately=0;
   }
+script_start();
 while(1)
 {
 /*  put_command("Command:");  */
+ script_set_top(1);
  xpp_next_event(&report);
+ script_set_top(0);
  xpp_events(report,min_wid,min_hgt);
  } /* end while */
 }
@@ -1131,6 +1136,7 @@ while(1)
 void bye_bye()
 {
    int i;
+   script_record_stop();
    yes_reset_auto();
    XUnloadFont(display,big_font->fid);
    XUnloadFont(display,small_font->fid);
@@ -1366,6 +1372,12 @@ void commander(ch)
 	 case 'u':  
 	    do_tutorial();
 	    break;  
+	 case 'd':
+	    script_run_from_menu();
+	    break;
+	 case 'o':
+	    script_record_from_menu();
+	    break;
                 } /* end file switch  */
 	        help();
             } /*  end file case   */ break;
@@ -1536,6 +1548,12 @@ void top_button_cross(Window w,int b)
       return;
     }
 }
+Window top_button_window(int i)
+{
+  if(i<0||i>=6)return 0;
+  return TopButton[i];
+}
+
 void top_button_press(Window w)
 {
   if(w==TopButton[0]){
@@ -1559,6 +1577,7 @@ void top_button_press(Window w)
 
   }
   if(w==TopButton[5]){
+    rec_command("browser open");     /* File -> Record script */
     make_new_browser();
 
   }

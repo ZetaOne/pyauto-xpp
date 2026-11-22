@@ -74,12 +74,6 @@ PATCHES = [
     ("main.c", r"^  logfile=stdout;", "  if(logfile==NULL) logfile=stdout;"),
     # stop after initialisation instead of entering the X event loop
     ("main.c", r"^do_events\(min_wid,min_hgt\);", "/* pyxpp: event loop removed */"),
-    # AUTO never closes fort.8 (the fclose in close_auto() is commented out) and then
-    # renames it to <file>.s.  Linux allows renaming an open file and just leaks the
-    # descriptor; Windows refuses (sharing violation), the .s file is never written
-    # and the next run from a labelled point reads a NULL FILE*.  Close it first.
-    ("auto_nox.c", r"^  /\*    if\(fp8_is_open\)\{$",
-     "  if(fp8_is_open&&fp8!=NULL){fclose(fp8);fp8=NULL;}  /* pyxpp */\n  /*    if(fp8_is_open){"),
     # per-model AUTO scratch directory
     ("auto_nox.c", r'char\* HOME = getenv\("HOME"\);', 'char* HOME = pyxpp_auto_home();'),
     # AUTO bug: the header line of every solution in fort.8 (.s) is written with "%5ld"
@@ -90,10 +84,6 @@ PATCHES = [
     # crashed on the missing fort.8.  " %4ld" is byte-identical for values below 10000
     # and keeps larger ones apart (all readers parse by whitespace).
     ("autlib1.c", r'fprintf\(fp8,"%5ld",', 'fprintf(fp8," %4ld",', 21),
-    # ... and if AUTO wrote no fort.8 at all (restart label not found), appending it to
-    # the .s file read a NULL FILE*
-    ("auto_nox.c", r'^ fo=fopen\(old,"r"\);\n fn=fopen\(new,"r"\);$',
-     ' fo=fopen(old,"r");\n if(fo==NULL)return;  /* pyxpp */\n fn=fopen(new,"r");'),
     # ... and copying a missing .s file to fort.3 (restart after the files were removed)
     ("auto_nox.c", r'^ fo=fopen\(old,"r"\);\n fn=fopen\(new,"w"\);$',
      ' fo=fopen(old,"r");\n if(fo==NULL)return;  /* pyxpp */\n fn=fopen(new,"w");\n'
@@ -109,7 +99,7 @@ PROTOTYPES = {"auto_nox.c": "char *pyxpp_auto_home(void);\n"}
 
 DEFINES = [
     "-DNOERRNO", "-DNON_UNIX_STDIO", "-DAUTO", "-DCVODE_YES", "-DHAVEDLL",
-    "-DMYSTR1=8.2", "-DMYSTR2=2",
+    "-DMYSTR1=8.4", "-DMYSTR2=2",
 ]
 
 

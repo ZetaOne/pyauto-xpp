@@ -4,6 +4,37 @@ This folder starts from pyxpp by Youngmin Park
 (https://github.com/youngmp/pyxpp, GPL-2.0-or-later; copy in
 `../resources/pyxpp`). The Python import name is still `pyxpp` for now.
 
+## 2026-11-23 (v0.4.0): XPPAUT 8.4
+
+- **XPPAUT 8.4** (Bard's source of 23 Nov 2026, which includes his drops of
+  19 and 21 Nov) replaces 8.2 in `csrc/xppaut`, with `stdfix.h` replaced and
+  `sbml2xpp.c` left out as before.
+  - New in 8.4: a scripting language for the X11 interface (`xpp_script.c`).
+    It drives XPP's windows, which the headless library does not have, so
+    Python remains the scripting language here.
+    `XLookupKeysym` is stubbed in `csrc/nox11.c`, and Windows gets a stand-in
+    `sys/select.h` (`csrc/win/sys/select.h`).
+  - 21 Nov: the full **Lyapunov spectrum** by the QR method (`lyapunov.c`,
+    Numerics > stocHast > Liapunov), with error bars, the sum checked against
+    the divergence, and the Kaplan-Yorke dimension. The new
+    `m.lyapunov_spectrum(n, time, transient, renorm, tol)` returns these as a
+    dict. For Lorenz: 0.905, 0.000, -14.571, D_KY 2.062.
+  - 23 Nov: a new AUTO start that **keeps the diagram** now numbers its labels
+    and branch after the diagram's own, and keeps their restart data (a fix by
+    the author of XPP Lab). `m.auto.run(..., keep=True)` uses it: XPP asks
+    "Destroy AUTO diagram & files?" and `keep=True` answers no, so the first
+    run's points can still be continued from. Also in this drop:
+    - diagrams are saved with 17 digits;
+    - the parameters are put back when AUTO stops at NaN or far outside
+      Par min/max;
+    - Windows `rename` is fixed.
+  - Now in XPP itself, so dropped from `build_lib.py`: closing `fort.8` before
+    it is renamed, and skipping a missing `fort.8` when appending.
+- **Fixed: dialog fields whose name contains "="** (8.4's
+  "Time(0=orbit)") could not be answered from a dict. `headless.c` now splits
+  each assignment at the first "=" whose left side is a field name.
+- Tests: 41 (Lyapunov spectrum of Lorenz; numbering after a kept diagram).
+
 ## 2026-11-17
 
 - **AUTO from a given orbit.** `m.auto.run(param, start="periodic" | "bdry value"
