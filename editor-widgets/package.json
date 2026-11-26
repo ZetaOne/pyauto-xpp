@@ -1,0 +1,18 @@
+{
+  "name": "pyxpp-editor-widgets",
+  "version": "1.0.0",
+  "description": "The pyauto-xpp editor's live widget runtime: Jupyter's widget manager (ipywidgets 8.1) and anywidget 0.11, bundled for pyxpp serve",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "license": "BSD-3-Clause AND MIT",
+  "type": "module",
+  "dependencies": {
+    "@jupyter-widgets/html-manager": "1.0.15",
+    "anywidget": "0.11.0"
+  },
+  "private": true,
+  "devDependencies": {
+    "esbuild": "0.25.0"
+  }
+}

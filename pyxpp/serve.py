@@ -92,6 +92,25 @@ def find_uv():
     return None
 
 
+# the editor's live widget runtime (pyxpp/editor/widgets) is built for these; other versions
+# get static snapshots instead, and the installer pins them
+WIDGET_PINS = {"ipywidgets": "8.1.", "anywidget": "0.11."}
+
+
+def widget_versions():
+    out = {}
+    try:
+        from importlib.metadata import version as v
+    except ImportError:
+        return out
+    for name in WIDGET_PINS:
+        try:
+            out[name] = v(name)
+        except Exception:
+            out[name] = None
+    return out
+
+
 def recent_dirs():
     try:
         r = json.loads((HOME / "recent.json").read_text())
@@ -151,6 +170,24 @@ class Session:
         self.proc = None
         self.job = None
         self.lock = threading.Lock()
+        # events outside runs (live widgets): comm messages, and what widget callbacks print
+        self.events, self.ev_base = [], 0
+        self.ev_cond = threading.Condition()
+
+    def event(self, e):
+        with self.ev_cond:
+            self.events.append(e)
+            if len(self.events) > 5000:                  # keep the newest
+                drop = len(self.events) - 4000
+                self.events, self.ev_base = self.events[drop:], self.ev_base + drop
+            self.ev_cond.notify_all()
+
+    def events_since(self, n, wait):
+        with self.ev_cond:
+            if n >= self.ev_base + len(self.events) and wait > 0:
+                self.ev_cond.wait(wait)
+            i = max(0, n - self.ev_base)
+            return self.events[i:], self.ev_base + len(self.events)
 
     def _start(self):
         env = dict(os.environ, MPLBACKEND="Agg", PYTHONUNBUFFERED="1", PYTHONIOENCODING="utf-8")
@@ -171,6 +208,10 @@ class Session:
                     job.add({"t": "fig", "png": parts[2]})
                 elif parts[0] in ("PLOTLY", "HTML") and len(parts) >= 3 and job and parts[1] == job.id:
                     job.add({"t": parts[0].lower(), "b64": parts[2]})
+                elif parts[0] == "COMM" and len(parts) >= 3:          # always in order, in the event stream
+                    self.event({"t": "comm", "b64": parts[2]})
+                elif parts[0] == "WIDGET" and len(parts) >= 3 and job and parts[1] == job.id:
+                    job.add({"t": "widget", "model_id": parts[2], "ev": self.ev_base + len(self.events)})
                 elif parts[0] == "DONE" and len(parts) >= 3 and job and parts[1] == job.id:
                     job.finish(parts[2] == "1")
                 elif parts[0] in ("LINE", "ERR") and len(parts) >= 3 and job and parts[1] == job.id:
@@ -179,19 +220,30 @@ class Session:
                     except ValueError:
                         pass
                 continue
-            if held is not None and job:
-                job.add({"t": "out", "text": held})
+            live_job = job if job and not job.done else None
+            if held is not None and live_job:
+                live_job.add({"t": "out", "text": held})
             text = raw.decode("utf-8", errors="replace")
             held = text if text in ("\n", "\r\n") else None
-            if held is None and job:
-                job.add({"t": "out", "text": text})
+            if held is None:
+                if live_job:
+                    live_job.add({"t": "out", "text": text})
+                elif text.strip():
+                    self.event({"t": "out", "text": text})
         code = proc.wait()
         job = self.job
         if job and not job.done and self.proc is proc:
             job.add({"t": "out", "text": f"\n(the Python process stopped, exit code {code}; it starts again on the next run)\n"})
             job.finish(False)
 
-    def run(self, code, file="<editor>", line0=0, mode="exec"):
+    def send_comm(self, msg):
+        with self.lock:
+            if self.proc is None or self.proc.poll() is not None:
+                raise RuntimeError("no Python session (run something first)")
+            self.proc.stdin.write((json.dumps({"comm": msg}) + "\n").encode())
+            self.proc.stdin.flush()
+
+    def run(self, code, file="<editor>", line0=0, mode="exec", widgets=False):
         with self.lock:
             if self.job and not self.job.done:
                 raise RuntimeError("busy: a run is still going in this session (stop it first)")
@@ -199,7 +251,7 @@ class Session:
                 self._start()
             self.job = Job(uuid.uuid4().hex[:12])
             msg = json.dumps({"id": self.job.id, "code": code, "file": file, "line0": int(line0 or 0),
-                              "mode": "cell" if mode == "cell" else "exec"}) + "\n"
+                              "mode": "cell" if mode == "cell" else "exec", "widgets": bool(widgets)}) + "\n"
             try:
                 self.proc.stdin.write(msg.encode())
                 self.proc.stdin.flush()
@@ -222,6 +274,11 @@ class Session:
 class Server(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = os.name != "nt"
+
+    def handle_error(self, request, client_address):
+        if isinstance(sys.exc_info()[1], (BrokenPipeError, ConnectionResetError)):
+            return                                             # a page closed while waiting: nothing to report
+        super().handle_error(request, client_address)
 
     def __init__(self, port, workdir, origins):
         super().__init__(("127.0.0.1", port), Handler)
@@ -288,8 +345,11 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.end_headers()
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):      # the page went away (e.g. a closed tab)
+            self.close_connection = True
 
     def _err(self, code, msg):
         self._send(code, {"error": msg})
@@ -337,6 +397,12 @@ class Handler(BaseHTTPRequestHandler):
         if "tab" in q:                                   # an open editor tab says it is still there
             self.server.tab_seen()
         try:
+            if u.path.startswith("/widgets/"):          # the editor's widget runtime, from this computer
+                name = u.path[len("/widgets/"):]
+                f = Path(__file__).with_name("editor") / "widgets" / name
+                if "/" in name or name.startswith(".") or not f.is_file():
+                    return self._err(404, "unknown")
+                return self._send(200, f.read_bytes(), mimetypes.guess_type(f.name)[0] or "application/octet-stream")
             if u.path in ("/", "/index.html"):          # the editor itself, from this computer
                 page = Path(__file__).with_name("editor") / "index.html"
                 html = page.read_text(encoding="utf-8").replace("const SERVED_BY_PYXPP = false;",
@@ -346,12 +412,17 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"app": "pyxpp", "version": version(), "api": 1})
             if u.path == "/status":
                 return self._send(200, {
-                    "app": "pyxpp", "api": 2, "home": str(Path.home()), "recent": recent_dirs(),
+                    "app": "pyxpp", "api": 3, "home": str(Path.home()), "recent": recent_dirs(),
+                    "widgets": widget_versions(), "widget_pins": WIDGET_PINS,
                     "version": version(), "python": platform.python_version(),
                     "system": platform.system(), "machine": platform.machine(), "prefix": sys.prefix,
                     "workdir": str(self.server.workdir), "can_update": installer_env() and find_uv() is not None,
                     "sessions": {k: bool(s.job and not s.job.done) for k, s in self.server.sessions.items()},
                     "uptime": round(time.time() - self.server.started)})
+            if u.path == "/events":                      # long poll: comm messages and callback output
+                s_ = self.server.session(q.get("session"))
+                ev, nxt = s_.events_since(int(q.get("from", 0)), min(float(q.get("wait", 20)), 25))
+                return self._send(200, {"events": ev, "next": nxt})
             if u.path == "/outdated":
                 return self._send(200, outdated(max_age=0 if q.get("fresh") else 3600))
             if u.path == "/latest":
@@ -456,7 +527,8 @@ class Handler(BaseHTTPRequestHandler):
             if u.path == "/run":
                 s = self.server.session(b.get("session"))
                 try:
-                    job = s.run(b.get("code", ""), b.get("file") or "<editor>", b.get("line0") or 0, b.get("mode") or "exec")
+                    job = s.run(b.get("code", ""), b.get("file") or "<editor>", b.get("line0") or 0, b.get("mode") or "exec",
+                                bool(b.get("widgets")))
                 except RuntimeError as e:
                     return self._err(409, str(e))
                 self.server.jobs[job.id] = job
@@ -464,6 +536,12 @@ class Handler(BaseHTTPRequestHandler):
                     for k in [k for k, j in self.server.jobs.items() if j.done][:100]:
                         self.server.jobs.pop(k, None)
                 return self._send(200, {"job": job.id, "session": s.name})
+            if u.path == "/comm":                        # a message from a live widget in the page
+                try:
+                    self.server.session(b.get("session")).send_comm(b.get("msg") or {})
+                except RuntimeError as e:
+                    return self._err(409, str(e))
+                return self._send(200, {"ok": True})
             if u.path == "/stop":
                 self.server.session(b.get("session")).stop()
                 return self._send(200, {"stopped": True})
@@ -528,8 +606,9 @@ def outdated(max_age=3600):
                         "--find-links", INDEX], capture_output=True, text=True, timeout=180)
     if r.returncode != 0:
         raise RuntimeError((r.stderr or r.stdout).strip()[-500:])
+    keep = {"pyauto-xpp", "ipywidgets", "anywidget", "comm", "widgetsnbextension", "jupyterlab-widgets", "jupyterlab_widgets"}
     pk = [{"name": d["name"], "version": d["version"], "latest": d["latest_version"]}
-          for d in json.loads(r.stdout or "[]") if d.get("name", "").lower() != "pyauto-xpp"]
+          for d in json.loads(r.stdout or "[]") if d.get("name", "").lower() not in keep]
     _OUTDATED.update(t=time.time(), packages=pk)
     return {"can_update": True, "packages": pk}
 

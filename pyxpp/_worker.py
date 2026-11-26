@@ -7,6 +7,9 @@ Protocol, one JSON object per line:
           \x00PYXPP-FIG <id> <base64 png>         a matplotlib figure
           \x00PYXPP-PLOTLY <id> <base64 json>     a plotly figure (fig.show(), or a figure/widget shown)
           \x00PYXPP-HTML <id> <base64 html>       the text of an ipywidgets widget (HTML, Label)
+          \x00PYXPP-COMM <id> <base64 json>       a Jupyter comm message (live widgets: open, update, close)
+          \x00PYXPP-WIDGET <id> <model id>        show this widget (live) here
+  stdin   {"comm": {msg_type, content, metadata, buffers}}   a comm message from the page
           \x00PYXPP-LINE <id> <n>                 the line of the editor's file running now
           \x00PYXPP-ERR <id> <n>                  the line of that file where an error came from
           \x00PYXPP-DONE <id> <ok 0|1>            the code finished
@@ -77,6 +80,8 @@ def main():
         """what Jupyter's display() does, as far as the editor can show it"""
         for x in (v,) + more:
             mod = type(x).__module__ or ""
+            if widget_view(x):
+                continue
             if hasattr(x, "to_plotly_json") and hasattr(x, "to_json") and mod.startswith("plotly"):
                 emit_plotly(x)
             elif mod.startswith(("ipywidgets", "xpptut", "anywidget")) or hasattr(x, "children") and hasattr(x, "keys"):
@@ -103,6 +108,62 @@ def main():
             sys.stdout.flush()
         for c in (getattr(w, "children", None) or ()):
             walk_widget(c, depth + 1)
+
+    # ---- live widgets: a Jupyter "comm" through pyxpp serve (pages that ask for it, widgets=true)
+    live = {"on": False, "manager": None}
+
+    def live_widgets():
+        if live["on"]:
+            return True
+        try:
+            import comm as _comm
+            from comm.base_comm import BaseComm, CommManager
+        except ImportError:
+            return False
+        manager = CommManager()
+
+        class PyxppComm(BaseComm):
+            def publish_msg(self, msg_type, data=None, metadata=None, buffers=None, **keys):
+                content = dict(data=data if data is not None else {}, comm_id=self.comm_id, **keys)
+                msg = {"msg_type": msg_type, "content": content, "metadata": metadata or {},
+                       "buffers": [base64.b64encode(bytes(b)).decode() for b in (buffers or [])]}
+                sys.stdout.write(f"\n{MARK}COMM {current['id'] or '-'} {b64(json.dumps(msg, default=str))}\n")
+                sys.stdout.flush()
+
+        _comm.create_comm = lambda *a, **k: PyxppComm(*a, **k)
+        _comm.get_comm_manager = lambda: manager
+        live.update(on=True, manager=manager)
+        return True
+
+    def handle_comm(m):
+        mgr = live["manager"]
+        if mgr is None:
+            return
+        msg = {"header": {"msg_type": m.get("msg_type")}, "content": m.get("content", {}), "metadata": m.get("metadata", {}),
+               "buffers": [base64.b64decode(b) for b in m.get("buffers", [])]}
+        t = m.get("msg_type")
+        if t == "comm_msg":
+            mgr.comm_msg(None, None, msg)
+        elif t == "comm_close":
+            mgr.comm_close(None, None, msg)
+        elif t == "comm_open":
+            mgr.comm_open(None, None, msg)
+
+    def widget_view(x):
+        """a live widget view, if x is a widget and live widgets are on"""
+        if not live["on"] or not hasattr(x, "_repr_mimebundle_"):
+            return False
+        try:
+            b = x._repr_mimebundle_()
+            b = b[0] if isinstance(b, tuple) else b
+            v = (b or {}).get("application/vnd.jupyter.widget-view+json")
+        except Exception:
+            v = None
+        if not v:
+            return False
+        sys.stdout.write(f"\n{MARK}WIDGET {current['id']} {v['model_id']}\n")
+        sys.stdout.flush()
+        return True
 
     # plotly's fig.show() and IPython's display(), installed once if those packages are there
     import builtins
@@ -137,6 +198,18 @@ def main():
             req = json.loads(line)
         except ValueError:
             continue
+        if "comm" in req:                                   # a message from a widget in the page
+            prev, current["id"] = current["id"], None
+            try:
+                handle_comm(req["comm"])
+            except Exception:
+                traceback.print_exc()
+            sys.stdout.flush()
+            flush_c()
+            current["id"] = prev
+            continue
+        if req.get("widgets"):
+            live_widgets()
         current["id"] = req.get("id", "?")
         target = req.get("file", "<editor>")
         ok = 1

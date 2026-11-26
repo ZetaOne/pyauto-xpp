@@ -4,6 +4,24 @@ This folder starts from pyxpp by Youngmin Park
 (https://github.com/youngmp/pyxpp, GPL-2.0-or-later; copy in
 `../resources/pyxpp`). The Python import name is still `pyxpp` for now.
 
+## 2026-11-27 (v0.8.0): live widgets in the editor
+
+- **Live Jupyter widgets** in the editor (runs and notebooks): sliders, drop-downs, buttons,
+  plotly FigureWidgets and the tutorials' Explorers work as in Jupyter; moving a slider runs
+  the Python callback, XPP recomputes, and the figures update. Third-party widget packages
+  (e.g. ipyleaflet) load their browser code from jsDelivr.
+- How: Jupyter's widget manager (@jupyter-widgets/html-manager 1.0.15, ipywidgets 8.1) and
+  anywidget 0.11 are bundled for the page (`editor-widgets/`, built into
+  `pyxpp/editor/widgets/`, third-party licences in THIRD-PARTY.md); `pyxpp serve` carries the
+  Jupyter comm messages (`/comm`, and `/events`, a long poll for messages and callback output);
+  the session's Python uses a comm of its own (`pyxpp/_worker.py`).
+- The live widgets are for ipywidgets 8.1.x and anywidget 0.11.x: the installer pins these,
+  the update notifier leaves them alone, and with other versions the editor shows widgets as
+  pictures and says why (`/status` reports the versions).
+- Widgets take the editor's theme (Jupyter's colour variables are mapped); Restart Python
+  greys out the old widgets; notebooks keep widget outputs in Jupyter's format.
+- Tests: 56 (two need ipywidgets and comm, one plotly; skipped without them).
+
 ## 2026-11-27 (v0.7.1): the interactive tutorials in the editor
 
 - Editor: "Run in editor" on every tutorial notebook, also the 31 interactive ones (and the

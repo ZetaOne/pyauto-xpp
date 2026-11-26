@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyauto-xpp"
-version = "0.7.1"
+version = "0.8.0"
 description = "XPPAUT and its AUTO for Python: batch simulations, every XPP command, and bifurcation diagrams from scripts"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -23,4 +23,4 @@ test = ["pytest", "matplotlib"]
 packages = ["pyxpp"]
 
 [tool.setuptools.package-data]
-pyxpp = ["_libxpp.so", "_libxpp.dylib", "_libxpp.dll", "editor/index.html"]
+pyxpp = ["_libxpp.so", "_libxpp.dylib", "_libxpp.dll", "editor/index.html", "editor/widgets/*"]

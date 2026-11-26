@@ -170,3 +170,33 @@ def test_plotly_figures_and_widget_text_are_sent(server):
     kinds = [c["t"] for c in d["chunks"]]
     assert kinds.count("plotly") == 1 and kinds.count("html") == 1
     assert any("without its sliders" in c.get("text", "") for c in d["chunks"])
+
+
+def test_live_widgets_through_comm_messages(server):
+    pytest.importorskip("ipywidgets")
+    pytest.importorskip("comm")
+    import base64 as b64
+    _, base = server
+    job = call(base + "/run", {"code": "import ipywidgets as W\ns = W.IntSlider(value=1)\nh = W.HTML('one')\n"
+                                        "s.observe(lambda ch: setattr(h, 'value', f\"v={ch['new']}\"), names='value')\nW.VBox([s, h])",
+                               "session": "w", "mode": "cell", "widgets": True})["job"]
+    for _ in range(100):
+        d = call(f"{base}/job/{job}")
+        if d["done"]:
+            break
+        time.sleep(0.05)
+    assert d["ok"] and any(c["t"] == "widget" for c in d["chunks"])      # a live view, not a picture
+    ev = call(base + "/events?session=w&from=0&wait=0")
+    msgs = [json.loads(b64.b64decode(e["b64"])) for e in ev["events"] if e["t"] == "comm"]
+    opens = {m["content"]["comm_id"]: m["content"]["data"]["state"] for m in msgs if m["msg_type"] == "comm_open"}
+    slider = next(k for k, st in opens.items() if st.get("_model_name") == "IntSliderModel")
+    # the page moves the slider: Python's callback runs and updates the HTML widget
+    call(base + "/comm", {"session": "w", "msg": {"msg_type": "comm_msg", "content": {"comm_id": slider,
+         "data": {"method": "update", "state": {"value": 7}, "buffer_paths": []}}, "metadata": {}, "buffers": []}})
+    for _ in range(50):
+        ev2 = call(base + f"/events?session=w&from={ev['next']}&wait=1")
+        upd = [json.loads(b64.b64decode(e["b64"])) for e in ev2["events"] if e["t"] == "comm"]
+        if any(m["content"]["data"].get("state", {}).get("value") == "v=7" for m in upd):
+            break
+    else:
+        raise AssertionError("the HTML widget was not updated")
