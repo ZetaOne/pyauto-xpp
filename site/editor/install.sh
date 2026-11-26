@@ -35,23 +35,41 @@ fi
 say "$("$UV" --version)"
 printf '%s\n' "$UV" > "$PYXPP_HOME/uv-path"
 
-# 2. pyauto-xpp's own Python environment (uv fetches a Python if this computer has none)
+# 2. pyauto-xpp's own Python environment (uv fetches a Python if this computer has none);
+#    one whose Python no longer runs (e.g. uv's Pythons were cleaned up) is made again
 PY="$PYXPP_HOME/env/bin/python"
+if [ -e "$PYXPP_HOME/env" ] && ! "$PY" -c "import sys" >/dev/null 2>&1; then
+  say "the environment in $PYXPP_HOME/env is broken: making it again (your files are not touched)"
+  rm -rf "$PYXPP_HOME/env"
+fi
+BEFORE=$("$PY" -m pyxpp version 2>/dev/null || true)
 if [ ! -x "$PY" ]; then
   say "making a Python $PYVER environment in $PYXPP_HOME/env"
   "$UV" venv --quiet --python "$PYVER" "$PYXPP_HOME/env"
 fi
 
-# 3. the pyauto-xpp wheel for this machine, and matplotlib for figures
+# 3. the pyauto-xpp wheel for this machine (the newest), and matplotlib for figures (only if missing:
+#    the editor offers updates of the other packages, and you choose)
 say "installing pyauto-xpp from $INDEX"
-"$UV" pip install --quiet --python "$PY" --upgrade "pyauto-xpp>=$NEED" matplotlib --find-links "$INDEX" || {
+"$UV" pip install --quiet --python "$PY" --upgrade-package pyauto-xpp "pyauto-xpp>=$NEED" matplotlib --find-links "$INDEX" || {
   say "could not install pyauto-xpp $NEED or newer from $INDEX (a new release may still be building: try again in a few minutes)"; exit 1; }
-say "pyauto-xpp $("$PY" -m pyxpp version) for $("$PY" -c 'import platform; print(platform.system(), platform.machine(), "Python", platform.python_version())')"
+AFTER=$("$PY" -m pyxpp version)
+say "pyauto-xpp $AFTER for $("$PY" -c 'import platform; print(platform.system(), platform.machine(), "Python", platform.python_version())')"
 
-# 4. pyxpp:// links, then start (an older server is stopped first)
+# 4. pyxpp:// links, then the server: left alone when it already runs this version (a run in an
+#    editor tab is not cut off), restarted after an upgrade, started when it does not run
 "$PY" -m pyxpp register || say "pyxpp:// links not registered; start it with: $PYXPP_HOME/env/bin/pyxpp start"
-"$PY" -m pyxpp stop >/dev/null 2>&1 || true
-"$PY" -m pyxpp start
+if "$PY" -m pyxpp status >/dev/null 2>&1; then
+  if [ "$BEFORE" = "$AFTER" ]; then
+    say "pyxpp serve is already running pyauto-xpp $AFTER: left as it is"
+  else
+    say "restarting pyxpp serve with pyauto-xpp $AFTER (was ${BEFORE:-older})"
+    "$PY" -m pyxpp stop >/dev/null 2>&1 || true
+    "$PY" -m pyxpp start
+  fi
+else
+  "$PY" -m pyxpp start
+fi
 say "done. Editor: $SITE/editor/  (it connects by itself; next time use its Start pyxpp button)"
 if [ -z "${PYXPP_NO_BROWSER:-}" ]; then
   if [ "$os" = Darwin ]; then open "$SITE/editor/" || true

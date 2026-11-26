@@ -115,3 +115,11 @@ def test_stops_a_while_after_the_last_editor_tab(tmp_path):
         assert not t.is_alive()
     finally:
         srv.server_close()
+
+
+def test_package_updates_only_in_the_installers_environment(server):
+    _, base = server
+    assert call(base + "/outdated") == {"can_update": False, "packages": []}
+    with pytest.raises(urllib.error.HTTPError) as e:
+        call(base + "/upgrade", {"packages": ["numpy"]})
+    assert e.value.code == 400

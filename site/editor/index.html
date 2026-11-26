@@ -96,6 +96,17 @@ ol.steps { padding-left: 1.3em } ol.steps li { margin: .3em 0 }
 dialog { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 10px; max-width: 640px; width: 92vw }
 dialog pre { max-height: 40vh; overflow: auto; background: var(--code); padding: 8px; border-radius: 6px; font-size: 12px; white-space: pre-wrap }
 
+/* package updates: a notifier in the corner, like a system update prompt */
+.pkgpop { position: fixed; right: 16px; bottom: 16px; width: min(380px, calc(100vw - 32px)); z-index: 8;
+          background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px;
+          box-shadow: 0 10px 30px rgba(0,0,0,.35); animation: popin .35s ease-out }
+@keyframes popin { from { transform: translateY(16px); opacity: 0 } to { transform: none; opacity: 1 } }
+@media (prefers-reduced-motion: reduce) { .pkgpop { animation: none } }
+.pkgpop h3 { margin: 0 0 4px; font-size: 1rem } .pkgpop h3::before { content: "⬆ "; color: var(--accent) }
+.pkgpop ul { list-style: none; margin: 8px 0; padding: 0; max-height: 30vh; overflow: auto; font-size: 13.5px }
+.pkgpop li { padding: 3px 0 } .pkgpop label { cursor: pointer } .pkgpop .v { font-family: var(--font-mono); color: var(--muted) }
+.pkgpop .row { justify-content: flex-end; gap: 8px } .pkgpop .row button { min-height: 30px; padding: 4px 10px; font-size: 13.5px }
+.pkgpop .row .sp { flex: 1 }
 @media (max-width: 900px) {
   #work.show { grid-template-columns: 1fr; grid-template-rows: auto 55vh 45vh; overflow: auto }
   #files { border-right: 0; border-bottom: 1px solid var(--line); max-height: 160px }
@@ -192,6 +203,15 @@ dialog pre { max-height: 40vh; overflow: auto; background: var(--code); padding:
   </section>
 </div>
 
+<aside id="pkgpop" class="pkgpop" role="dialog" aria-labelledby="pkgh" hidden>
+  <h3 id="pkgh">Updates are available</h3>
+  <div class="note">For pyauto-xpp's own Python (<code>~/.pyxpp</code>). Pick what to update:</div>
+  <ul id="pkglist"></ul>
+  <div class="row"><button type="button" id="pkgskip" title="Do not ask again for these versions">Skip these versions</button>
+    <span class="sp"></span><button type="button" id="pkglater" title="Ask again next time">Not now</button>
+    <button type="button" id="pkgdo" class="primary">Update</button></div>
+  <div class="note" id="pkgmsg" role="status"></div>
+</aside>
 <dialog id="dlg"><h3 id="dlgh"></h3><div id="dlgb"></div><form method="dialog" class="row" style="margin-top:12px;justify-content:flex-end" id="dlgf"></form></dialog>
 <div id="toast" role="status"></div>
 
@@ -285,6 +305,7 @@ async function onConnect() {
   await ensureEditor();
   await listFiles();
   checkUpdate();
+  checkPackages();
 }
 function onDisconnect() {
   connected = false; setPill("", "not connected"); $("update").style.display = "none"; $("srvstop").hidden = true;
@@ -311,6 +332,42 @@ function startHeartbeat() {
     beat = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
   } catch (e) { beat = setInterval(() => api("/ping?tab=1").catch(() => {}), 10000); }
 }
+
+// ---------------------------------------------------------------- package updates (the corner notifier)
+// "Not now" hides it until the editor is opened again; "Skip these versions" until newer ones come out.
+let pkgLater = false, pkgShown = [];
+async function checkPackages() {
+  if (pkgLater || !$("pkgpop").hidden) return;
+  let d; try { d = await api("/outdated"); } catch (e) { return; }          // pyxpp before 0.6.2: no notifier
+  if (!d.can_update) return;
+  const skip = store.get("skip", {});
+  pkgShown = d.packages.filter((p) => skip[p.name.toLowerCase()] !== p.latest);
+  if (!pkgShown.length) return;
+  $("pkglist").innerHTML = pkgShown.map((p) => `<li><label><input type="checkbox" checked data-name="${esc(p.name)}">
+    <b>${esc(p.name)}</b> <span class="v">${esc(p.version)} → ${esc(p.latest)}</span></label></li>`).join("");
+  $("pkgmsg").textContent = ""; ["pkgdo", "pkglater", "pkgskip"].forEach((id) => $(id).disabled = false);
+  $("pkgpop").hidden = false;
+}
+$("pkglater").onclick = () => { pkgLater = true; $("pkgpop").hidden = true; };
+$("pkgskip").onclick = () => {
+  const skip = store.get("skip", {}); pkgShown.forEach((p) => skip[p.name.toLowerCase()] = p.latest);
+  store.set("skip", skip); $("pkgpop").hidden = true; toast("Skipped; you will be asked again when newer versions come out");
+};
+$("pkgdo").onclick = async () => {
+  const names = [...document.querySelectorAll("#pkglist input:checked")].map((i) => i.dataset.name);
+  if (!names.length) { $("pkgmsg").textContent = "Nothing ticked."; return; }
+  ["pkgdo", "pkglater", "pkgskip"].forEach((id) => $(id).disabled = true);
+  $("pkgmsg").textContent = "Updating " + names.join(", ") + "…";
+  try {
+    const r = await api("/upgrade", { method: "POST", body: { packages: names } });
+    $("pkgmsg").textContent = r.upgraded.length ? "Updated: " + r.upgraded.map((u) => `${u.name} ${u.to}`).join(", ") +
+      ". The next run uses them." : (r.log || "Nothing to update.");
+    setTimeout(() => { $("pkgpop").hidden = true; pkgLater = false; checkPackages(); }, 4000);
+  } catch (e) {
+    $("pkgmsg").textContent = "The update failed: " + e.message; ["pkgdo", "pkglater", "pkgskip"].forEach((id) => $(id).disabled = false);
+  }
+};
+setInterval(() => { if (connected) checkPackages(); }, 6 * 3600 * 1000);
 
 // ---------------------------------------------------------------- updates
 function vkey(v) { return v.split(".").map((x) => parseInt(x, 10) || 0); }

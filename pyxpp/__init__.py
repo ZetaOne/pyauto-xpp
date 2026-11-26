@@ -20,4 +20,4 @@ try:                                    # the installed distribution's version (
     from importlib.metadata import version as _version
     __version__ = _version("pyauto-xpp")
 except Exception:                       # run from a source folder
-    __version__ = "0.6.1"
+    __version__ = "0.6.2"

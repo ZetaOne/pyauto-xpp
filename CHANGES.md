@@ -4,6 +4,22 @@ This folder starts from pyxpp by Youngmin Park
 (https://github.com/youngmp/pyxpp, GPL-2.0-or-later; copy in
 `../resources/pyxpp`). The Python import name is still `pyxpp` for now.
 
+## 2026-11-26 (v0.6.2): package updates are your choice
+
+- Editor: when packages of pyauto-xpp's own environment (numpy, matplotlib, ...)
+  have newer versions, a notifier in the corner lists them with a tick box
+  each: **Update**, **Not now** (asked again next time the editor opens), or
+  **Skip these versions** (asked again when newer ones come out).
+  New server endpoints `/outdated` and `/upgrade`; only packages already in the
+  environment that uv reports as outdated can be upgraded, and only in the
+  installer's environment. pyauto-xpp itself keeps its own Update button.
+- Installer, run again: pyauto-xpp is upgraded to the newest, other packages
+  are installed only when missing (no silent upgrades); the server is left
+  running when the version did not change (a run in the editor is not cut
+  off) and restarted after an upgrade; an environment whose Python no longer
+  runs is made again.
+- Tests: 52.
+
 ## 2026-11-26 (v0.6.1): pyxpp serve stops a minute after the last editor tab
 
 - `pyxpp serve` stops by itself 60 s after the last open editor tab is gone

@@ -313,6 +313,8 @@ class Handler(BaseHTTPRequestHandler):
                     "workdir": str(self.server.workdir), "can_update": installer_env() and find_uv() is not None,
                     "sessions": {k: bool(s.job and not s.job.done) for k, s in self.server.sessions.items()},
                     "uptime": round(time.time() - self.server.started)})
+            if u.path == "/outdated":
+                return self._send(200, outdated(max_age=0 if q.get("fresh") else 3600))
             if u.path == "/latest":
                 return self._send(200, {"installed": version(), "latest": latest_version()})
             if u.path.startswith("/job/"):
@@ -407,6 +409,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"stopped": True})
             if u.path == "/update":
                 return self._send(*update(self.server))
+            if u.path == "/upgrade":
+                return self._send(*upgrade(self.server, b.get("packages") or []))
             if u.path == "/shutdown":
                 self._send(200, {"bye": True})
                 threading.Thread(target=_shutdown, args=(self.server,), daemon=True).start()
@@ -420,6 +424,50 @@ def _shutdown(server, restart=False):
     time.sleep(0.3)                    # let the reply reach the page first
     server.restart = restart
     server.shutdown()                  # serve() closes the port, then restarts if asked
+
+
+_OUTDATED = {"t": 0.0, "packages": None}
+
+
+def outdated(max_age=3600):
+    """packages of this environment with a newer version (PyPI, and the project's wheel list),
+    except pyauto-xpp itself, which has its own update button"""
+    if not installer_env():
+        return {"can_update": False, "packages": []}
+    uv = find_uv()
+    if not uv:
+        return {"can_update": False, "packages": []}
+    if _OUTDATED["packages"] is not None and time.time() - _OUTDATED["t"] < max_age:
+        return {"can_update": True, "packages": _OUTDATED["packages"]}
+    r = subprocess.run([uv, "pip", "list", "--outdated", "--format", "json", "--python", sys.executable,
+                        "--find-links", INDEX], capture_output=True, text=True, timeout=180)
+    if r.returncode != 0:
+        raise RuntimeError((r.stderr or r.stdout).strip()[-500:])
+    pk = [{"name": d["name"], "version": d["version"], "latest": d["latest_version"]}
+          for d in json.loads(r.stdout or "[]") if d.get("name", "").lower() != "pyauto-xpp"]
+    _OUTDATED.update(t=time.time(), packages=pk)
+    return {"can_update": True, "packages": pk}
+
+
+def upgrade(server, names):
+    """upgrade the named packages, only ones of this environment that `outdated` lists"""
+    if not installer_env():
+        return 400, {"error": "updates from the page work only in the environment the installer made"}
+    allowed = {d["name"].lower(): d for d in outdated(max_age=0)["packages"]}
+    names = [n for n in names if isinstance(n, str) and n.lower() in allowed]
+    if not names:
+        return 200, {"upgraded": [], "log": "nothing to update"}
+    cmd = [find_uv(), "pip", "install", "--python", sys.executable, "--find-links", INDEX]
+    for n in names:
+        cmd += ["--upgrade-package", n]
+    r = subprocess.run(cmd + names, capture_output=True, text=True, timeout=900)
+    log = (r.stdout + r.stderr).strip()
+    _OUTDATED.update(t=0.0, packages=None)
+    if r.returncode != 0:
+        return 500, {"error": "the update failed", "log": log}
+    server.stop_all()                    # the next run starts a Python with the new versions
+    return 200, {"upgraded": [{"name": n, "from": allowed[n.lower()]["version"], "to": allowed[n.lower()]["latest"]}
+                              for n in names], "log": log}
 
 
 def update(server):
