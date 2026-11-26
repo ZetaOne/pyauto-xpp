@@ -152,6 +152,10 @@ dialog pre { max-height: 40vh; overflow: auto; background: var(--code); padding:
       <button type="button" id="retry">Connect again</button>
       <span class="note" id="tries"></span>
     </div>
+    <p class="note" id="blockedhint" hidden style="color:var(--warn)">Still not connected? If pyxpp is running (you just
+       installed or started it), your browser may be keeping this page from reaching it. In Chrome or Edge: click the icon
+       left of the address, then allow <b>Local network access</b> (or "apps and services on this device") and reload.
+       Or open the editor from your computer: <a class="locallink2" href="http://127.0.0.1:8790/">http://127.0.0.1:8790/</a>.</p>
     <p class="note">Or in a terminal: <code>~/.pyxpp/env/bin/pyxpp start</code> (Windows: <code>%USERPROFILE%\.pyxpp\env\Scripts\pyxpp start</code>).
        If this page cannot reach it (some browsers block a secure page from talking to <code>http://127.0.0.1</code>),
        open the same editor from your computer: <a id="locallink" href="http://127.0.0.1:8790/">http://127.0.0.1:8790/</a>.</p>
@@ -205,6 +209,7 @@ const store = { get(k, d) { try { const v = localStorage.getItem("pyxpp-ed:" + k
                 set(k, v) { try { localStorage.setItem("pyxpp-ed:" + k, JSON.stringify(v)); } catch (e) {} } };
 $("locallink").href = `http://127.0.0.1:${PORT}/`;
 $("locallink").textContent = `http://127.0.0.1:${PORT}/`;
+document.querySelectorAll(".locallink2").forEach((a) => { a.href = a.textContent = `http://127.0.0.1:${PORT}/`; });
 
 // ---------------------------------------------------------------- theme
 const theme = store.get("theme", null);
@@ -286,7 +291,9 @@ function onDisconnect() {
 }
 async function loop() {
   const ok = await probe();
-  if (!ok) { tries++; $("tries").textContent = tries > 1 ? `looking for pyxpp on 127.0.0.1:${PORT}…` : ""; }
+  if (!ok) { tries++; $("tries").textContent = tries > 1 ? `looking for pyxpp on 127.0.0.1:${PORT}…` : "";
+             $("blockedhint").hidden = tries < 4; }
+  else tries = 0;
   setTimeout(loop, ok ? 5000 : 2000);
 }
 $("retry").onclick = () => { setPill("wait", "connecting…"); probe(); };
