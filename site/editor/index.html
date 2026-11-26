@@ -10,12 +10,14 @@
   --bg: #011627; --panel: #0b2942; --panel2: #0e3352; --line: #1d3b53; --fg: #d6deeb; --muted: #8ca3b8;
   --accent: #82aaff; --ok: #addb67; --warn: #ffcb8b; --bad: #ef5350; --code: #01111d;
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  --font-code: var(--font-mono); --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --code-size: 13.5px; --out-size: 13px; --on-accent: #011627;
   color-scheme: dark;
 }
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
     --bg: #fbfbfb; --panel: #f0f0f0; --panel2: #e6e6e6; --line: #d0d0d0; --fg: #1d1f21; --muted: #5f6b77;
-    --accent: #2a6bd6; --ok: #2e7d32; --warn: #a15c00; --bad: #c62828; --code: #ffffff; color-scheme: light;
+    --accent: #2a6bd6; --ok: #2e7d32; --warn: #a15c00; --bad: #c62828; --code: #ffffff; --on-accent: #fff; color-scheme: light;
   }
 }
 :root[data-theme="light"] {
@@ -24,7 +26,7 @@
 }
 * { box-sizing: border-box }
 html, body { height: 100%; margin: 0 }
-body { background: var(--bg); color: var(--fg); font: 15px/1.45 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+body { background: var(--bg); color: var(--fg); font: .9375rem/1.45 var(--font-ui);
        display: flex; flex-direction: column }
 a { color: var(--accent) }
 code, pre, kbd { font-family: var(--font-mono) }
@@ -32,7 +34,7 @@ button, select { font: inherit; color: var(--fg); background: var(--panel2); bor
                  border-radius: 6px; padding: 5px 11px; cursor: pointer; min-height: 32px }
 button:hover:not(:disabled) { border-color: var(--accent) }
 button:disabled { opacity: .5; cursor: default }
-button.primary { background: var(--accent); color: #011627; border-color: var(--accent); font-weight: 600 }
+button.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600 }
 button.danger { border-color: var(--bad) }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
 
@@ -54,7 +56,7 @@ header .sp { flex: 1 }
 .card h2 { font-size: 1.1rem; margin: 0 0 8px }
 .os { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-bottom: 10px }
 .os button { border: 0; border-radius: 0; background: transparent }
-.os button[aria-pressed="true"] { background: var(--accent); color: #011627 }
+.os button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent) }
 .cmd { display: flex; gap: 8px; align-items: stretch; margin: 8px 0 }
 .cmd pre { flex: 1; margin: 0; padding: 10px 12px; background: var(--code); border: 1px solid var(--line);
            border-radius: 8px; overflow-x: auto; font-size: 13px; white-space: pre }
@@ -81,9 +83,9 @@ ol.steps { padding-left: 1.3em } ol.steps li { margin: .3em 0 }
 .bar2 .sp { flex: 1 }
 #editor { flex: 1; min-height: 0 }
 #fallback { width: 100%; height: 100%; resize: none; border: 0; padding: 10px; background: var(--code); color: var(--fg);
-            font: 13.5px/1.5 var(--font-mono); tab-size: 4 }
+            font: var(--code-size)/1.5 var(--font-code); tab-size: 4 }
 #outpane { display: flex; flex-direction: column; min-width: 0; min-height: 0 }
-#out { flex: 1; overflow: auto; padding: 10px 12px; background: var(--code); font: 13px/1.45 var(--font-mono) }
+#out { flex: 1; overflow: auto; padding: 10px 12px; background: var(--code); font: var(--out-size)/1.45 var(--font-code) }
 #out pre { margin: 0; white-space: pre-wrap; word-break: break-word }
 #out img { display: block; max-width: 100%; margin: 8px 0; border-radius: 6px; background: #fff }
 #out .run { color: var(--muted); border-top: 1px dashed var(--line); margin-top: 8px; padding-top: 6px; font-size: 12px }
@@ -96,6 +98,24 @@ ol.steps { padding-left: 1.3em } ol.steps li { margin: .3em 0 }
 dialog { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 10px; max-width: 640px; width: 92vw }
 dialog pre { max-height: 40vh; overflow: auto; background: var(--code); padding: 8px; border-radius: 6px; font-size: 12px; white-space: pre-wrap }
 
+/* the Display panel: theme, fonts, sizes */
+.disp { position: fixed; top: 54px; right: 12px; width: min(360px, calc(100vw - 24px)); max-height: calc(100vh - 70px); overflow: auto;
+        z-index: 9; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px 14px;
+        box-shadow: 0 12px 34px rgba(0,0,0,.35) }
+.disp h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 12px 0 6px }
+.disp h3:first-child { margin-top: 2px }
+.themes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px }
+.themes button { display: flex; align-items: center; gap: 8px; text-align: left; padding: 5px 8px; min-height: 34px; font-size: 13px }
+.themes button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent) }
+.sw { flex: none; width: 30px; height: 20px; border-radius: 4px; border: 1px solid rgba(128,128,128,.5); display: grid;
+      place-items: center; font: 700 11px/1 var(--font-mono) }
+.disp .line { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 13.5px }
+.disp .line > span:first-child { width: 78px; color: var(--muted) }
+.disp .line input[type=range] { flex: 1 }
+.disp .line output { width: 58px; white-space: nowrap; text-align: right; font-family: var(--font-mono); font-size: 12.5px }
+.disp select { flex: 1; min-width: 0 }
+.disp .preview { margin-top: 6px; padding: 6px 8px; background: var(--code); border: 1px solid var(--line); border-radius: 6px;
+                 font: var(--code-size)/1.45 var(--font-code); white-space: pre; overflow: hidden }
 /* package updates: a notifier in the corner, like a system update prompt */
 .pkgpop { position: fixed; right: 16px; bottom: 16px; width: min(380px, calc(100vw - 32px)); z-index: 8;
           background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px;
@@ -122,8 +142,25 @@ dialog pre { max-height: 40vh; overflow: auto; background: var(--code); padding:
   <button id="update" class="primary" type="button">Update</button>
   <button id="srvstop" type="button" title="Stop pyxpp serve on this computer" hidden>Stop server</button>
   <button id="uninst" type="button" title="How to remove pyauto-xpp from this computer" hidden>Uninstall…</button>
-  <button id="theme" type="button" aria-label="Switch light/dark">◐</button>
+  <button id="dispbtn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="disp" title="Theme, fonts and sizes">Aa</button>
 </header>
+<div id="disp" class="disp" role="dialog" aria-label="Display: theme, fonts and sizes" hidden>
+  <h3>Theme</h3>
+  <div class="themes" id="themelist"></div>
+  <h3>Code font</h3>
+  <div class="line"><span>Font</span><select id="fontsel" aria-label="Code font"></select></div>
+  <div class="line"><span>Ligatures</span><label><input type="checkbox" id="liga"> join <code>-&gt;</code> <code>!=</code> <code>&lt;=</code> (fonts that have them)</label></div>
+  <div class="preview" id="fontprev">def f(x): return x != 0 and x &lt;= 1  # 0O il1</div>
+  <h3>Sizes</h3>
+  <div class="line"><span>Code</span><input type="range" id="codesize" min="10" max="26" step="0.5" aria-label="Code font size"><output id="codesizev"></output></div>
+  <div class="line"><span>Output</span><input type="range" id="outsize" min="10" max="22" step="0.5" aria-label="Output font size"><output id="outsizev"></output></div>
+  <div class="line"><span>Page text</span><input type="range" id="uisize" min="85" max="140" step="5" aria-label="Page text size"><output id="uisizev"></output></div>
+  <h3>Editor</h3>
+  <div class="line"><span>Long lines</span><label><input type="checkbox" id="wrap"> wrap</label></div>
+  <div class="line"><span>Overview</span><label><input type="checkbox" id="minimap"> minimap at the side</label></div>
+  <div class="row" style="margin-top:12px"><button type="button" id="dispreset">Reset</button><span style="flex:1"></span>
+    <button type="button" id="dispclose" class="primary">Done</button></div>
+</div>
 
 <main id="setup">
   <h1>Run pyauto-xpp from this page</h1>
@@ -252,16 +289,125 @@ $("locallink").href = `http://127.0.0.1:${PORT}/`;
 $("locallink").textContent = `http://127.0.0.1:${PORT}/`;
 document.querySelectorAll(".locallink2").forEach((a) => { a.href = a.textContent = `http://127.0.0.1:${PORT}/`; });
 
-// ---------------------------------------------------------------- theme
-const theme = store.get("theme", null);
-if (theme) document.documentElement.dataset.theme = theme;
-$("theme").onclick = () => {
-  const dark = getComputedStyle(document.documentElement).colorScheme.includes("dark");
-  const t = dark ? "light" : "dark";
-  document.documentElement.dataset.theme = t; store.set("theme", t);
-  if (window.monaco) monaco.editor.setTheme(t === "dark" ? "vs-dark" : "vs");
+// ---------------------------------------------------------------- display: theme, fonts, sizes
+// Each theme colours the page and the code (a Monaco theme of the same colours).
+const T = (bg, panel, panel2, line, fg, muted, accent, ok, warn, bad, code, onAccent, dark, tok) =>
+  ({ v: { bg, panel, panel2, line, fg, muted, accent, ok, warn, bad, code, "on-accent": onAccent }, dark, tok });
+const THEMES = {
+  auto:        { name: "Follow system" },
+  nightowl:    { name: "Night Owl", ...T("#011627", "#0b2942", "#0e3352", "#1d3b53", "#d6deeb", "#8ca3b8", "#82aaff", "#addb67", "#ffcb8b", "#ef5350", "#01111d", "#011627", true,
+                 { comment: "637777", keyword: "c792ea", string: "ecc48d", number: "f78c6c", type: "ffcb8b", delimiter: "7fdbca" }) },
+  light:       { name: "Light", ...T("#fbfbfb", "#f0f0f0", "#e6e6e6", "#d0d0d0", "#1d1f21", "#5f6b77", "#2a6bd6", "#2e7d32", "#a15c00", "#c62828", "#ffffff", "#ffffff", false,
+                 { comment: "6a737d", keyword: "0000ff", string: "a31515", number: "098658", type: "267f99" }) },
+  ghdark:      { name: "GitHub Dark", ...T("#0d1117", "#161b22", "#21262d", "#30363d", "#e6edf3", "#8d96a0", "#2f81f7", "#3fb950", "#d29922", "#f85149", "#0d1117", "#ffffff", true,
+                 { comment: "8b949e", keyword: "ff7b72", string: "a5d6ff", number: "79c0ff", type: "d2a8ff", delimiter: "e6edf3" }) },
+  ghlight:     { name: "GitHub Light", ...T("#ffffff", "#f6f8fa", "#eaeef2", "#d0d7de", "#1f2328", "#59636e", "#0969da", "#1a7f37", "#9a6700", "#cf222e", "#ffffff", "#ffffff", false,
+                 { comment: "6e7781", keyword: "cf222e", string: "0a3069", number: "0550ae", type: "8250df" }) },
+  soldark:     { name: "Solarized Dark", ...T("#002b36", "#073642", "#0a4352", "#19505e", "#93a1a1", "#73878c", "#268bd2", "#859900", "#b58900", "#dc322f", "#00212b", "#fdf6e3", true,
+                 { comment: "586e75", keyword: "859900", string: "2aa198", number: "d33682", type: "b58900" }) },
+  sollight:    { name: "Solarized Light", ...T("#fdf6e3", "#eee8d5", "#e6dfc8", "#d3cbb3", "#586e75", "#7d8b8c", "#268bd2", "#859900", "#b58900", "#dc322f", "#fdf6e3", "#fdf6e3", false,
+                 { comment: "93a1a1", keyword: "859900", string: "2aa198", number: "d33682", type: "b58900" }) },
+  dracula:     { name: "Dracula", ...T("#282a36", "#21222c", "#343746", "#44475a", "#f8f8f2", "#a0a4c0", "#bd93f9", "#50fa7b", "#f1fa8c", "#ff5555", "#1e1f29", "#282a36", true,
+                 { comment: "6272a4", keyword: "ff79c6", string: "f1fa8c", number: "bd93f9", type: "8be9fd" }) },
+  monokai:     { name: "Monokai", ...T("#272822", "#1e1f1c", "#34352f", "#3e3d32", "#f8f8f2", "#a59f85", "#66d9ef", "#a6e22e", "#e6db74", "#f92672", "#1e1f1c", "#272822", true,
+                 { comment: "75715e", keyword: "f92672", string: "e6db74", number: "ae81ff", type: "66d9ef" }) },
+  nord:        { name: "Nord", ...T("#2e3440", "#3b4252", "#434c5e", "#4c566a", "#e5e9f0", "#a3abb9", "#88c0d0", "#a3be8c", "#ebcb8b", "#bf616a", "#272c36", "#2e3440", true,
+                 { comment: "616e88", keyword: "81a1c1", string: "a3be8c", number: "b48ead", type: "8fbcbb" }) },
+  gruvbox:     { name: "Gruvbox", ...T("#282828", "#32302f", "#3c3836", "#504945", "#ebdbb2", "#a89984", "#83a598", "#b8bb26", "#fabd2f", "#fb4934", "#1d2021", "#282828", true,
+                 { comment: "928374", keyword: "fb4934", string: "b8bb26", number: "d3869b", type: "fabd2f" }) },
+  hc:          { name: "High contrast", ...T("#000000", "#0a0a0a", "#1a1a1a", "#6fc3df", "#ffffff", "#e0e0e0", "#ffd700", "#3ff23f", "#ffd700", "#ff6b6b", "#000000", "#000000", true,
+                 { comment: "7ca668", keyword: "569cd6", string: "ce9178", number: "b5cea8", type: "4ec9b0" }) },
 };
-function isDark() { return getComputedStyle(document.documentElement).colorScheme.includes("dark"); }
+const FONTS = [["", "System monospace"], ["JetBrains Mono", "JetBrains Mono", "JetBrains+Mono:wght@400;700"],
+  ["Fira Code", "Fira Code", "Fira+Code:wght@400;700"], ["Source Code Pro", "Source Code Pro", "Source+Code+Pro:wght@400;700"],
+  ["IBM Plex Mono", "IBM Plex Mono", "IBM+Plex+Mono:wght@400;700"], ["Roboto Mono", "Roboto Mono", "Roboto+Mono:wght@400;700"],
+  ["Inconsolata", "Inconsolata", "Inconsolata:wght@400;700"], ["Ubuntu Mono", "Ubuntu Mono", "Ubuntu+Mono:wght@400;700"]];
+const DEFAULTS = { theme: "auto", font: "", liga: false, code: 13.5, out: 13, ui: 100, wrap: false, minimap: false };
+let disp = Object.assign({}, DEFAULTS, store.get("display", {}));
+const sysDark = window.matchMedia ? matchMedia("(prefers-color-scheme: dark)") : { matches: true, addEventListener() {} };
+function themeId() { return disp.theme === "auto" ? (sysDark.matches ? "nightowl" : "light") : disp.theme; }
+function isDark() { return THEMES[themeId()].dark; }
+function monacoTheme() { return themeId() === "hc" ? "hc-black" : "pyxpp-" + themeId(); }
+let mon = null, monacoThemesDone = false;
+function defineMonacoThemes() {
+  if (monacoThemesDone || !window.monaco) return;
+  for (const [id, t] of Object.entries(THEMES)) {
+    if (!t.v || id === "hc") continue;
+    const k = t.tok;
+    monaco.editor.defineTheme("pyxpp-" + id, { base: t.dark ? "vs-dark" : "vs", inherit: true,
+      rules: [{ token: "comment", foreground: k.comment, fontStyle: "italic" }, { token: "keyword", foreground: k.keyword },
+              { token: "string", foreground: k.string }, { token: "number", foreground: k.number },
+              { token: "type", foreground: k.type }, ...(k.delimiter ? [{ token: "delimiter", foreground: k.delimiter }] : [])],
+      colors: { "editor.background": t.v.code, "editor.foreground": t.v.fg, "editorLineNumber.foreground": t.v.muted,
+                "editorLineNumber.activeForeground": t.v.fg, "editor.lineHighlightBackground": t.v.panel2 + "80",
+                "editorCursor.foreground": t.v.accent, "editor.selectionBackground": t.v.accent + "44",
+                "editorWidget.background": t.v.panel, "editorGutter.background": t.v.code } });
+  }
+  monacoThemesDone = true;
+}
+function loadFont(f) {
+  const def = FONTS.find((x) => x[0] === f);
+  if (!def || !def[2] || document.querySelector(`link[data-font="${f}"]`)) return Promise.resolve();
+  const l = document.createElement("link"); l.rel = "stylesheet"; l.dataset.font = f;
+  l.href = `https://fonts.googleapis.com/css2?family=${def[2]}&display=swap`; document.head.appendChild(l);
+  return new Promise((res) => { l.onload = () => document.fonts.load(`14px "${f}"`).then(res, res); l.onerror = res; });
+}
+function applyDisplay() {
+  const r = document.documentElement.style, t = THEMES[themeId()];
+  for (const [k, v] of Object.entries(t.v)) r.setProperty("--" + k, v);
+  r.setProperty("color-scheme", t.dark ? "dark" : "light");
+  const fam = disp.font ? `"${disp.font}", var(--font-mono)` : "var(--font-mono)";
+  r.setProperty("--font-code", fam);
+  r.setProperty("--code-size", disp.code + "px"); r.setProperty("--out-size", disp.out + "px");
+  r.fontSize = disp.ui + "%";
+  if (mon) {
+    defineMonacoThemes(); monaco.editor.setTheme(monacoTheme());
+    mon.updateOptions({ fontSize: disp.code, fontLigatures: disp.liga, wordWrap: disp.wrap ? "on" : "off",
+                        minimap: { enabled: disp.minimap },
+                        fontFamily: (disp.font ? `"${disp.font}", ` : "") + "ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" });
+  }
+  const ta = $("fallback"); if (ta) ta.style.whiteSpace = disp.wrap ? "pre-wrap" : "pre";
+  $("fontprev").style.fontVariantLigatures = disp.liga ? "normal" : "none";
+  if (disp.font) loadFont(disp.font).then(() => { if (window.monaco) monaco.editor.remeasureFonts(); });
+  store.set("display", disp);
+  syncPanel();
+}
+function syncPanel() {
+  document.querySelectorAll("#themelist button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.id === disp.theme)));
+  $("fontsel").value = disp.font; $("liga").checked = disp.liga; $("wrap").checked = disp.wrap; $("minimap").checked = disp.minimap;
+  $("codesize").value = disp.code; $("codesizev").textContent = disp.code + " px";
+  $("outsize").value = disp.out; $("outsizev").textContent = disp.out + " px";
+  $("uisize").value = disp.ui; $("uisizev").textContent = disp.ui + " %";
+}
+(function buildPanel() {
+  const tl = $("themelist");
+  for (const [id, t] of Object.entries(THEMES)) {
+    const b = document.createElement("button"); b.type = "button"; b.dataset.id = id;
+    const v = (t.v || THEMES.nightowl.v);
+    const sw = id === "auto" ? `<span class="sw" style="background:linear-gradient(135deg,#011627 50%,#fbfbfb 50%);color:#82aaff">A</span>`
+      : `<span class="sw" style="background:${v.code};color:${v.accent};border-color:${v.line}">Aa</span>`;
+    b.innerHTML = sw + `<span>${t.name}</span>`;
+    b.onclick = () => { disp.theme = id; applyDisplay(); };
+    tl.appendChild(b);
+  }
+  const fs = $("fontsel");
+  FONTS.forEach(([v, label]) => { const o = document.createElement("option"); o.value = v; o.textContent = label; fs.appendChild(o); });
+  fs.onchange = () => { disp.font = fs.value; applyDisplay(); };
+  $("liga").onchange = (e) => { disp.liga = e.target.checked; applyDisplay(); };
+  $("wrap").onchange = (e) => { disp.wrap = e.target.checked; applyDisplay(); };
+  $("minimap").onchange = (e) => { disp.minimap = e.target.checked; applyDisplay(); };
+  for (const [id, key] of [["codesize", "code"], ["outsize", "out"], ["uisize", "ui"]])
+    $(id).oninput = (e) => { disp[key] = +e.target.value; applyDisplay(); };
+  $("dispreset").onclick = () => { disp = Object.assign({}, DEFAULTS); applyDisplay(); };
+  const panel = $("disp"), btn = $("dispbtn");
+  const show = (on) => { panel.hidden = !on; btn.setAttribute("aria-expanded", String(on)); if (on) panel.querySelector("button[aria-pressed=true]")?.focus(); };
+  btn.onclick = () => show(panel.hidden);
+  $("dispclose").onclick = () => { show(false); btn.focus(); };
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !panel.hidden) { show(false); btn.focus(); } });
+  document.addEventListener("mousedown", (e) => { if (!panel.hidden && !panel.contains(e.target) && e.target !== btn) show(false); });
+  sysDark.addEventListener("change", () => { if (disp.theme === "auto") applyDisplay(); });
+})();
+applyDisplay();
 
 // ---------------------------------------------------------------- toast, dialog
 function toast(msg, ms = 2600) { const t = $("toast"); t.textContent = msg; t.style.display = "block";
@@ -486,8 +632,10 @@ async function ensureEditor() {
   if (ed) return;
   const host = $("editor");
   if (await loadMonaco()) {
-    const m = monaco.editor.create(host, { value: "", language: "python", theme: isDark() ? "vs-dark" : "vs",
-      automaticLayout: true, fontSize: 13.5, minimap: { enabled: false }, scrollBeyondLastLine: false, tabSize: 4 });
+    defineMonacoThemes();
+    const m = monaco.editor.create(host, { value: "", language: "python", theme: monacoTheme(),
+      automaticLayout: true, fontSize: disp.code, minimap: { enabled: disp.minimap }, scrollBeyondLastLine: false, tabSize: 4 });
+    mon = m;
     m.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, run);
     m.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, save);
     m.onDidChangeModelContent(() => markDirty(true));
@@ -503,6 +651,7 @@ async function ensureEditor() {
     });
     ed = { get: () => ta.value, set: (t) => { ta.value = t; }, selection: () => ta.value.slice(ta.selectionStart, ta.selectionEnd) };
   }
+  applyDisplay();
   if (OPEN) { try { await openFromRepo(OPEN); return; } catch (e) { toast("Could not open " + OPEN + ": " + e.message, 6000); } }
   if (current) await openFile(current, true); else openExample(0, true);
 }
