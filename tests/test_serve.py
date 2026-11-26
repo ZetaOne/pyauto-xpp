@@ -123,3 +123,38 @@ def test_package_updates_only_in_the_installers_environment(server):
     with pytest.raises(urllib.error.HTTPError) as e:
         call(base + "/upgrade", {"packages": ["numpy"]})
     assert e.value.code == 400
+
+
+def test_running_line_error_line_and_cell_mode(server):
+    _, base = server
+    job = call(base + "/run", {"code": "import time\nx = 1\ntime.sleep(0.8)\ny = 2\n", "file": "demo.py", "session": "c"})["job"]
+    seen = set()
+    for _ in range(60):
+        d = call(f"{base}/job/{job}")
+        if d["line"]:
+            seen.add(d["line"])
+        if d["done"]:
+            break
+        time.sleep(0.05)
+    assert 3 in seen
+    job = call(base + "/run", {"code": "a = 1\nb = 1/0\n", "file": "demo.py", "line0": 9, "session": "c"})["job"]
+    time.sleep(1)
+    assert call(f"{base}/job/{job}")["err_line"] == 11              # the line in the file, not in the piece
+    job = call(base + "/run", {"code": "%pip install nothing\nx = 6\nx * 7", "file": "[cell 1]", "mode": "cell", "session": "c"})["job"]
+    time.sleep(1)
+    d = call(f"{base}/job/{job}")
+    assert d["ok"] and d["chunks"][0]["text"].strip() == "42"           # magics do nothing, the last value is shown
+
+
+def test_folders_rename_mkdir_and_notebooks(server, tmp_path):
+    srv, base = server
+    call(base + "/mkdir", {"path": "a/b"})
+    call(base + "/file", {"path": "a/b/n.ipynb", "text": '{"cells": [], "nbformat": 4}'}, method="PUT")
+    call(base + "/rename", {"from": "a/b/n.ipynb", "to": "a/m.ipynb"})
+    files = call(base + "/files")
+    assert [f["path"] for f in files["files"]] == ["a/m.ipynb"] and "a/b" in files["dirs"]
+    assert call(base + "/file?path=a/m.ipynb")["text"].startswith("{")
+    with pytest.raises(urllib.error.HTTPError) as e:
+        call(base + "/workdir", {"path": "/"})                         # only folders inside the home folder
+    assert e.value.code == 403
+    assert call(base + "/dirs")["home"]

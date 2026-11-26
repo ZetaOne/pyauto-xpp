@@ -64,36 +64,136 @@ header .sp { flex: 1 }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center }
 ol.steps { padding-left: 1.3em } ol.steps li { margin: .3em 0 }
 
-/* workspace (connected) */
-#work { flex: 1; display: none; min-height: 0 }
-#work.show { display: grid; grid-template-columns: 220px minmax(0, 1fr) minmax(0, 1fr) }
-#files { border-right: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0 }
-#files .tools { display: flex; gap: 6px; padding: 8px; border-bottom: 1px solid var(--line); flex-wrap: wrap }
-#files .tools button { padding: 3px 8px; min-height: 28px; font-size: 13px }
-#files .tools select { flex: 1; min-width: 0; padding: 3px 6px; min-height: 28px; font-size: 13px }
-#flist { list-style: none; margin: 0; padding: 4px 0; overflow: auto; flex: 1; font-size: 13.5px }
-#flist li button { width: 100%; text-align: left; border: 0; border-radius: 0; background: transparent; padding: 4px 10px;
-                   min-height: 26px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-#flist li button[aria-current="true"] { background: var(--panel2); box-shadow: inset 3px 0 0 var(--accent) }
-#flist .dir { color: var(--muted); padding: 6px 10px 2px; font-size: 12px }
-#wd { padding: 6px 10px; font-size: 11.5px; color: var(--muted); border-top: 1px solid var(--line); word-break: break-all }
-#edpane { display: flex; flex-direction: column; min-width: 0; min-height: 0; border-right: 1px solid var(--line) }
-.bar2 { display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--line); flex-wrap: wrap }
-.bar2 .name { font-family: var(--font-mono); font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40% }
-.bar2 .sp { flex: 1 }
+/* workspace (connected): explorer | editor with tabs | output; a status bar */
+#work { flex: 1; display: none; min-height: 0; flex-direction: column }
+#work.show { display: flex }
+#wmain { flex: 1; display: grid; min-height: 0; grid-template-rows: minmax(0, 1fr);
+         grid-template-columns: var(--side-w, 230px) 5px minmax(0, 1fr) 5px var(--out-w, 40%) }
+#work.bottom #wmain { grid-template-columns: var(--side-w, 230px) 5px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) 5px var(--out-h, 36%) }
+#work.bottom #side, #work.bottom #sidesplit { grid-row: 1 / span 3 }
+#work.bottom #outsplit { grid-column: 3; grid-row: 2; cursor: row-resize }
+#work.bottom #outpane { grid-column: 3; grid-row: 3 }
+.split { background: var(--line); cursor: col-resize; opacity: .6; touch-action: none }
+.split:hover, .split.drag { background: var(--accent); opacity: 1 }
+#side { background: var(--panel); display: flex; flex-direction: column; min-height: 0; min-width: 0 }
+#side .sh { display: flex; align-items: center; gap: 2px; padding: 5px 6px 5px 10px; border-bottom: 1px solid var(--line); flex-wrap: wrap }
+#side .sh b { flex: 1; min-width: 60px; font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+              overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.ib { min-height: 26px; padding: 2px 7px; font-size: 13px; background: transparent; border-color: transparent }
+.ib:hover:not(:disabled) { border-color: var(--line); background: var(--panel2) }
+#tree { list-style: none; margin: 0; padding: 4px 0; overflow: auto; flex: 1; font-size: 13.5px }
+#tree ul { list-style: none; margin: 0; padding: 0 }
+#tree button { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; border: 0; border-radius: 0;
+               background: transparent; padding: 3px 8px; min-height: 25px; white-space: nowrap; overflow: hidden }
+#tree button span:last-child { overflow: hidden; text-overflow: ellipsis }
+#tree button:hover { background: var(--panel2) }
+#tree button[aria-current="true"] { background: var(--panel2); box-shadow: inset 2px 0 0 var(--accent) }
+#tree .ic { flex: none; width: 16px; text-align: center; font-size: 12px; color: var(--muted) }
+#tree .ic.py { color: var(--accent) } #tree .ic.ode { color: var(--ok) } #tree .ic.img { color: var(--warn) }
+#tree .empty { padding: 8px 12px; color: var(--muted); font-size: 12.5px }
+#side .examples { border-top: 1px solid var(--line); padding: 6px 8px }
+#side .examples select { width: 100%; font-size: 13px; min-height: 30px }
+#edpane { display: flex; flex-direction: column; min-width: 0; min-height: 0 }
+#tabs { display: flex; overflow-x: auto; background: var(--panel); border-bottom: 1px solid var(--line); min-height: 35px; scrollbar-width: thin }
+.tab { display: flex; align-items: center; gap: 4px; padding: 0 4px 0 12px; border-right: 1px solid var(--line); color: var(--muted);
+       white-space: nowrap; cursor: pointer; user-select: none; font-size: 13px }
+.tab:hover { color: var(--fg) }
+.tab.active { background: var(--code); color: var(--fg); box-shadow: inset 0 2px 0 var(--accent) }
+.tab.scratch .nm { font-style: italic }
+.tab .x { width: 22px; min-height: 22px; padding: 0; border: 0; background: transparent; opacity: 0; font-size: 14px; line-height: 1 }
+.tab:hover .x, .tab.active .x, .tab.dirty .x { opacity: 1 }
+.tab .x::before { content: "×" } .tab.dirty .x::before { content: "●" } .tab.dirty .x:hover::before { content: "×" }
+.tab.running .nm::before { content: "➜ "; color: #ff7a00; font-weight: 700 }
+.edbar { display: flex; gap: 6px; align-items: center; padding: 5px 8px; border-bottom: 1px solid var(--line); flex-wrap: wrap }
+.crumb { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1 }
+#run .spin { margin-right: 5px }
+#stop.live { background: var(--bad); color: #fff; border-color: var(--bad); animation: stoppulse 1.1s ease-in-out infinite }
+@keyframes stoppulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(239,83,80,.65) } 50% { box-shadow: 0 0 0 7px rgba(239,83,80,0); filter: brightness(1.15) } }
+.spin { display: inline-block; width: 11px; height: 11px; border: 2px solid currentColor; border-right-color: transparent;
+        border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -1px }
+@keyframes spin { to { transform: rotate(360deg) } }
+@media (prefers-reduced-motion: reduce) { #stop.live, .spin { animation: none } }
 #editor { flex: 1; min-height: 0 }
-#fallback { width: 100%; height: 100%; resize: none; border: 0; padding: 10px; background: var(--code); color: var(--fg);
+#imgview { flex: 1; min-height: 0; overflow: auto; display: none; background: var(--code); padding: 16px; text-align: center }
+#imgview img { max-width: 100%; background: #fff; border-radius: 6px }
+#nofile { flex: 1; display: none; place-items: center; color: var(--muted); text-align: center; padding: 20px }
+/* Monaco decorations: the running line, an error line, cell starts */
+.runarrow::before { content: "➜"; color: #ff7a00; font-weight: 700; display: block; text-align: center }
+.runline { background: rgba(255, 122, 0, .13) }
+.errglyph::before { content: "✖"; color: #ef5350; display: block; text-align: center; font-size: 12px }
+.errline { background: rgba(239, 83, 80, .16) }
+.cellline { border-top: 1px dashed rgba(130, 170, 255, .55) }
+#fallback, .cellta { width: 100%; resize: none; border: 0; padding: 8px 10px; background: var(--code); color: var(--fg);
             font: var(--code-size)/1.5 var(--font-code); tab-size: 4 }
-#outpane { display: flex; flex-direction: column; min-width: 0; min-height: 0 }
-#out { flex: 1; overflow: auto; padding: 10px 12px; background: var(--code); font: var(--out-size)/1.45 var(--font-code) }
-#out pre { margin: 0; white-space: pre-wrap; word-break: break-word }
-#out img { display: block; max-width: 100%; margin: 8px 0; border-radius: 6px; background: #fff }
-#out .run { color: var(--muted); border-top: 1px dashed var(--line); margin-top: 8px; padding-top: 6px; font-size: 12px }
-#out .run:first-child { border-top: 0; margin-top: 0 }
-#out .err { color: var(--bad) }
-#runinfo { font-size: 12.5px; color: var(--muted) }
-#toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--panel2); border: 1px solid var(--line);
-         padding: 8px 14px; border-radius: 8px; display: none; max-width: 90vw; z-index: 9 }
+#fallback { height: 100% }
+/* notebooks */
+#nbview { flex: 1; min-height: 0; overflow: auto; display: none; background: var(--bg) }
+.nbbar { position: sticky; top: 0; z-index: 3; display: flex; gap: 5px; align-items: center; flex-wrap: wrap; padding: 6px 10px;
+         background: var(--panel); border-bottom: 1px solid var(--line) }
+.nbbar button { min-height: 28px; padding: 3px 9px; font-size: 13px }
+.nbbar .sep { width: 1px; height: 20px; background: var(--line); margin: 0 3px }
+.nbbar .nbsave { margin-left: auto }
+.cells { padding: 10px 14px 40px; max-width: 1100px }
+.cell { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 6px; margin: 4px 0; padding: 4px 6px 4px 0;
+        border-radius: 8px; border-left: 3px solid transparent }
+.cell.sel { border-left-color: var(--accent); background: color-mix(in srgb, var(--panel) 55%, transparent) }
+.cell.live { border-left-color: #ff7a00 } .cell.bad { border-left-color: var(--bad) }
+.cell .gut { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; padding-top: 4px; font: 12px/1.3 var(--font-mono); color: var(--muted) }
+.cell .gut button { min-height: 24px; width: 30px; padding: 0; font-size: 12px }
+.cell.live .cnt { color: #ff7a00 }
+.cell .src { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--code) }
+.cell.markdown .src { border-color: transparent; background: transparent }
+.cell.markdown.sel .src { border-color: var(--line) }
+.mdv { padding: 2px 10px; font-family: var(--font-ui); line-height: 1.6; cursor: text; overflow-x: auto }
+.mdv h1 { font-size: 1.5rem; margin: .4em 0 } .mdv h2 { font-size: 1.25rem; margin: .5em 0 .3em } .mdv h3 { font-size: 1.08rem }
+.mdv code { background: var(--panel2); padding: 1px 4px; border-radius: 4px; font-size: .92em }
+.mdv pre { background: var(--code); padding: 8px; border-radius: 6px; overflow-x: auto }
+.mdv table { border-collapse: collapse } .mdv td, .mdv th { border: 1px solid var(--line); padding: 3px 8px }
+.cell .outs { font: var(--out-size)/1.45 var(--font-code); padding: 0 4px }
+.cell .outs pre { margin: 4px 0; white-space: pre-wrap; word-break: break-word }
+.cell .outs pre.err { color: var(--bad) }
+.cell .outs img { display: block; max-width: 100%; margin: 6px 0; border-radius: 6px; background: #fff; cursor: zoom-in }
+.nbadd { display: flex; gap: 8px; justify-content: center; padding: 8px; opacity: .55 } .nbadd:hover { opacity: 1 }
+.nbadd button { min-height: 28px; font-size: 13px }
+#outpane { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--code) }
+.outbar { display: flex; gap: 4px; align-items: center; padding: 4px 8px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap }
+.outbar .sp { flex: 1 }
+#out { flex: 1; overflow: auto; padding: 4px 10px; font: var(--out-size)/1.45 var(--font-code) }
+#out .hint { color: var(--muted); font: 13px/1.5 var(--font-ui); padding: 10px 2px }
+.blk { border: 1px solid var(--line); border-radius: 8px; margin: 8px 0; overflow: hidden }
+.blk > .bh { display: flex; gap: 8px; align-items: center; padding: 4px 9px; background: var(--panel); font: 12px/1.4 var(--font-ui);
+             color: var(--muted); cursor: pointer; user-select: none }
+.blk > .bh .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0 }
+.blk > .bh .st { margin-left: auto; white-space: nowrap; font-variant-numeric: tabular-nums }
+.blk.ok > .bh .st { color: var(--ok) } .blk.bad > .bh .st { color: var(--bad) } .blk.live > .bh .st { color: #ff7a00 }
+.blk.closed > .bb { display: none } .blk > .bh::before { content: "▾" } .blk.closed > .bh::before { content: "▸" }
+.bb { padding: 6px 10px }
+.bb pre { margin: 0; white-space: pre-wrap; word-break: break-word }
+.bb pre:empty { display: none }
+.bb pre.err { color: var(--bad) }
+.bb img { display: block; max-width: 100%; margin: 6px 0; border-radius: 6px; background: #fff; cursor: zoom-in }
+.tbl { color: var(--accent); text-decoration: underline; cursor: pointer }
+#console { display: flex; align-items: center; gap: 6px; border-top: 1px solid var(--line); padding: 4px 8px; background: var(--panel) }
+#console > span { color: var(--accent); font-family: var(--font-mono); font-size: 13px }
+#cin { flex: 1; min-width: 0; background: var(--code); color: var(--fg); border: 1px solid var(--line); border-radius: 6px;
+       padding: 5px 8px; font: var(--out-size)/1.4 var(--font-code) }
+#status { display: flex; gap: 14px; align-items: center; padding: 3px 10px; font-size: 12px; background: var(--panel2);
+          border-top: 1px solid var(--line); color: var(--muted); white-space: nowrap; overflow: hidden; min-height: 24px }
+#status .sp { flex: 1 } #status .live { color: #ff7a00; font-weight: 600 } #status .bad { color: var(--bad) } #status .okc { color: var(--ok) }
+#st-folder { overflow: hidden; text-overflow: ellipsis; min-width: 0; cursor: pointer }
+.menu { position: fixed; z-index: 12; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 4px;
+        box-shadow: 0 8px 24px rgba(0,0,0,.35); min-width: 180px }
+.menu button { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 5px 10px; min-height: 28px; font-size: 13.5px }
+.menu button:hover, .menu button:focus { background: var(--panel2) } .menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0 }
+.lightbox { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.78); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; padding: 20px; gap: 10px }
+.lightbox img { max-width: 94vw; max-height: 84vh; background: #fff; border-radius: 8px }
+.fbrowse { list-style: none; margin: 6px 0; padding: 0; max-height: 34vh; overflow: auto; border: 1px solid var(--line); border-radius: 8px }
+.fbrowse button { display: block; width: 100%; text-align: left; border: 0; border-radius: 0; background: transparent; padding: 5px 10px; min-height: 30px }
+.fbrowse button:hover { background: var(--panel2) }
+.fpath { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); word-break: break-all }
+#toast { position: fixed; bottom: 34px; left: 50%; transform: translateX(-50%); background: var(--panel2); border: 1px solid var(--line);
+         padding: 8px 14px; border-radius: 8px; display: none; max-width: 90vw; z-index: 15 }
 #update { display: none }
 dialog { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 10px; max-width: 640px; width: 92vw }
 dialog pre { max-height: 40vh; overflow: auto; background: var(--code); padding: 8px; border-radius: 6px; font-size: 12px; white-space: pre-wrap }
@@ -128,9 +228,12 @@ dialog pre { max-height: 40vh; overflow: auto; background: var(--code); padding:
 .pkgpop .row { justify-content: flex-end; gap: 8px } .pkgpop .row button { min-height: 30px; padding: 4px 10px; font-size: 13.5px }
 .pkgpop .row .sp { flex: 1 }
 @media (max-width: 900px) {
-  #work.show { grid-template-columns: 1fr; grid-template-rows: auto 55vh 45vh; overflow: auto }
-  #files { border-right: 0; border-bottom: 1px solid var(--line); max-height: 160px }
-  #edpane { border-right: 0 }
+  #wmain, #work.bottom #wmain { grid-template-columns: 1fr; grid-template-rows: auto 60vh 45vh; overflow: auto }
+  .split { display: none }
+  #side { max-height: 190px; border-bottom: 1px solid var(--line) }
+  #work.bottom #side, #work.bottom #outpane, #work.bottom #edpane { grid-column: 1; grid-row: auto }
+  #status #st-lang, #status #st-py { display: none }
+  .cell { grid-template-columns: 38px minmax(0, 1fr) }
 }
 </style>
 </head>
@@ -158,6 +261,7 @@ dialog pre { max-height: 40vh; overflow: auto; background: var(--code); padding:
   <h3>Editor</h3>
   <div class="line"><span>Long lines</span><label><input type="checkbox" id="wrap"> wrap</label></div>
   <div class="line"><span>Overview</span><label><input type="checkbox" id="minimap"> minimap at the side</label></div>
+  <div class="line"><span>Output</span><select id="outpos" aria-label="Where the output goes"><option value="right">on the right</option><option value="bottom">below the code</option></select></div>
   <div class="row" style="margin-top:12px"><button type="button" id="dispreset">Reset</button><span style="flex:1"></span>
     <button type="button" id="dispclose" class="primary">Done</button></div>
 </div>
@@ -232,33 +336,46 @@ dialog pre { max-height: 40vh; overflow: auto; background: var(--code); padding:
 </main>
 
 <div id="work">
-  <aside id="files" aria-label="Files">
-    <div class="tools">
-      <button type="button" id="fnew" title="New file">New</button>
-      <select id="examples" aria-label="Open an example"><option value="">Examples…</option></select>
-      <button type="button" id="frefresh" title="Reload the file list" aria-label="Reload the file list">↻</button>
+ <div id="wmain">
+  <aside id="side" aria-label="Files">
+    <div class="sh"><b id="foldername" title="">Files</b>
+      <button type="button" class="ib" id="fnew" title="New file (.py, .ode or a notebook .ipynb)">+ File</button>
+      <button type="button" class="ib" id="fnewdir" title="New folder">+ Folder</button>
+      <button type="button" class="ib" id="frefresh" title="Read the folder again" aria-label="Read the folder again">↻</button>
+      <button type="button" class="ib" id="fopen" title="Open another folder on this computer">Open…</button>
     </div>
-    <ul id="flist"></ul>
-    <div id="wd"></div>
+    <ul id="tree" role="tree" aria-label="Files of the work folder"></ul>
+    <div class="examples"><select id="examples" aria-label="Open an example"><option value="">Examples…</option></select></div>
   </aside>
+  <div class="split" id="sidesplit" role="separator" aria-orientation="vertical" aria-label="Resize the file list"></div>
   <section id="edpane" aria-label="Editor">
-    <div class="bar2">
-      <span class="name" id="fname">untitled.py</span><span id="dirty" class="note"></span>
-      <span class="sp"></span>
+    <div id="tabs" role="tablist" aria-label="Open files"></div>
+    <div class="edbar">
+      <span class="crumb" id="crumb"></span>
       <button type="button" id="save" title="Save (Ctrl+S)">Save</button>
-      <button type="button" id="run" class="primary" title="Run (Ctrl+Enter)">▶ Run</button>
-      <button type="button" id="stop" class="danger" disabled>■ Stop</button>
+      <button type="button" id="runcell" title="Run the cell at the cursor (Shift+Enter); cells start with a line # %%">Run cell</button>
+      <button type="button" id="run" class="primary" title="Run the file, or only the selected lines (Ctrl+Enter)">▶ Run</button>
+      <button type="button" id="stop" class="danger" disabled title="Stop the run">■ Stop</button>
     </div>
     <div id="editor"></div>
+    <div id="imgview"></div>
+    <div id="nbview"></div>
+    <div id="nofile">No file open: pick one on the left, an example, or + File.</div>
   </section>
+  <div class="split" id="outsplit" role="separator" aria-label="Resize the output"></div>
   <section id="outpane" aria-label="Output">
-    <div class="bar2">
-      <b>Output</b><span id="runinfo"></span><span class="sp"></span>
-      <button type="button" id="restart" title="Start a fresh Python (forget all variables)">Restart Python</button>
-      <button type="button" id="clear">Clear</button>
-    </div>
-    <div id="out" aria-live="polite"></div>
+    <div class="outbar"><b>Output</b><span class="sp"></span>
+      <button type="button" class="ib" id="foldall" title="Fold or unfold all runs">Fold all</button>
+      <button type="button" class="ib" id="restart" title="Start a fresh Python (forget all variables)">Restart Python</button>
+      <button type="button" class="ib" id="clear">Clear</button></div>
+    <div id="out" aria-live="polite"><div class="hint">Run a file (▶ Run, Ctrl+Enter), a cell (Shift+Enter) or selected lines;
+      what it prints and its figures appear here. Click a figure to enlarge it. Notebooks (.ipynb) show their output under each cell.</div></div>
+    <div id="console"><span>&gt;&gt;&gt;</span><input id="cin" spellcheck="false" autocomplete="off"
+      placeholder="Python: Enter runs it in the same session (↑ ↓ history)" aria-label="Python console"></div>
   </section>
+ </div>
+ <footer id="status"><span id="st-folder" title="Open another folder"></span><span id="st-run"></span><span class="sp"></span>
+   <span id="st-pos"></span><span id="st-lang"></span><span id="st-py"></span></footer>
 </div>
 
 <aside id="pkgpop" class="pkgpop" role="dialog" aria-labelledby="pkgh" hidden>
@@ -322,13 +439,14 @@ const FONTS = [["", "System monospace"], ["JetBrains Mono", "JetBrains Mono", "J
   ["Fira Code", "Fira Code", "Fira+Code:wght@400;700"], ["Source Code Pro", "Source Code Pro", "Source+Code+Pro:wght@400;700"],
   ["IBM Plex Mono", "IBM Plex Mono", "IBM+Plex+Mono:wght@400;700"], ["Roboto Mono", "Roboto Mono", "Roboto+Mono:wght@400;700"],
   ["Inconsolata", "Inconsolata", "Inconsolata:wght@400;700"], ["Ubuntu Mono", "Ubuntu Mono", "Ubuntu+Mono:wght@400;700"]];
-const DEFAULTS = { theme: "auto", font: "", liga: false, code: 13.5, out: 13, ui: 100, wrap: false, minimap: false };
+const DEFAULTS = { theme: "auto", font: "", liga: false, code: 13.5, out: 13, ui: 100, wrap: false, minimap: false, outpos: "right" };
 let disp = Object.assign({}, DEFAULTS, store.get("display", {}));
 const sysDark = window.matchMedia ? matchMedia("(prefers-color-scheme: dark)") : { matches: true, addEventListener() {} };
 function themeId() { return disp.theme === "auto" ? (sysDark.matches ? "nightowl" : "light") : disp.theme; }
 function isDark() { return THEMES[themeId()].dark; }
 function monacoTheme() { return themeId() === "hc" ? "hc-black" : "pyxpp-" + themeId(); }
 let mon = null, monacoThemesDone = false;
+const EDS = new Set();          // every Monaco editor on the page (the main one, notebook cells)
 function defineMonacoThemes() {
   if (monacoThemesDone || !window.monaco) return;
   for (const [id, t] of Object.entries(THEMES)) {
@@ -360,13 +478,14 @@ function applyDisplay() {
   r.setProperty("--font-code", fam);
   r.setProperty("--code-size", disp.code + "px"); r.setProperty("--out-size", disp.out + "px");
   r.fontSize = disp.ui + "%";
-  if (mon) {
+  if (window.monaco) {
     defineMonacoThemes(); monaco.editor.setTheme(monacoTheme());
-    mon.updateOptions({ fontSize: disp.code, fontLigatures: disp.liga, wordWrap: disp.wrap ? "on" : "off",
-                        minimap: { enabled: disp.minimap },
-                        fontFamily: (disp.font ? `"${disp.font}", ` : "") + "ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" });
+    for (const e of EDS) e.updateOptions(Object.assign({ fontSize: disp.code, fontLigatures: disp.liga,
+      fontFamily: (disp.font ? `"${disp.font}", ` : "") + "ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" },
+      e._cell ? {} : { wordWrap: disp.wrap ? "on" : "off", minimap: { enabled: disp.minimap } }));
   }
-  const ta = $("fallback"); if (ta) ta.style.whiteSpace = disp.wrap ? "pre-wrap" : "pre";
+  const fb = $("fallback"); if (fb) fb.style.whiteSpace = disp.wrap ? "pre-wrap" : "pre";
+  $("work").classList.toggle("bottom", disp.outpos === "bottom");
   $("fontprev").style.fontVariantLigatures = disp.liga ? "normal" : "none";
   if (disp.font) loadFont(disp.font).then(() => { if (window.monaco) monaco.editor.remeasureFonts(); });
   store.set("display", disp);
@@ -374,7 +493,7 @@ function applyDisplay() {
 }
 function syncPanel() {
   document.querySelectorAll("#themelist button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.id === disp.theme)));
-  $("fontsel").value = disp.font; $("liga").checked = disp.liga; $("wrap").checked = disp.wrap; $("minimap").checked = disp.minimap;
+  $("fontsel").value = disp.font; $("liga").checked = disp.liga; $("outpos").value = disp.outpos; $("wrap").checked = disp.wrap; $("minimap").checked = disp.minimap;
   $("codesize").value = disp.code; $("codesizev").textContent = disp.code + " px";
   $("outsize").value = disp.out; $("outsizev").textContent = disp.out + " px";
   $("uisize").value = disp.ui; $("uisizev").textContent = disp.ui + " %";
@@ -396,6 +515,7 @@ function syncPanel() {
   $("liga").onchange = (e) => { disp.liga = e.target.checked; applyDisplay(); };
   $("wrap").onchange = (e) => { disp.wrap = e.target.checked; applyDisplay(); };
   $("minimap").onchange = (e) => { disp.minimap = e.target.checked; applyDisplay(); };
+  $("outpos").onchange = (e) => { disp.outpos = e.target.value; applyDisplay(); };
   for (const [id, key] of [["codesize", "code"], ["outsize", "out"], ["uisize", "ui"]])
     $(id).oninput = (e) => { disp[key] = +e.target.value; applyDisplay(); };
   $("dispreset").onclick = () => { disp = Object.assign({}, DEFAULTS); applyDisplay(); };
@@ -481,7 +601,9 @@ async function onConnect() {
   setPill("on", `pyauto-xpp ${status.version} · Python ${status.python} · ${status.system} ${status.machine}`);
   $("setup").style.display = "none"; $("work").classList.add("show"); $("srvstop").hidden = false; $("uninst").hidden = false;
   if (location.hash === "#remove") { history.replaceState(null, "", location.pathname + location.search); showRemoveDialog(); }
-  $("wd").textContent = status.workdir;
+  setFolder(status.workdir);
+  $("fopen").hidden = !(status.api >= 2);
+  $("st-py").textContent = `Python ${status.python} · pyauto-xpp ${status.version}`;
   startHeartbeat();
   await ensureEditor();
   await listFiles();
@@ -611,13 +733,17 @@ $("srvstop").onclick = async () => {
   onDisconnect();
 };
 
-// ---------------------------------------------------------------- editor (Monaco, or a plain text area)
-let ed = null, current = store.get("current", null), dirty = false;
+// ---------------------------------------------------------------- editor: Monaco (or plain text areas), tabs
 const MONACO = "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs";
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const IMG = /\.(png|jpe?g|gif|svg|webp)$/i;
+const langOf = (p) => /\.py$/i.test(p) ? "python" : /\.(json|ipynb)$/i.test(p) ? "json" : /\.md$/i.test(p) ? "markdown"
+  : /\.(ode|xps|set|ani)$/i.test(p) ? "ode" : "plaintext";
+const langName = { python: "Python", json: "JSON", markdown: "Markdown", ode: "XPP model", plaintext: "Text" };
 function loadMonaco() {
   return new Promise((res) => {
     const s = document.createElement("script"); s.src = MONACO + "/loader.min.js";
-    const timer = setTimeout(() => res(false), 10000);
+    const timer = setTimeout(() => res(false), 12000);
     s.onerror = () => { clearTimeout(timer); res(false); };
     s.onload = () => {
       window.MonacoEnvironment = { getWorkerUrl: () => "data:text/javascript;charset=utf-8," +
@@ -628,78 +754,324 @@ function loadMonaco() {
     document.head.appendChild(s);
   });
 }
+function defineOdeLanguage() {
+  monaco.languages.register({ id: "ode" });
+  monaco.languages.setMonarchTokensProvider("ode", { ignoreCase: true, tokenizer: { root: [
+    [/#.*$/, "comment"], [/^\s*@.*$/, "type"],
+    [/\b(par|param|init|aux|number|table|done|wiener|global|markov|bdry|volt|special|set|only|export)\b/, "keyword"],
+    [/\b\d+(\.\d+)?([eE][-+]?\d+)?\b/, "number"], [/[a-zA-Z_]\w*'/, "type"], [/".*?"/, "string"]] } });
+}
+const scriptCache = {};
+function loadScript(src) {
+  // Monaco's module loader (window.define) is hidden meanwhile: these scripts would register as
+  // anonymous modules instead of setting their globals (marked, katex)
+  return scriptCache[src] || (scriptCache[src] = new Promise((res, rej) => {
+    const amd = window.define; window.define = undefined;
+    const done = (f) => () => { window.define = amd; f(); };
+    const s = document.createElement("script"); s.src = src; s.onload = done(res); s.onerror = done(rej); document.head.appendChild(s); }));
+}
+function loadCss(href) { if (!document.querySelector(`link[href="${href}"]`)) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = href; document.head.appendChild(l); } }
+
+const tabs = []; let active = null; let ta = null;     // ta: the plain text area when Monaco cannot load
+function editorOptions(extra) {
+  return Object.assign({ theme: monacoTheme(), automaticLayout: true, fontSize: disp.code, tabSize: 4, glyphMargin: true,
+    minimap: { enabled: disp.minimap }, scrollBeyondLastLine: false, wordWrap: disp.wrap ? "on" : "off", fontLigatures: disp.liga,
+    fontFamily: (disp.font ? `"${disp.font}", ` : "") + "ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" }, extra || {});
+}
 async function ensureEditor() {
-  if (ed) return;
-  const host = $("editor");
+  if (mon || ta) return;
   if (await loadMonaco()) {
-    defineMonacoThemes();
-    const m = monaco.editor.create(host, { value: "", language: "python", theme: monacoTheme(),
-      automaticLayout: true, fontSize: disp.code, minimap: { enabled: disp.minimap }, scrollBeyondLastLine: false, tabSize: 4 });
-    mon = m;
-    m.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, run);
-    m.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, save);
-    m.onDidChangeModelContent(() => markDirty(true));
-    ed = { get: () => m.getValue(), set: (t, lang) => { monaco.editor.setModelLanguage(m.getModel(), lang); m.setValue(t); },
-           selection: () => m.getModel().getValueInRange(m.getSelection()) };
+    defineMonacoThemes(); defineOdeLanguage();
+    mon = monaco.editor.create($("editor"), editorOptions({ model: null }));
+    EDS.add(mon);
+    mon.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => run());
+    mon.addCommand(monaco.KeyMod.Shift | monaco.KeyCode.Enter, () => run("cell"));
+    mon.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => save());
+    mon.onDidChangeCursorPosition((e) => { $("st-pos").textContent = `Ln ${e.position.lineNumber}, Col ${e.position.column}`; });
   } else {
-    const ta = document.createElement("textarea"); ta.id = "fallback"; ta.spellcheck = false; host.appendChild(ta);
-    ta.addEventListener("input", () => markDirty(true));
+    ta = document.createElement("textarea"); ta.id = "fallback"; ta.spellcheck = false; $("editor").appendChild(ta);
+    ta.addEventListener("input", () => { if (active && !active.nb) { active.text = ta.value; setDirty(active, active.text !== active.saved); } });
     ta.addEventListener("keydown", (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); run(); }
-      if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); save(); }
-      if (e.key === "Tab") { e.preventDefault(); const s = ta.selectionStart; ta.setRangeText("    ", s, ta.selectionEnd, "end"); markDirty(true); }
+      else if (e.shiftKey && e.key === "Enter") { e.preventDefault(); run("cell"); }
+      else if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); save(); }
+      else if (e.key === "Tab") { e.preventDefault(); const p = ta.selectionStart; ta.setRangeText("    ", p, ta.selectionEnd, "end"); ta.dispatchEvent(new Event("input")); }
     });
-    ed = { get: () => ta.value, set: (t) => { ta.value = t; }, selection: () => ta.value.slice(ta.selectionStart, ta.selectionEnd) };
   }
   applyDisplay();
-  if (OPEN) { try { await openFromRepo(OPEN); return; } catch (e) { toast("Could not open " + OPEN + ": " + e.message, 6000); } }
-  if (current) await openFile(current, true); else openExample(0, true);
+  await restoreTabs();
+  if (OPEN) { try { await openFromRepo(OPEN); } catch (e) { toast("Could not open " + OPEN + ": " + e.message, 6000); } }
+  if (!tabs.length) openExample(0, true);
 }
-function lang(path) { return /\.py$/.test(path) ? "python" : /\.(json)$/.test(path) ? "json" : /\.md$/.test(path) ? "markdown" : "plaintext"; }
-function markDirty(v) { dirty = v; $("dirty").textContent = v ? "● unsaved" : ""; if (v && current) store.set("draft:" + current, ed.get()); }
-function setName(p) { current = p; store.set("current", p); $("fname").textContent = p || "untitled.py";
-  document.querySelectorAll("#flist button").forEach((b) => b.setAttribute("aria-current", String(b.dataset.path === p))); }
+function getText(t) { return t.nb ? nbToJSON(t) : t.model ? t.model.getValue() : (t.text || ""); }
+function findTab(path) { return tabs.find((t) => t.path === path); }
+function openTab(path, text, o = {}) {
+  let t = findTab(path);
+  if (t) { activate(t); return t; }
+  t = { path, name: path.split("/").pop(), kind: o.scratch ? "scratch" : (o.kind || "file"), saved: o.saved !== undefined ? o.saved : text, dirty: false,
+        ex: o.ex, arrow: [], errd: [], cells: [] };
+  if (o.kind === "notebook") { nbLoad(t, text); }
+  else if (t.kind !== "image") {
+    t.text = text;
+    if (mon) {
+      t.model = monaco.editor.createModel(text, langOf(path));
+      t.model.onDidChangeContent(() => {
+        setDirty(t, t.model.getValue() !== t.saved);
+        if (t.errd.length) t.errd = t.model.deltaDecorations(t.errd, []);
+        clearTimeout(t.cellTimer); t.cellTimer = setTimeout(() => cellMarks(t), 300);
+      });
+      cellMarks(t);
+    }
+  }
+  tabs.push(t);
+  if (o.dirty) setDirty(t, true);
+  activate(t); persistTabs();
+  return t;
+}
+function showView(v) {
+  $("editor").style.display = v === "code" ? "" : "none";
+  $("imgview").style.display = v === "image" ? "block" : "none";
+  $("nbview").style.display = v === "notebook" ? "block" : "none";
+  $("nofile").style.display = v === "none" ? "grid" : "none";
+  $("runcell").hidden = v === "notebook"; $("run").hidden = v === "notebook" || v === "image" || v === "none";
+}
+function activate(t) {
+  if (active && active.model && mon) active.view = mon.saveViewState();
+  active = t;
+  if (!t) { showView("none"); $("crumb").textContent = ""; renderTabs(); return; }
+  if (t.kind === "image") {
+    showView("image"); $("imgview").innerHTML = `<img alt="${esc(t.name)}" src="${API}/raw?path=${encodeURIComponent(t.path)}&t=${Date.now()}">`;
+  } else if (t.nb) { showView("notebook"); nbShow(t); }
+  else {
+    showView("code");
+    if (mon) { mon.setModel(t.model); if (t.view) mon.restoreViewState(t.view); mon.focus(); }
+    else if (ta) ta.value = t.text || "";
+  }
+  $("crumb").textContent = (t.kind === "scratch" ? "not saved yet: " : "") + t.path;
+  $("st-lang").textContent = t.kind === "image" ? "Image" : t.nb ? "Notebook" : langName[langOf(t.path)];
+  store.set("active", t.path); renderTabs(); markTree();
+}
+function setDirty(t, v) {
+  if (t.dirty === v && !v) return;
+  t.dirty = v;
+  if (v) store.set("draft:" + t.path, getText(t)); else try { localStorage.removeItem("pyxpp-ed:draft:" + t.path); } catch (e) {}
+  renderTabs();
+}
+function renderTabs() {
+  const bar = $("tabs"); bar.innerHTML = "";
+  for (const t of tabs) {
+    const d = document.createElement("div");
+    d.className = "tab" + (t === active ? " active" : "") + (t.dirty ? " dirty" : "") + (t.kind === "scratch" ? " scratch" : "") + (t.running ? " running" : "");
+    d.setAttribute("role", "tab"); d.setAttribute("aria-selected", String(t === active)); d.title = t.path + (t.dirty ? " (not saved)" : "");
+    d.innerHTML = `<span class="nm">${esc(t.name)}</span><button type="button" class="x" aria-label="Close ${esc(t.name)}"></button>`;
+    d.onclick = (e) => { if (!e.target.classList.contains("x")) activate(t); };
+    d.onauxclick = (e) => { if (e.button === 1) { e.preventDefault(); closeTab(t); } };
+    d.querySelector(".x").onclick = (e) => { e.stopPropagation(); closeTab(t); };
+    bar.appendChild(d);
+    if (t === active) d.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+}
+async function closeTab(t) {
+  if (t.dirty) {
+    const a = await dialog("Close " + t.name + "?", "<p>It has changes that are not saved.</p>",
+      [["Cancel", "no"], ["Close without saving", "drop", "danger"], ["Save", "save", "primary"]]);
+    if (a === "save") { if (!(await save(t))) return; } else if (a !== "drop") return;
+    setDirty(t, false);
+  }
+  const i = tabs.indexOf(t); tabs.splice(i, 1);
+  if (t.model) t.model.dispose();
+  if (t.nb) nbDispose(t);
+  if (active === t) activate(tabs[Math.min(i, tabs.length - 1)] || null); else renderTabs();
+  persistTabs();
+}
+function persistTabs() { store.set("tabs", tabs.map((t) => ({ path: t.path, kind: t.kind, ex: t.ex, nb: !!t.nb }))); }
+async function restoreTabs() {
+  const list = store.get("tabs", []), want = store.get("active", null);
+  for (const x of list) {
+    try {
+      if (x.kind === "image") openTab(x.path, "", { kind: "image" });
+      else if (x.kind === "scratch") {
+        const draft = store.get("draft:" + x.path, null);
+        if (draft !== null) openTab(x.path, draft, x.nb ? { kind: "notebook", scratch: true } : { kind: "scratch", saved: "", dirty: true });
+        else if (x.ex !== undefined && EXAMPLES[x.ex]) openExample(x.ex, true);
+      } else await openFile(x.path, true);
+    } catch (e) {}
+  }
+  const t = want && findTab(want); if (t) activate(t);
+}
 
-// ---------------------------------------------------------------- files
+// ---------------------------------------------------------------- files: the explorer
+let fileSet = new Set(), dirSet = new Set();
+const collapsed = new Set(store.get("collapsed", []));
+function setFolder(wd) {
+  status.workdir = wd;
+  const name = wd.split(/[\\/]/).filter(Boolean).pop() || wd;
+  $("foldername").textContent = name; $("foldername").title = wd;
+  $("st-folder").textContent = "📁 " + wd;
+}
+function iconOf(p) {
+  if (/\.py$/i.test(p)) return ["py", "◆"]; if (/\.ipynb$/i.test(p)) return ["py", "▤"]; if (/\.(ode|xps)$/i.test(p)) return ["ode", "∿"];
+  if (IMG.test(p)) return ["img", "▣"]; return ["", "≡"];
+}
 async function listFiles() {
   let d; try { d = await api("/files"); } catch (e) { return; }
-  const ul = $("flist"); ul.innerHTML = ""; let lastDir = null;
-  for (const f of d.files) {
-    const parts = f.path.split("/"); const dir = parts.slice(0, -1).join("/");
-    if (dir !== lastDir && dir) { const h = document.createElement("li"); h.className = "dir"; h.textContent = dir + "/"; ul.appendChild(h); }
-    lastDir = dir;
-    const li = document.createElement("li"); const b = document.createElement("button"); b.type = "button";
-    b.textContent = (dir ? "  " : "") + parts[parts.length - 1]; b.dataset.path = f.path; b.title = f.path;
-    b.setAttribute("aria-current", String(f.path === current));
-    b.onclick = () => f.text ? openFile(f.path) : window.open(API + "/raw?path=" + encodeURIComponent(f.path), "_blank");
-    li.appendChild(b); ul.appendChild(li);
-  }
-  if (!d.files.length) { const li = document.createElement("li"); li.className = "dir"; li.textContent = "no files yet: Save, or pick an example"; ul.appendChild(li); }
+  fileSet = new Set(d.files.map((f) => f.path)); dirSet = new Set(d.dirs || []);
+  const root = { dirs: {}, files: [] };
+  const node = (path) => { let n = root; if (!path) return n; for (const part of path.split("/")) n = n.dirs[part] = n.dirs[part] || { dirs: {}, files: [] }; return n; };
+  for (const dir of dirSet) node(dir);
+  for (const f of d.files) { const parts = f.path.split("/"); node(parts.slice(0, -1).join("/")).files.push(f); }
+  const ul = $("tree"); ul.innerHTML = "";
+  const build = (n, prefix, depth, into) => {
+    for (const name of Object.keys(n.dirs).sort((a, b) => a.localeCompare(b))) {
+      const path = prefix ? prefix + "/" + name : name, open = !collapsed.has(path);
+      const li = document.createElement("li"); li.setAttribute("role", "treeitem"); li.setAttribute("aria-expanded", String(open));
+      const b = document.createElement("button"); b.type = "button"; b.dataset.dir = path; b.style.paddingLeft = (8 + depth * 14) + "px";
+      b.innerHTML = `<span class="ic">${open ? "▾" : "▸"}</span><span>${esc(name)}</span>`;
+      b.onclick = () => { open ? collapsed.add(path) : collapsed.delete(path); store.set("collapsed", [...collapsed]); listFiles(); };
+      b.oncontextmenu = (e) => { e.preventDefault(); dirMenu(e, path); };
+      li.appendChild(b); into.appendChild(li);
+      if (open) { const sub = document.createElement("ul"); sub.setAttribute("role", "group"); li.appendChild(sub); build(n.dirs[name], path, depth + 1, sub); }
+    }
+    for (const f of n.files.sort((a, b) => a.path.localeCompare(b.path))) {
+      const [cls, ic] = iconOf(f.path);
+      const li = document.createElement("li"); li.setAttribute("role", "treeitem");
+      const b = document.createElement("button"); b.type = "button"; b.dataset.path = f.path; b.title = f.path; b.style.paddingLeft = (8 + depth * 14) + "px";
+      b.innerHTML = `<span class="ic ${cls}">${ic}</span><span>${esc(f.path.split("/").pop())}</span>`;
+      b.onclick = () => openPath(f.path, f.text);
+      b.oncontextmenu = (e) => { e.preventDefault(); fileMenu(e, f.path, f.text); };
+      li.appendChild(b); into.appendChild(li);
+    }
+  };
+  build(root, "", 0, ul);
+  if (!d.files.length && !dirSet.size) ul.innerHTML = `<li class="empty">This folder is empty: + File, or open an example below and Save it.</li>`;
+  markTree();
+}
+function markTree() { document.querySelectorAll("#tree button[data-path]").forEach((b) => b.setAttribute("aria-current", String(!!active && b.dataset.path === active.path))); }
+function openPath(path, isText) {
+  if (IMG.test(path)) return openTab(path, "", { kind: "image" });
+  if (isText === false && !/\.ipynb$/i.test(path)) return window.open(API + "/raw?path=" + encodeURIComponent(path), "_blank");
+  return openFile(path);
 }
 async function openFile(path, quiet) {
-  if (dirty && !quiet && !confirm("Discard the unsaved changes?")) return;
+  const open = findTab(path); if (open) { activate(open); return open; }
   try {
     const d = await api("/file?path=" + encodeURIComponent(path));
-    const draft = store.get("draft:" + path, null);
-    ed.set(draft !== null && draft !== d.text ? draft : d.text, lang(path)); setName(path);
-    markDirty(draft !== null && draft !== d.text);
-  } catch (e) { if (!quiet) toast(e.message); else openExample(0, true); }
+    const draft = store.get("draft:" + path, null), changed = draft !== null && draft !== d.text;
+    if (/\.ipynb$/i.test(path)) return openTab(path, changed ? draft : d.text, { kind: "notebook", saved: d.text, dirty: changed });
+    return openTab(path, changed ? draft : d.text, { saved: d.text, dirty: changed });
+  } catch (e) { if (!quiet) toast(e.message, 4000); return null; }
 }
-async function save() {
-  let path = current;
-  if (!path) { path = prompt("Save as (in your work folder):", "my_model.py"); if (!path) return; }
-  try { await api("/file", { method: "PUT", body: { path, text: ed.get() } }); setName(path); markDirty(false);
-        try { localStorage.removeItem("pyxpp-ed:draft:" + path); } catch (e) {} toast("Saved " + path); listFiles(); }
-  catch (e) { toast(e.message, 5000); }
+async function save(t = active) {
+  if (!t || t.kind === "image") return false;
+  let path = t.path;
+  if (t.kind === "scratch" && fileSet.has(path)) {
+    const a = await dialog("Save " + path, `<p>A file <b>${esc(path)}</b> is already in the folder.</p>`,
+      [["Cancel", "no"], ["Save as…", "as"], ["Replace it", "yes", "danger"]]);
+    if (a === "as") { path = prompt("Save as:", path.replace(/(\.\w+)$/, "_2$1")); if (!path) return false; }
+    else if (a !== "yes") return false;
+  }
+  const text = getText(t);
+  try {
+    await api("/file", { method: "PUT", body: { path, text } });
+    if (path !== t.path) { try { localStorage.removeItem("pyxpp-ed:draft:" + t.path); } catch (e) {} t.path = path; t.name = path.split("/").pop(); }
+    t.saved = text; t.kind = t.nb ? "notebook" : "file"; t.ex = undefined; setDirty(t, false);
+    if (t === active) $("crumb").textContent = t.path;
+    persistTabs(); toast("Saved " + path); listFiles(); return true;
+  } catch (e) { toast(e.message, 5000); return false; }
 }
-$("save").onclick = save;
+$("save").onclick = () => save();
 $("frefresh").onclick = listFiles;
-$("fnew").onclick = async () => {
-  if (dirty && !confirm("Discard the unsaved changes?")) return;
-  const path = prompt("New file (.py or .ode):", "untitled.py"); if (!path) return;
-  ed.set(path.endsWith(".ode") ? "# a model\nx'=-x\ninit x=1\n@ total=10\ndone\n" : "import pyxpp\n", lang(path));
-  setName(path); markDirty(true);
-};
+async function newFile(dir) {
+  const name = prompt("New file (.py, .ode or .ipynb):", (dir ? dir + "/" : "") + "untitled.py"); if (!name) return;
+  if (fileSet.has(name)) return openFile(name);
+  if (/\.ipynb$/i.test(name)) return openTab(name, JSON.stringify(newNotebook()), { kind: "notebook", scratch: true, dirty: true });
+  const tpl = /\.ode$/i.test(name) ? "# a model\nx'=-x\ninit x=1\n@ total=10\ndone\n" : "import numpy as np\nimport matplotlib.pyplot as plt\nimport pyxpp\n\n";
+  openTab(name, tpl, { kind: "scratch", saved: "", dirty: true });
+}
+async function newFolder(dir) {
+  const name = prompt("New folder:", (dir ? dir + "/" : "") + "new-folder"); if (!name) return;
+  try { await api("/mkdir", { method: "POST", body: { path: name } }); listFiles(); } catch (e) { toast(e.message, 4000); }
+}
+$("fnew").onclick = () => newFile("");
+$("fnewdir").onclick = () => newFolder("");
+function menu(e, items) {
+  document.querySelectorAll(".menu").forEach((m) => m.remove());
+  const m = document.createElement("div"); m.className = "menu"; m.setAttribute("role", "menu");
+  for (const it of items) {
+    if (it === "-") { m.appendChild(document.createElement("hr")); continue; }
+    const b = document.createElement("button"); b.type = "button"; b.textContent = it[0]; b.setAttribute("role", "menuitem");
+    b.onclick = () => { m.remove(); it[1](); }; m.appendChild(b);
+  }
+  document.body.appendChild(m);
+  const r = m.getBoundingClientRect();
+  m.style.left = Math.min(e.clientX, innerWidth - r.width - 8) + "px"; m.style.top = Math.min(e.clientY, innerHeight - r.height - 8) + "px";
+  m.querySelector("button")?.focus();
+  setTimeout(() => document.addEventListener("mousedown", function off(ev) { if (!m.contains(ev.target)) { m.remove(); document.removeEventListener("mousedown", off); } }), 0);
+  m.addEventListener("keydown", (ev) => { if (ev.key === "Escape") m.remove(); });
+}
+const absPath = (rel) => status.workdir.replace(/[\\/]$/, "") + "/" + rel;
+function fileMenu(e, path, isText) {
+  menu(e, [["Open", () => openPath(path, isText)],
+    ...(/\.(py|ipynb|ode)$/i.test(path) ? [["Run", async () => { const t = await openPath(path, true); if (t) run(); }]] : []),
+    "-", ["Rename…", () => rename(path)], ["Delete…", () => del(path)], "-",
+    ["Copy path", () => navigator.clipboard.writeText(absPath(path)).then(() => toast("Copied " + absPath(path)), () => {})],
+    ["Download", () => { const a = document.createElement("a"); a.href = API + "/raw?path=" + encodeURIComponent(path); a.download = path.split("/").pop(); a.click(); }]]);
+}
+function dirMenu(e, path) {
+  menu(e, [["New file here…", () => newFile(path)], ["New folder here…", () => newFolder(path)], "-",
+    ["Rename…", () => rename(path)], ["Copy path", () => navigator.clipboard.writeText(absPath(path)).then(() => toast("Copied"), () => {})]]);
+}
+async function rename(path) {
+  if (!(status.api >= 2)) return toast("Update pyauto-xpp (0.7 or newer) to rename here");
+  const to = prompt("New name:", path); if (!to || to === path) return;
+  try {
+    await api("/rename", { method: "POST", body: { from: path, to } });
+    for (const t of tabs) if (t.path === path || t.path.startsWith(path + "/")) { t.path = to + t.path.slice(path.length); t.name = t.path.split("/").pop(); }
+    persistTabs(); renderTabs(); if (active) $("crumb").textContent = active.path; listFiles();
+  } catch (e) { toast(e.message, 4000); }
+}
+async function del(path) {
+  const a = await dialog("Delete " + path.split("/").pop() + "?", `<p class="fpath">${esc(absPath(path))}</p><p>It is deleted from your disk (not to a bin).</p>`,
+    [["Cancel", "no"], ["Delete", "yes", "danger"]]);
+  if (a !== "yes") return;
+  try { await api("/file?path=" + encodeURIComponent(path), { method: "DELETE" }); const t = findTab(path); if (t) { t.dirty = false; closeTab(t); } listFiles(); }
+  catch (e) { toast(e.message, 4000); }
+}
+
+// "Open folder…": any folder in your home folder (pyxpp serve remembers it and starts there next time)
+async function openFolder() {
+  if (!(status.api >= 2)) return toast("Update pyauto-xpp (0.7 or newer) to open other folders");
+  let cur = "";
+  const draw = async () => {
+    const list = $("fblist"), path = $("fbpath");
+    let d; try { d = await api("/dirs?path=" + encodeURIComponent(cur)); } catch (e) { list.innerHTML = `<li class="note" style="padding:6px 10px">${esc(e.message)}</li>`; return; }
+    path.textContent = d.abs; $("dlgb").dataset.abs = d.abs; list.innerHTML = "";
+    if (d.path) { const li = document.createElement("li"); li.innerHTML = `<button type="button">⬑ ..</button>`;
+      li.firstChild.onclick = () => { cur = d.path.split("/").slice(0, -1).join("/"); draw(); }; list.appendChild(li); }
+    for (const n of d.dirs) { const li = document.createElement("li"); li.innerHTML = `<button type="button">📁 ${esc(n)}</button>`;
+      li.firstChild.onclick = () => { cur = (d.path ? d.path + "/" : "") + n; draw(); }; list.appendChild(li); }
+    if (!d.dirs.length) list.insertAdjacentHTML("beforeend", `<li class="note" style="padding:6px 10px">no folders inside</li>`);
+  };
+  const recent = (status.recent || []).filter((r) => r !== status.workdir);
+  const p = dialog("Open a folder", `<p class="note">Pick the folder to work in (inside your home folder): your files, models and results.
+     pyxpp remembers it and starts there next time.</p>
+     ${recent.length ? `<p><b>Recent</b></p><ul class="fbrowse">${recent.map((r) => `<li><button type="button" data-recent="${esc(r)}">🕘 ${esc(r)}</button></li>`).join("")}</ul>` : ""}
+     <p><b>Browse</b></p><div class="fpath" id="fbpath"></div><ul class="fbrowse" id="fblist"></ul>`, [["Cancel", "no"], ["Open this folder", "open", "primary"]]);
+  $("dlgb").querySelectorAll("[data-recent]").forEach((b) => b.onclick = () => { $("dlgb").dataset.abs = b.dataset.recent; $("dlg").close("open"); });
+  await draw();
+  if (await p !== "open") return;
+  const target = $("dlgb").dataset.abs;
+  if (tabs.some((t) => t.dirty && t.kind === "file")) {
+    const a = await dialog("Unsaved files", "<p>Files of this folder have unsaved changes; they are closed when you switch.</p>", [["Cancel", "no"], ["Switch anyway", "yes", "danger"]]);
+    if (a !== "yes") return;
+  }
+  try {
+    const r = await api("/workdir", { method: "POST", body: { path: target } });
+    for (const t of [...tabs]) if (t.kind === "file" || t.kind === "image" || (t.nb && t.kind !== "scratch")) { t.dirty = false; await closeTab(t); }
+    status.recent = r.recent; setFolder(r.workdir); listFiles(); toast("Working in " + r.workdir);
+  } catch (e) { toast(e.message, 5000); }
+}
+$("fopen").onclick = openFolder; $("st-folder").onclick = () => { if (status.api >= 2) openFolder(); };
 
 // ---------------------------------------------------------------- examples
 const EXAMPLES = [
@@ -793,14 +1165,15 @@ ax.set(xlim=(-9, 2), ylim=(-5, 3), title="Ikeda-type map: stable manifold of a s
 plt.show()
 `],
 ];
-const sel = $("examples");
-EXAMPLES.forEach(([title], i) => { const o = document.createElement("option"); o.value = String(i); o.textContent = title; sel.appendChild(o); });
-sel.onchange = () => { if (sel.value !== "") openExample(+sel.value); sel.value = ""; };
+
+const exsel = $("examples");
+EXAMPLES.forEach(([title], i) => { const o = document.createElement("option"); o.value = String(i); o.textContent = title; exsel.appendChild(o); });
+exsel.onchange = () => { if (exsel.value !== "") openExample(+exsel.value); exsel.value = ""; };
 function openExample(i, quiet) {
-  if (dirty && !quiet && !confirm("Discard the unsaved changes?")) return;
   const [, file, code] = EXAMPLES[i];
-  ed.set(code, "python"); setName(file); markDirty(false);   // unchanged examples are not "unsaved"
-  if (!quiet) toast("Example " + file + " (Save to keep it in your work folder)");
+  const open = findTab(file); if (open) return activate(open);
+  openTab(file, code, { kind: "scratch", saved: code, ex: i });     // unchanged examples are not "unsaved"
+  if (!quiet) toast("Example " + file + ": Save keeps it in your folder");
 }
 
 // ---------------------------------------------------------------- ?open=<file of the pyauto-xpp repository>
@@ -810,14 +1183,13 @@ const OPEN = (() => { const o = qs.get("open"); return o && /^[A-Za-z0-9_][A-Za-
 if (OPEN) { const n = $("opennote"); n.hidden = false;
   n.innerHTML = `<b>${esc(OPEN.split("/").pop())}</b> opens in the editor as soon as pyauto-xpp is connected.`; }
 function ipynbToPy(nb, path) {
-  const out = [`# ${path}`, "# from the pyauto-xpp repository, converted from the notebook: the text cells are comments,",
-               "# each \"# %%\" starts a cell.  Run runs it all (select lines to run only those); figures appear on the right.", ""];
+  const out = [`# ${path}`, "# converted from the notebook: the text cells are comments, each \"# %%\" starts a cell", ""];
   for (const c of nb.cells || []) {
     const src = Array.isArray(c.source) ? c.source.join("") : (c.source || "");
     if (!src.trim()) continue;
     if (c.cell_type === "markdown") out.push("# %% [markdown]\n" + src.split("\n").map((l) => ("# " + l).trimEnd()).join("\n"));
     else if (c.cell_type === "code") {
-      if (src.includes("google.colab")) continue;                // the Colab install cell
+      if (src.includes("google.colab")) continue;
       out.push("# %%\n" + src.split("\n").map((l) => l.replace(/^(\s*)([%!].*)$/, "$1pass  # $2")).join("\n"));
     }
   }
@@ -826,58 +1198,408 @@ function ipynbToPy(nb, path) {
 async function openFromRepo(path) {
   const r = await fetch(REPO_RAW + path, { cache: "no-store" });
   if (!r.ok) throw new Error(`${path}: ${r.status} ${r.statusText}`);
-  let text = await r.text(), name = path.split("/").pop();
-  if (name.endsWith(".ipynb")) { text = ipynbToPy(JSON.parse(text), path); name = name.replace(/\.ipynb$/, ".py"); }
-  if (dirty && !confirm("Discard the unsaved changes?")) return;
-  ed.set(text, lang(name)); setName(name); markDirty(true);
+  const text = await r.text(), name = path.split("/").pop();
+  const open = findTab(name); if (open) await closeTab(open);
+  if (name.endsWith(".ipynb")) openTab(name, text, { kind: "notebook", scratch: true, dirty: true });
+  else openTab(name, text, { kind: "scratch", saved: "", dirty: true });
   history.replaceState(null, "", location.pathname + (qs.get("port") ? "?port=" + qs.get("port") : ""));
-  toast(`${path} is open: press Run (Save keeps it in your work folder)`, 5000);
+  toast(`${path} is open${name.endsWith(".ipynb") ? " as a notebook: Run all, or run the cells one by one" : ": press Run"}. Save keeps it in your folder.`, 6000);
 }
 
-// ---------------------------------------------------------------- run
-let job = null, session = "main";
-const out = $("out");
-function outBlock(title) { const d = document.createElement("div"); d.className = "run"; d.textContent = title; out.appendChild(d);
-  const pre = document.createElement("pre"); out.appendChild(pre); return pre; }
-async function run() {
-  if (!connected || job) return;
-  let code = ed.get(), file = current || "<editor>";
-  const sel = ed.selection();
-  if (sel && sel.trim()) { code = sel; file = "<selection>"; }
-  if (/\.ode$/.test(current || "") && !(sel && sel.trim())) {
-    // an .ode file: save it, load it, run it, plot every variable against time
-    await save();
-    code = `import pyxpp, matplotlib.pyplot as plt\nm = pyxpp.load(${JSON.stringify(current)})\ntr = m.run()\n` +
-      `print(m)\nfig, ax = plt.subplots(figsize=(6, 3.6))\nfor v in m.vars:\n    ax.plot(tr["t"], tr[v], label=v)\n` +
-      `ax.set(xlabel="t"); ax.legend(fontsize=8); plt.show()\n`;
-    file = current;
-  }
-  let pre = outBlock(`▶ ${file}  ${new Date().toLocaleTimeString()}`);
-  $("run").disabled = true; $("stop").disabled = false; $("runinfo").textContent = "running…";
+// ---------------------------------------------------------------- running: one engine for files, cells, the console
+let job = null; const session = "main";
+function setRunning(on, label) {
+  const rb = $("run"), sb = $("stop");
+  rb.disabled = on; $("runcell").disabled = on; document.querySelectorAll(".nbrun").forEach((b) => b.disabled = on);
+  rb.innerHTML = on ? `<span class="spin"></span>Running` : "▶ Run";
+  sb.disabled = !on; sb.classList.toggle("live", on);
+  if (!on) { $("st-run").textContent = ""; $("st-run").className = ""; }
+}
+function stRun(text, cls) { const s = $("st-run"); s.textContent = text; s.className = cls || ""; }
+async function runJob(o) {
+  if (!connected) { toast("Not connected to pyxpp"); return null; }
+  if (job) { toast("A run is still going: wait for it, or Stop it"); return null; }
+  setRunning(true, o.label);
+  let r;
+  try { r = await api("/run", { method: "POST", body: { code: o.code, file: o.file, line0: o.line0 || 0, mode: o.mode || "exec", session } }); }
+  catch (e) { setRunning(false); toast(e.message, 5000); return null; }
+  job = r.job;
+  const t0 = performance.now(); let from = 0, line = null;
+  const tick = () => { const sec = ((performance.now() - t0) / 1000).toFixed(1); o.onTick && o.onTick(sec);
+    stRun(`● running${line ? " line " + line : ""} · ${sec} s`, "live"); };
+  const timer = setInterval(tick, 100); tick();
   try {
-    const r = await api("/run", { method: "POST", body: { code, file, session } });
-    job = r.job; let from = 0;
     for (;;) {
       const d = await api(`/job/${job}?from=${from}`);
-      for (const c of d.chunks) {
-        if (c.t === "out") { pre.textContent += c.text; }
-        else if (c.t === "fig") { const img = new Image(); img.alt = "figure"; img.src = "data:image/png;base64," + c.png; out.appendChild(img);
-          pre = document.createElement("pre"); out.appendChild(pre); }
-      }
+      for (const c of d.chunks) o.onChunk(c);
       from = d.next;
-      if (d.chunks.length) out.scrollTop = out.scrollHeight;
-      if (d.done) { $("runinfo").textContent = `${d.ok ? "done" : "stopped with an error"} in ${d.seconds} s`;
-        if (!d.ok) pre.classList.add("err"); break; }
-      await new Promise((res) => setTimeout(res, d.chunks.length ? 80 : 250));
+      if (d.line !== undefined && d.line !== line) { line = d.line; o.onLine && o.onLine(line); }
+      if (d.done) return d;
+      await sleep(d.chunks.length ? 60 : 150);
     }
-  } catch (e) { pre.textContent += "\n" + e.message; pre.classList.add("err"); $("runinfo").textContent = "";
-  } finally { job = null; $("run").disabled = false; $("stop").disabled = true; out.scrollTop = out.scrollHeight; listFiles(); }
+  } catch (e) { o.onChunk({ t: "out", text: "\n(" + e.message + ")\n" }); return { ok: false, seconds: 0 };
+  } finally { clearInterval(timer); job = null; setRunning(false); o.onLine && o.onLine(null); }
 }
-$("run").onclick = run;
 $("stop").onclick = async () => { try { await api("/stop", { method: "POST", body: { session } }); } catch (e) {} };
-$("restart").onclick = async () => { try { await api("/stop", { method: "POST", body: { session } }); toast("A fresh Python starts with the next run"); } catch (e) {} };
-$("clear").onclick = () => { out.innerHTML = ""; $("runinfo").textContent = ""; };
-window.addEventListener("beforeunload", (e) => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
+$("restart").onclick = async () => {
+  try { await api("/stop", { method: "POST", body: { session } }); toast("A fresh Python starts with the next run");
+        for (const t of tabs) if (t.nb) { t.counter = 0; } } catch (e) {} };
+
+// the output panel: one block per run
+const out = $("out");
+function outBlock(label) {
+  out.querySelector(".hint")?.remove();
+  const el = document.createElement("div"); el.className = "blk live";
+  el.innerHTML = `<div class="bh"><span class="lbl">${esc(label)}</span><span class="st"><span class="spin"></span> 0.0 s</span></div><div class="bb"><pre></pre></div>`;
+  out.appendChild(el);
+  el.querySelector(".bh").onclick = () => el.classList.toggle("closed");
+  const bb = el.querySelector(".bb"); let pre = bb.querySelector("pre");
+  const stick = () => { if (out.scrollHeight - out.scrollTop - out.clientHeight < 120) out.scrollTop = out.scrollHeight; };
+  out.scrollTop = out.scrollHeight;
+  return {
+    add(c) {
+      if (c.t === "out") pre.textContent += c.text;
+      else if (c.t === "fig") { bb.appendChild(figImg(c.png)); pre = document.createElement("pre"); bb.appendChild(pre); }
+      stick();
+    },
+    tick(sec) { el.querySelector(".st").innerHTML = `<span class="spin"></span> ${sec} s`; },
+    done(d, file) {
+      el.classList.remove("live"); el.classList.add(d.ok ? "ok" : "bad");
+      el.querySelector(".st").textContent = `${d.ok ? "✓" : "✗"} ${d.seconds} s`;
+      if (!d.ok) { const pres = bb.querySelectorAll("pre"); if (pres.length) pres[pres.length - 1].classList.add("err"); }
+      linkify(bb, file); stick();
+    },
+  };
+}
+function figImg(b64) {
+  const img = new Image(); img.alt = "figure"; img.src = "data:image/png;base64," + b64; img.title = "Click to enlarge";
+  img.onclick = () => lightbox(img.src); return img;
+}
+let figN = 0;
+function lightbox(src) {
+  const lb = document.createElement("div"); lb.className = "lightbox"; lb.setAttribute("role", "dialog");
+  lb.innerHTML = `<img alt="figure" src="${src}"><div class="row"><a download="figure-${++figN}.png" href="${src}"><button type="button" class="primary">Download PNG</button></a>
+    <button type="button" id="lbclose">Close</button></div>`;
+  const close = () => { lb.remove(); document.removeEventListener("keydown", k); };
+  const k = (e) => { if (e.key === "Escape") close(); };
+  lb.onclick = (e) => { if (e.target === lb || e.target.id === "lbclose") close(); };
+  document.addEventListener("keydown", k); document.body.appendChild(lb); lb.querySelector("#lbclose").focus();
+}
+function linkify(root, file) {
+  if (!file) return;
+  const re = new RegExp(`File &quot;(${file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/"/g, "&quot;")})&quot;, line (\\d+)`, "g");
+  root.querySelectorAll("pre").forEach((p) => {
+    if (!p.textContent.includes(", line ")) return;
+    p.innerHTML = esc(p.textContent).replace(re, (m, f, n) => `<span class="tbl" data-line="${n}" title="Go to line ${n}">${m}</span>`);
+  });
+  root.querySelectorAll(".tbl").forEach((s) => s.onclick = () => gotoLine(file, +s.dataset.line));
+}
+function gotoLine(file, n) {
+  const cm = /^\[cell (\d+)\]$/.exec(file);
+  if (cm && active && active.nb) { const c = active.cells.filter((c) => c.type === "code")[+cm[1] - 1]; if (c) { nbSelect(active, active.cells.indexOf(c)); c.ed?.revealLine(n); c.ed?.setPosition({ lineNumber: n, column: 1 }); c.ed?.focus(); } return; }
+  const t = findTab(file); if (!t) return;
+  activate(t);
+  if (mon && t.model) { mon.revealLineInCenter(n); mon.setPosition({ lineNumber: n, column: 1 }); mon.focus(); }
+}
+// decorations: the running line, an error line, the "# %%" cell starts
+function arrowOn(ed, model, deco, n) {
+  if (!model) return deco;
+  const nd = model.deltaDecorations(deco || [], n ? [{ range: new monaco.Range(n, 1, n, 1),
+    options: { isWholeLine: true, className: "runline", glyphMarginClassName: "runarrow", glyphMarginHoverMessage: { value: "running now" } } }] : []);
+  if (n && ed && ed.getModel() === model) ed.revealLineInCenterIfOutsideViewport(n);
+  return nd;
+}
+function errorOn(ed, model, deco, n) {
+  if (!model) return deco;
+  const nd = model.deltaDecorations(deco || [], n ? [{ range: new monaco.Range(n, 1, n, 1),
+    options: { isWholeLine: true, className: "errline", glyphMarginClassName: "errglyph", glyphMarginHoverMessage: { value: "the error came from this line" } } }] : []);
+  if (n && ed && ed.getModel() === model) ed.revealLineInCenterIfOutsideViewport(n);
+  return nd;
+}
+function cellMarks(t) {
+  if (!t.model || langOf(t.path) !== "python") return;
+  const lines = t.model.getLinesContent(), decos = [];
+  lines.forEach((l, i) => { if (/^\s*#\s*%%/.test(l) && i > 0) decos.push({ range: new monaco.Range(i + 1, 1, i + 1, 1), options: { isWholeLine: true, className: "cellline" } }); });
+  t.cellDeco = t.model.deltaDecorations(t.cellDeco || [], decos);
+}
+function cellAt(lines, n) {                // n: 1-based cursor line -> [first, last] lines of its "# %%" cell
+  let a = 1, z = lines.length;
+  for (let i = n; i >= 1; i--) if (/^\s*#\s*%%/.test(lines[i - 1])) { a = i + 1; break; }
+  for (let i = n + 1; i <= lines.length; i++) if (/^\s*#\s*%%/.test(lines[i - 1])) { z = i - 1; break; }
+  if (a > n && n >= 1 && /^\s*#\s*%%/.test(lines[n - 1])) a = n + 1;
+  return [a, Math.max(a, z)];
+}
+async function run(mode) {
+  const t = active;
+  if (!t || t.kind === "image") return;
+  if (t.nb) return nbRunCell(t, t.sel, true);
+  let code = getText(t), line0 = 0, label = t.name, smode = "exec";
+  if (/\.(ode|xps)$/i.test(t.path)) {
+    if (!(await save(t))) return;
+    code = `import pyxpp, matplotlib.pyplot as plt\nm = pyxpp.load(${JSON.stringify(t.path)})\ntr = m.run()\n` +
+      `print(m)\nfig, ax = plt.subplots(figsize=(6, 3.6))\nfor v in m.vars:\n    ax.plot(tr["t"], tr[v], label=v)\n` +
+      `ax.set(xlabel="t"); ax.legend(fontsize=8); plt.show()\n`;
+    label = `${t.name}: integrate and plot`;
+  } else if (mon && t.model) {
+    const sel = mon.getSelection(), lines = t.model.getLinesContent();
+    if (mode === "cell") {
+      const [a, z] = cellAt(lines, mon.getPosition().lineNumber);
+      code = lines.slice(a - 1, z).join("\n"); line0 = a - 1; label = `${t.name}: cell, lines ${a}–${z}`; smode = "cell";
+      // like Jupyter: the cursor moves on to the next cell
+      const next = lines.findIndex((l, i) => i >= z && /^\s*#\s*%%/.test(l));
+      if (next >= 0) { mon.setPosition({ lineNumber: Math.min(next + 2, lines.length), column: 1 }); mon.revealLineInCenterIfOutsideViewport(next + 2); }
+    } else if (sel && !sel.isEmpty()) {
+      const a = sel.startLineNumber, z = sel.endColumn === 1 && sel.endLineNumber > a ? sel.endLineNumber - 1 : sel.endLineNumber;
+      code = lines.slice(a - 1, z).join("\n"); line0 = a - 1; label = `${t.name}: lines ${a}–${z}`; smode = "cell";
+    }
+  }
+  const blk = outBlock(`▶ ${label}  ·  ${new Date().toLocaleTimeString()}`);
+  if (t.model) t.errd = t.model.deltaDecorations(t.errd, []);
+  t.running = true; renderTabs();
+  const d = await runJob({ code, file: t.path, line0, mode: smode, label, onChunk: (c) => blk.add(c), onTick: (s) => blk.tick(s),
+    onLine: (n) => { if (t.model) t.arrow = arrowOn(mon, t.model, t.arrow, n); } });
+  t.running = false; renderTabs();
+  if (!d) { blk.done({ ok: false, seconds: 0 }); return; }
+  blk.done(d, t.path);
+  if (d.err_line && t.model) { if (active !== t) activate(t); t.errd = errorOn(mon, t.model, t.errd, d.err_line); stRun(`✗ error on line ${d.err_line}`, "bad"); }
+  else stRun(d.ok ? `✓ done in ${d.seconds} s` : "✗ stopped", d.ok ? "okc" : "bad");
+  setTimeout(() => { if (!job) stRun(""); }, 6000);
+  listFiles();
+}
+$("run").onclick = () => run();
+$("runcell").onclick = () => run("cell");
+$("clear").onclick = () => { out.innerHTML = ""; };
+$("foldall").onclick = () => { const b = [...out.querySelectorAll(".blk")]; const close = b.some((x) => !x.classList.contains("closed")); b.forEach((x) => x.classList.toggle("closed", close)); };
+
+// the console line: Python in the same session, the value of an expression is printed
+const hist = store.get("history", []); let hpos = hist.length;
+$("cin").addEventListener("keydown", async (e) => {
+  const inp = e.target;
+  if (e.key === "ArrowUp" && hpos > 0) { e.preventDefault(); inp.value = hist[--hpos]; }
+  else if (e.key === "ArrowDown") { e.preventDefault(); hpos = Math.min(hist.length, hpos + 1); inp.value = hist[hpos] || ""; }
+  else if (e.key === "Enter" && inp.value.trim()) {
+    const code = inp.value; hist.push(code); while (hist.length > 200) hist.shift(); hpos = hist.length; store.set("history", hist); inp.value = "";
+    const blk = outBlock(">>> " + code);
+    const d = await runJob({ code, file: "<console>", mode: "cell", label: code, onChunk: (c) => blk.add(c), onTick: (s) => blk.tick(s) });
+    blk.done(d || { ok: false, seconds: 0 }, "<console>"); inp.focus();
+  }
+});
+
+// ---------------------------------------------------------------- notebooks (.ipynb)
+function newNotebook() {
+  return { cells: [{ cell_type: "markdown", metadata: {}, source: ["# A notebook\n", "\n", "Cells run with pyauto-xpp on your computer."] },
+                   { cell_type: "code", metadata: {}, execution_count: null, outputs: [], source: ["import pyxpp\n", "import matplotlib.pyplot as plt"] }],
+           metadata: { kernelspec: { display_name: "Python 3", language: "python", name: "python3" }, language_info: { name: "python" } },
+           nbformat: 4, nbformat_minor: 5 };
+}
+const joinSrc = (s) => Array.isArray(s) ? s.join("") : (s || "");
+const splitSrc = (s) => s ? s.split(/(?<=\n)/) : [];
+function nbLoad(t, text) {
+  let j; try { j = JSON.parse(text); } catch (e) { j = newNotebook(); toast("This notebook could not be read; a new one is shown", 5000); }
+  t.nb = j; t.counter = 0; t.sel = 0;
+  t.cells = (j.cells || []).map((c) => ({ type: c.cell_type === "code" ? "code" : c.cell_type === "markdown" ? "markdown" : "raw",
+    src: joinSrc(c.source), outputs: c.outputs || [], count: c.execution_count ?? null, meta: c.metadata || {}, id: c.id }));
+  if (!t.cells.length) t.cells.push({ type: "code", src: "", outputs: [], count: null, meta: {} });
+}
+function nbToJSON(t) {
+  const j = Object.assign({}, t.nb);
+  j.cells = t.cells.map((c, i) => {
+    const src = c.ed ? c.ed.getValue() : c.src;
+    const base = { cell_type: c.type, id: c.id || ("c" + i.toString(36) + Math.random().toString(36).slice(2, 7)), metadata: c.meta || {}, source: splitSrc(src) };
+    return c.type === "code" ? Object.assign(base, { execution_count: c.count, outputs: c.outputs }) : base;
+  });
+  j.nbformat = j.nbformat || 4; j.nbformat_minor = Math.max(j.nbformat_minor || 5, 5);
+  return JSON.stringify(j, null, 1) + "\n";
+}
+function nbDirty(t) { setDirty(t, true); }
+function nbDispose(t) { for (const c of t.cells) if (c.ed) { EDS.delete(c.ed); c.ed.dispose(); c.ed = null; } if (t.el) t.el.remove(); t.el = null; }
+let mdReady = null;
+function mdLoad() {
+  if (!mdReady) {
+    loadCss("https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css");
+    // one after another: each hides Monaco's loader while it loads (see loadScript)
+    mdReady = loadScript("https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js")
+      .then(() => loadScript("https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"))
+      .then(() => loadScript("https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js")).catch(() => null);
+  }
+  return mdReady;
+}
+function mdRender(el, src) {
+  // raw HTML in a notebook is shown as text (anchors <a id=...> are dropped): nothing in a cell can run as script
+  const clean = src.replace(/<a\s+id="[^"]*"\s*>\s*<\/a>/gi, "").replace(/</g, "&lt;");
+  if (window.marked) {
+    // keep $...$ and $$...$$ away from the Markdown parser, put them back for KaTeX
+    const math = []; const keep = clean.replace(/\$\$[\s\S]+?\$\$|\$[^$\n]+?\$/g, (m) => `@@MATH${math.push(m) - 1}@@`);
+    el.innerHTML = marked.parse(keep).replace(/@@MATH(\d+)@@/g, (m, i) => esc(math[+i]));
+    if (window.renderMathInElement) try { renderMathInElement(el, { delimiters: [{ left: "$$", right: "$$", display: true }, { left: "$", right: "$", display: false }], throwOnError: false }); } catch (e) {}
+    el.querySelectorAll("a[href]").forEach((a) => { if (!/^https?:/i.test(a.getAttribute("href"))) a.removeAttribute("href"); else { a.target = "_blank"; a.rel = "noopener"; } });
+  } else el.innerHTML = `<pre>${esc(src)}</pre>`;
+}
+function nbShow(t) {
+  const view = $("nbview");
+  if (t.el && t.el.parentNode === view) { [...view.children].forEach((c) => c.style.display = c === t.el ? "" : "none"); return; }
+  [...view.children].forEach((c) => c.style.display = "none");
+  t.el = document.createElement("div"); t.el.className = "nb";
+  t.el.innerHTML = `<div class="nbbar">
+      <button type="button" class="nbrun primary" data-a="all" title="Run every cell from the top">▶▶ Run all</button>
+      <button type="button" class="nbrun" data-a="restartall" title="A fresh Python, then every cell">↻ Restart &amp; run all</button>
+      <span class="sep"></span>
+      <button type="button" data-a="code" title="A code cell below the selected one">+ Code</button>
+      <button type="button" data-a="md" title="A text (Markdown) cell below the selected one">+ Text</button>
+      <button type="button" data-a="up" title="Move the cell up" aria-label="Move the cell up">↑</button>
+      <button type="button" data-a="down" title="Move the cell down" aria-label="Move the cell down">↓</button>
+      <button type="button" data-a="del" title="Delete the cell">Delete cell</button>
+      <span class="sep"></span>
+      <button type="button" data-a="clear" title="Remove all outputs">Clear outputs</button>
+      <button type="button" data-a="py" title="Save a copy as a .py script with # %% cells">Export .py</button>
+      <span class="nbsave note"></span></div><div class="cells"></div>`;
+  view.appendChild(t.el);
+  t.el.querySelector(".nbbar").onclick = (e) => { const a = e.target.closest("button")?.dataset.a; if (a) nbAction(t, a); };
+  mdLoad().then(() => t.cells.forEach((c, i) => { if (c.type === "markdown" && !c.editing) nbDrawMd(t, c); }));
+  nbDraw(t);
+}
+function nbDraw(t) {
+  const box = t.el.querySelector(".cells");
+  for (const c of t.cells) if (c.ed) { c.src = c.ed.getValue(); EDS.delete(c.ed); c.ed.dispose(); c.ed = null; }
+  box.innerHTML = "";
+  t.cells.forEach((c, i) => {
+    const el = document.createElement("div"); el.className = "cell " + c.type + (i === t.sel ? " sel" : ""); c.el = el;
+    el.innerHTML = `<div class="gut">${c.type === "code" ? `<span class="cnt">[${c.count ?? " "}]</span><button type="button" class="nbrun" title="Run this cell (Shift+Enter)" aria-label="Run cell">▶</button>` : ""}</div>
+      <div class="body"><div class="src"></div><div class="outs"></div></div>`;
+    el.addEventListener("mousedown", () => nbSelect(t, t.cells.indexOf(c), true));
+    el.querySelector(".nbrun")?.addEventListener("click", () => nbRunCell(t, t.cells.indexOf(c), false));
+    box.appendChild(el);
+    if (c.type === "code" || c.editing || c.type === "raw") nbEditor(t, c); else nbDrawMd(t, c);
+    nbDrawOuts(c);
+  });
+  const add = document.createElement("div"); add.className = "nbadd";
+  add.innerHTML = `<button type="button">+ Code</button><button type="button">+ Text</button>`;
+  add.children[0].onclick = () => { t.sel = t.cells.length - 1; nbAction(t, "code"); };
+  add.children[1].onclick = () => { t.sel = t.cells.length - 1; nbAction(t, "md"); };
+  box.appendChild(add);
+}
+function nbEditor(t, c) {
+  const host = c.el.querySelector(".src"); host.innerHTML = "";
+  if (!window.monaco) {
+    const area = document.createElement("textarea"); area.className = "cellta"; area.value = c.src; area.spellcheck = false;
+    const fit = () => { area.style.height = "auto"; area.style.height = area.scrollHeight + "px"; };
+    area.oninput = () => { c.src = area.value; fit(); nbDirty(t); };
+    area.onkeydown = (e) => { if (e.shiftKey && e.key === "Enter") { e.preventDefault(); nbRunCell(t, t.cells.indexOf(c), true); }
+                              else if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); nbRunCell(t, t.cells.indexOf(c), false); } };
+    host.appendChild(area); setTimeout(fit, 0); return;
+  }
+  const ed = monaco.editor.create(host, editorOptions({ value: c.src, language: c.type === "code" ? "python" : c.type === "markdown" ? "markdown" : "plaintext",
+    minimap: { enabled: false }, lineNumbers: "on", lineNumbersMinChars: 3, glyphMargin: true, folding: false, wordWrap: "on",
+    scrollbar: { vertical: "hidden", alwaysConsumeMouseWheel: false, horizontalScrollbarSize: 8 }, overviewRulerLanes: 0,
+    renderLineHighlight: "none", scrollBeyondLastLine: false, automaticLayout: true }));
+  ed._cell = true; c.ed = ed; EDS.add(ed);
+  const fit = () => { host.style.height = Math.max(22, ed.getContentHeight()) + "px"; ed.layout(); };
+  ed.onDidContentSizeChange(fit); fit();
+  ed.onDidChangeModelContent(() => { c.src = ed.getValue(); nbDirty(t); if (c.errd?.length) c.errd = ed.getModel().deltaDecorations(c.errd, []); });
+  ed.onDidFocusEditorText(() => nbSelect(t, t.cells.indexOf(c), true));
+  ed.onDidChangeCursorPosition((e) => { $("st-pos").textContent = `Cell ${t.cells.indexOf(c) + 1} · Ln ${e.position.lineNumber}, Col ${e.position.column}`; });
+  ed.addCommand(monaco.KeyMod.Shift | monaco.KeyCode.Enter, () => nbRunCell(t, t.cells.indexOf(c), true));
+  ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => nbRunCell(t, t.cells.indexOf(c), false));
+  ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => save(t));
+  if (c.type === "markdown") ed.onDidBlurEditorText(() => { c.editing = false; c.src = ed.getValue(); EDS.delete(ed); ed.dispose(); c.ed = null; nbDrawMd(t, c); });
+}
+function nbDrawMd(t, c) {
+  const host = c.el.querySelector(".src"); host.style.height = ""; host.innerHTML = `<div class="mdv" title="Double-click to edit"></div>`;
+  const v = host.firstChild; mdRender(v, c.src || "*(empty text cell: double-click to write)*");
+  v.ondblclick = () => { c.editing = true; nbEditor(t, c); c.ed?.focus(); };
+}
+function nbDrawOuts(c) {
+  const box = c.el?.querySelector(".outs"); if (!box) return;
+  box.innerHTML = "";
+  for (const o of c.outputs) {
+    if (o.output_type === "stream" || o.output_type === "error") {
+      const p = document.createElement("pre"); p.textContent = o.output_type === "error" ? (o.traceback || []).join("\n").replace(/\x1b\[[0-9;]*m/g, "") : joinSrc(o.text);
+      if (o.name === "stderr" || o.output_type === "error" || o.err) p.className = "err"; box.appendChild(p);
+    } else if (o.data) {
+      if (o.data["image/png"]) box.appendChild(figImg(joinSrc(o.data["image/png"]).replace(/\s/g, "")));
+      else if (o.data["text/plain"]) { const p = document.createElement("pre"); p.textContent = joinSrc(o.data["text/plain"]); box.appendChild(p); }
+    }
+  }
+  c.el.classList.toggle("hasout", c.outputs.length > 0);
+}
+function nbSelect(t, i, quiet) {
+  t.sel = Math.max(0, Math.min(i, t.cells.length - 1));
+  t.cells.forEach((c, k) => c.el?.classList.toggle("sel", k === t.sel));
+  if (!quiet) t.cells[t.sel]?.el?.scrollIntoView({ block: "nearest" });
+}
+function nbAction(t, a) {
+  const i = t.sel ?? 0;
+  if (a === "all") return nbRunAll(t);
+  if (a === "restartall") return (async () => { try { await api("/stop", { method: "POST", body: { session } }); } catch (e) {} t.counter = 0; nbRunAll(t); })();
+  if (a === "code" || a === "md") { t.cells.splice(i + 1, 0, { type: a === "code" ? "code" : "markdown", src: "", outputs: [], count: null, meta: {}, editing: a === "md" });
+    t.sel = i + 1; nbDraw(t); nbDirty(t); t.cells[t.sel].ed?.focus(); return; }
+  if (a === "up" && i > 0) { [t.cells[i - 1], t.cells[i]] = [t.cells[i], t.cells[i - 1]]; t.sel = i - 1; nbDraw(t); nbDirty(t); return; }
+  if (a === "down" && i < t.cells.length - 1) { [t.cells[i + 1], t.cells[i]] = [t.cells[i], t.cells[i + 1]]; t.sel = i + 1; nbDraw(t); nbDirty(t); return; }
+  if (a === "del" && t.cells.length > 1) { const c = t.cells[i]; if (c.ed) { EDS.delete(c.ed); c.ed.dispose(); c.ed = null; } t.cells.splice(i, 1); t.sel = Math.min(i, t.cells.length - 1); nbDraw(t); nbDirty(t); return; }
+  if (a === "clear") { t.cells.forEach((c) => { c.outputs = []; c.count = null; nbDrawOuts(c); const n = c.el?.querySelector(".cnt"); if (n) n.textContent = "[ ]"; }); nbDirty(t); return; }
+  if (a === "py") { const name = t.path.replace(/\.ipynb$/i, ".py"); openTab(name, ipynbToPy(JSON.parse(nbToJSON(t)), t.path), { kind: "scratch", saved: "", dirty: true }); }
+}
+async function nbRunCell(t, i, advance) {
+  const c = t.cells[i]; if (!c) return false;
+  if (c.type !== "code") { if (advance) nbSelect(t, i + 1); return true; }
+  const src = c.ed ? c.ed.getValue() : c.src;
+  const k = t.cells.filter((x) => x.type === "code").indexOf(c) + 1, file = `[cell ${k}]`;
+  c.outputs = []; nbDrawOuts(c); c.el.classList.add("live"); c.el.classList.remove("bad");
+  const cnt = c.el.querySelector(".cnt"); cnt.textContent = "[*]";
+  if (c.ed && c.errd?.length) c.errd = c.ed.getModel().deltaDecorations(c.errd, []);
+  const add = (o) => { const last = c.outputs[c.outputs.length - 1];
+    if (o.output_type === "stream" && last && last.output_type === "stream") last.text = joinSrc(last.text) + o.text; else c.outputs.push(o); };
+  const d = await runJob({ code: src, file, mode: "cell", label: file,
+    onChunk: (ch) => { if (ch.t === "out") add({ output_type: "stream", name: "stdout", text: ch.text });
+                       else add({ output_type: "display_data", data: { "image/png": ch.png, "text/plain": ["<Figure>"] }, metadata: {} });
+                       nbDrawOuts(c); },
+    onLine: (n) => { if (c.ed) c.arrow = arrowOn(c.ed, c.ed.getModel(), c.arrow, n); } });
+  c.el.classList.remove("live");
+  if (!d) { cnt.textContent = `[${c.count ?? " "}]`; return false; }
+  t.counter = (t.counter || 0) + 1; c.count = t.counter;           // counted from 1 since the notebook opened, as in Jupyter
+  const cnt2 = c.el.querySelector(".cnt"); if (cnt2) cnt2.textContent = `[${c.count}]`;
+  if (!d.ok) { c.el.classList.add("bad"); const last = c.outputs[c.outputs.length - 1]; if (last) last.err = true;
+    if (d.err_line && c.ed) c.errd = errorOn(c.ed, c.ed.getModel(), c.errd, d.err_line); }
+  for (const o of c.outputs) delete o.err;
+  nbDrawOuts(c); if (!d.ok) c.el.querySelector(".outs pre:last-of-type")?.classList.add("err");
+  linkify(c.el.querySelector(".outs"), file);
+  nbDirty(t);
+  stRun(d.ok ? `✓ cell ${k} in ${d.seconds} s` : `✗ error in cell ${k}${d.err_line ? ", line " + d.err_line : ""}`, d.ok ? "okc" : "bad");
+  if (advance && d.ok) {                       // like Jupyter: on to the next cell (a new one at the end)
+    const at = t.cells.indexOf(c);
+    if (at + 1 >= t.cells.length) { t.cells.push({ type: "code", src: "", outputs: [], count: null, meta: {} }); nbDraw(t); }
+    nbSelect(t, at + 1); t.cells[at + 1]?.ed?.focus();
+  }
+  return d.ok;
+}
+async function nbRunAll(t) {
+  for (let i = 0; i < t.cells.length; i++) {
+    if (t.cells[i].type !== "code") continue;
+    nbSelect(t, i);
+    if (!(await nbRunCell(t, i, false))) { toast("Stopped at the cell with an error"); return; }
+  }
+  toast("All cells ran");
+}
+
+// ---------------------------------------------------------------- splitters, keys, leaving the page
+function dragSplit(el, onMove) {
+  el.addEventListener("pointerdown", (e) => {
+    e.preventDefault(); el.setPointerCapture(e.pointerId); el.classList.add("drag");
+    const move = (ev) => onMove(ev); const up = () => { el.classList.remove("drag"); el.removeEventListener("pointermove", move); el.removeEventListener("pointerup", up); store.set("layout", layout); };
+    el.addEventListener("pointermove", move); el.addEventListener("pointerup", up);
+  });
+}
+const layout = Object.assign({ side: 230, outw: 40, outh: 36 }, store.get("layout", {}));
+function applyLayout() { const w = $("wmain").style; w.setProperty("--side-w", layout.side + "px"); w.setProperty("--out-w", layout.outw + "%"); w.setProperty("--out-h", layout.outh + "%"); }
+applyLayout();
+dragSplit($("sidesplit"), (e) => { layout.side = Math.max(140, Math.min(520, e.clientX - $("wmain").getBoundingClientRect().left)); applyLayout(); });
+dragSplit($("outsplit"), (e) => {
+  const r = $("wmain").getBoundingClientRect();
+  if (disp.outpos === "bottom") layout.outh = Math.max(12, Math.min(80, (r.bottom - e.clientY) / r.height * 100));
+  else layout.outw = Math.max(18, Math.min(75, (r.right - e.clientX) / r.width * 100));
+  applyLayout();
+});
+window.addEventListener("beforeunload", (e) => { if (tabs.some((t) => t.dirty && t.kind !== "scratch")) { e.preventDefault(); e.returnValue = ""; } });
 
 loop();
 })();

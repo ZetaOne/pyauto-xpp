@@ -44,9 +44,10 @@ HOME = Path(os.environ.get("PYXPP_HOME", Path.home() / ".pyxpp"))
 IDLE_EXIT = 60          # seconds without an open editor tab before the server stops (0: never)
 WORKDIR = Path.home() / "pyxpp-work"
 MARK = b"\x00PYXPP-"
-TEXT_EXT = {".py", ".ode", ".xps", ".txt", ".md", ".csv", ".dat", ".json", ".set", ".tab", ".ani", ".toml"}
+TEXT_EXT = {".py", ".ipynb", ".ode", ".xps", ".txt", ".md", ".csv", ".dat", ".json", ".set", ".tab", ".ani", ".toml"}
 SHOW_EXT = TEXT_EXT | {".png", ".svg", ".gif", ".pdf", ".npz", ".npy"}
 MAX_TEXT = 2_000_000
+MAX_NOTEBOOK = 40_000_000      # notebooks carry their figures
 
 
 def version():
@@ -91,6 +92,33 @@ def find_uv():
     return None
 
 
+def recent_dirs():
+    try:
+        r = json.loads((HOME / "recent.json").read_text())
+        return [d for d in r if Path(d).is_dir()][:8]
+    except Exception:
+        return []
+
+
+def remember_dir(p):
+    """the folder used last (pyxpp serve starts there next time) and the recent ones"""
+    try:
+        HOME.mkdir(parents=True, exist_ok=True)
+        (HOME / "workdir").write_text(str(p))
+        r = [str(p)] + [d for d in recent_dirs() if d != str(p)]
+        (HOME / "recent.json").write_text(json.dumps(r[:8]))
+    except OSError:
+        pass
+
+
+def last_workdir():
+    try:
+        p = Path((HOME / "workdir").read_text().strip())
+        return p if p.is_dir() else None
+    except OSError:
+        return None
+
+
 # ----------------------------------------------------------------------------
 # sessions: one worker process each
 # ----------------------------------------------------------------------------
@@ -100,6 +128,8 @@ class Job:
         self.chunks = []            # {"t": "out", "text"} or {"t": "fig", "png"}
         self.done = False
         self.ok = None
+        self.line = None            # the line running now (of the editor's file)
+        self.err_line = None        # the line an error came from
         self.started = time.time()
         self.ended = None
 
@@ -141,6 +171,11 @@ class Session:
                     job.add({"t": "fig", "png": parts[2]})
                 elif parts[0] == "DONE" and len(parts) >= 3 and job and parts[1] == job.id:
                     job.finish(parts[2] == "1")
+                elif parts[0] in ("LINE", "ERR") and len(parts) >= 3 and job and parts[1] == job.id:
+                    try:
+                        setattr(job, "line" if parts[0] == "LINE" else "err_line", int(parts[2]))
+                    except ValueError:
+                        pass
                 continue
             if held is not None and job:
                 job.add({"t": "out", "text": held})
@@ -154,14 +189,15 @@ class Session:
             job.add({"t": "out", "text": f"\n(the Python process stopped, exit code {code}; it starts again on the next run)\n"})
             job.finish(False)
 
-    def run(self, code, file="<editor>"):
+    def run(self, code, file="<editor>", line0=0, mode="exec"):
         with self.lock:
             if self.job and not self.job.done:
                 raise RuntimeError("busy: a run is still going in this session (stop it first)")
             if self.proc is None or self.proc.poll() is not None:
                 self._start()
             self.job = Job(uuid.uuid4().hex[:12])
-            msg = json.dumps({"id": self.job.id, "code": code, "file": file}) + "\n"
+            msg = json.dumps({"id": self.job.id, "code": code, "file": file, "line0": int(line0 or 0),
+                              "mode": "cell" if mode == "cell" else "exec"}) + "\n"
             try:
                 self.proc.stdin.write(msg.encode())
                 self.proc.stdin.flush()
@@ -258,7 +294,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _body(self):
         n = int(self.headers.get("Content-Length") or 0)
-        if n > 20_000_000:
+        if n > 60_000_000:
             raise ValueError("request too large")
         raw = self.rfile.read(n) if n else b"{}"
         return json.loads(raw or b"{}")
@@ -308,7 +344,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"app": "pyxpp", "version": version(), "api": 1})
             if u.path == "/status":
                 return self._send(200, {
-                    "app": "pyxpp", "version": version(), "python": platform.python_version(),
+                    "app": "pyxpp", "api": 2, "home": str(Path.home()), "recent": recent_dirs(),
+                    "version": version(), "python": platform.python_version(),
                     "system": platform.system(), "machine": platform.machine(), "prefix": sys.prefix,
                     "workdir": str(self.server.workdir), "can_update": installer_env() and find_uv() is not None,
                     "sessions": {k: bool(s.job and not s.job.done) for k, s in self.server.sessions.items()},
@@ -323,23 +360,44 @@ class Handler(BaseHTTPRequestHandler):
                     return self._err(404, "no such run")
                 i = int(q.get("from", 0))
                 return self._send(200, {"chunks": job.chunks[i:], "next": len(job.chunks), "done": job.done,
-                                        "ok": job.ok, "seconds": round((job.ended or time.time()) - job.started, 2)})
+                                        "ok": job.ok, "seconds": round((job.ended or time.time()) - job.started, 2),
+                                        "line": job.line, "err_line": job.err_line})
             if u.path == "/files":
                 wd = self.server.workdir
-                out = []
+                out, dirs = [], []
                 for p in sorted(wd.rglob("*")):
                     rel = p.relative_to(wd)
+                    if p.is_dir() and not any(x.startswith(".") or x == "__pycache__" for x in rel.parts):
+                        if len(dirs) < 1000:
+                            dirs.append(rel.as_posix())
+                        continue
                     if p.is_file() and p.suffix.lower() in SHOW_EXT and not any(x.startswith(".") for x in rel.parts):
                         out.append({"path": rel.as_posix(), "size": p.stat().st_size, "mtime": p.stat().st_mtime,
                                     "text": p.suffix.lower() in TEXT_EXT})
                     if len(out) >= 2000:
                         break
-                return self._send(200, {"workdir": str(wd), "files": out})
+                return self._send(200, {"workdir": str(wd), "files": out, "dirs": dirs})
+            if u.path == "/dirs":                         # folder browser for "Open folder"
+                home = Path.home().resolve()
+                d = (home / (q.get("path") or "")).resolve()
+                if d != home and home not in d.parents:
+                    return self._err(403, "only folders in your home folder")
+                sub = []
+                try:
+                    for c in sorted(d.iterdir(), key=lambda c: c.name.lower()):
+                        if c.is_dir() and not c.name.startswith(".") and c.name != "__pycache__":
+                            sub.append(c.name)
+                        if len(sub) >= 500:
+                            break
+                except OSError as e:
+                    return self._err(403, str(e))
+                rel = d.relative_to(home).as_posix()
+                return self._send(200, {"home": str(home), "path": "" if rel == "." else rel, "abs": str(d), "dirs": sub})
             if u.path == "/file":
                 p = self._path(q.get("path"))
                 if not p.is_file():
                     return self._err(404, "no such file")
-                if p.stat().st_size > MAX_TEXT:
+                if p.stat().st_size > (MAX_NOTEBOOK if p.suffix.lower() == ".ipynb" else MAX_TEXT):
                     return self._err(413, "file too large to edit")
                 return self._send(200, {"path": q.get("path"), "text": p.read_text(errors="replace")})
             if u.path == "/raw":
@@ -396,7 +454,7 @@ class Handler(BaseHTTPRequestHandler):
             if u.path == "/run":
                 s = self.server.session(b.get("session"))
                 try:
-                    job = s.run(b.get("code", ""), b.get("file") or "<editor>")
+                    job = s.run(b.get("code", ""), b.get("file") or "<editor>", b.get("line0") or 0, b.get("mode") or "exec")
                 except RuntimeError as e:
                     return self._err(409, str(e))
                 self.server.jobs[job.id] = job
@@ -407,6 +465,31 @@ class Handler(BaseHTTPRequestHandler):
             if u.path == "/stop":
                 self.server.session(b.get("session")).stop()
                 return self._send(200, {"stopped": True})
+            if u.path == "/workdir":
+                p = Path(os.path.expanduser(b.get("path") or "")).resolve()
+                home = Path.home().resolve()
+                if p != home and home not in p.parents:
+                    return self._err(403, "choose a folder in your home folder")
+                if any(x.startswith(".") for x in p.relative_to(home).parts):
+                    return self._err(403, "not a hidden folder")
+                if not p.is_dir():
+                    return self._err(404, "no such folder")
+                self.server.stop_all()                   # the next run starts in the new folder
+                self.server.workdir = p
+                remember_dir(p)
+                return self._send(200, {"workdir": str(p), "recent": recent_dirs()})
+            if u.path == "/rename":
+                a, z = self._path(b.get("from")), self._path(b.get("to"))
+                if not a.exists():
+                    return self._err(404, "no such file or folder")
+                if z.exists():
+                    return self._err(409, "that name is taken")
+                z.parent.mkdir(parents=True, exist_ok=True)
+                a.rename(z)
+                return self._send(200, {"renamed": b.get("to")})
+            if u.path == "/mkdir":
+                self._path(b.get("path")).mkdir(parents=True, exist_ok=True)
+                return self._send(200, {"made": b.get("path")})
             if u.path == "/update":
                 return self._send(*update(self.server))
             if u.path == "/upgrade":
@@ -653,8 +736,8 @@ def _idle_watch(srv, idle):
             return
 
 
-def serve(port=PORT, workdir=WORKDIR, origins=(), open_browser=False, idle_exit=IDLE_EXIT):
-    workdir = Path(workdir).expanduser()
+def serve(port=PORT, workdir=None, origins=(), open_browser=False, idle_exit=IDLE_EXIT):
+    workdir = Path(workdir).expanduser() if workdir else (last_workdir() or WORKDIR)
     workdir.mkdir(parents=True, exist_ok=True)
     if ping(port):
         print(f"pyxpp serve already runs on port {port}")
@@ -682,7 +765,7 @@ def serve(port=PORT, workdir=WORKDIR, origins=(), open_browser=False, idle_exit=
         srv.stop_all()
         srv.server_close()
     if getattr(srv, "restart", False):                # after an update: the new version takes over
-        args = [sys.executable, "-m", "pyxpp", "serve", "--port", str(port), "--workdir", str(workdir),
+        args = [sys.executable, "-m", "pyxpp", "serve", "--port", str(port), "--workdir", str(srv.workdir),
                 "--idle-exit", str(idle_exit)]
         for o in sorted(allowed - ORIGINS - {f"http://127.0.0.1:{port}", f"http://localhost:{port}"}):
             args += ["--allow-origin", o]

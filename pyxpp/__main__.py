@@ -23,7 +23,7 @@ def main(argv=None):
     sub = ap.add_subparsers(dest="cmd")
     p = sub.add_parser("serve", help="run the local server for the editor")
     p.add_argument("--port", type=int, default=S.PORT)
-    p.add_argument("--workdir", default=str(S.WORKDIR), help="folder for your files (default ~/pyxpp-work)")
+    p.add_argument("--workdir", default=None, help="folder for your files (default: the last one, else ~/pyxpp-work)")
     p.add_argument("--open", action="store_true", help="open the editor in the browser")
     p.add_argument("--allow-origin", action="append", default=[], help="another web origin allowed to use it")
     p.add_argument("--idle-exit", type=int, default=S.IDLE_EXIT,

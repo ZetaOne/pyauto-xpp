@@ -70,7 +70,7 @@ examples; more in the [gallery](https://zetaone.github.io/pyauto-xpp/#gallery).*
 ### The editor (in your browser, running on your computer)
 
 [The editor](https://zetaone.github.io/pyauto-xpp/editor/) on the project page
-runs your code with pyauto-xpp on your own computer. The first time, it shows
+runs your code with pyauto-xpp on your own computer: Python files and notebooks (.ipynb), with tabs, folders, an arrow on the running line and a console. The first time, it shows
 one install line for your system (macOS and Linux:
 `curl -LsSf https://zetaone.github.io/pyauto-xpp/editor/install.sh | sh`;
 Windows: a small `.bat` to download). The installer sets up uv, its own Python

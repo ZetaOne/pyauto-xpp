@@ -4,6 +4,29 @@ This folder starts from pyxpp by Youngmin Park
 (https://github.com/youngmp/pyxpp, GPL-2.0-or-later; copy in
 `../resources/pyxpp`). The Python import name is still `pyxpp` for now.
 
+## 2026-11-27 (v0.7.0): the editor grows up: tabs, folders, a running-line arrow, notebooks
+
+- **Editor** (https://zetaone.github.io/pyauto-xpp/editor/), laid out like a code editor:
+  - **tabs**: several files open (● unsaved, × or middle-click closes), restored after a reload;
+  - **explorer**: folders that fold, + File, + Folder, and a right-click menu (Open, Run,
+    Rename, Delete, Copy path, Download); images open in a tab;
+  - **Open folder…**: work in any folder of your home folder; pyxpp remembers it and the recent ones;
+  - **while a run goes**: an orange ➜ on the line running now (also while XPP's C code is busy),
+    a pulsing Stop, a spinner and a timer; afterwards a red ✖ on the line an error came from,
+    and the traceback's "line N" is a link to it;
+  - **Run cell** (Shift+Enter, cells start with `# %%`), Ctrl+Enter runs the selection;
+  - **output panel**: a block per run (✓/✗, time, fold), figures enlarge and download;
+    a **Python console** line (same session, the value of an expression is shown, history);
+  - **notebooks (.ipynb)**: cells with their own editors, Markdown and equations rendered,
+    outputs and figures under each cell, Run all, Restart & run all, + Code / + Text, move,
+    delete, Clear outputs, Export .py; Save writes a normal notebook (outputs included);
+    "Run in editor" links open the tutorials as notebooks;
+  - draggable splitters, output on the right or below (Aa panel), a status bar.
+- **pyxpp serve**: reports the running line and the error line (`/job`), a "cell" mode (IPython
+  `%`/`!` lines do nothing, the last expression's value is printed), `/dirs`, `/workdir`
+  (remembered in ~/.pyxpp), `/rename`, `/mkdir`, `.ipynb` files (up to 40 MB).
+- Tests: 54.
+
 ## 2026-11-26 (v0.6.2): package updates are your choice
 
 - Editor: when packages of pyauto-xpp's own environment (numpy, matplotlib, ...)
