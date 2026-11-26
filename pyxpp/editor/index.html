@@ -265,7 +265,7 @@ async function api(path, opts = {}) {
 let connected = false, status = null, tries = 0;
 async function probe() {
   try {
-    const p = await api("/ping");
+    const p = await api("/ping?tab=1");
     if (p.app !== "pyxpp") throw new Error("not pyxpp");
     status = await api("/status");
     if (!connected) onConnect();
@@ -281,6 +281,7 @@ async function onConnect() {
   setPill("on", `pyauto-xpp ${status.version} · Python ${status.python} · ${status.system} ${status.machine}`);
   $("setup").style.display = "none"; $("work").classList.add("show"); $("srvstop").hidden = false;
   $("wd").textContent = status.workdir;
+  startHeartbeat();
   await ensureEditor();
   await listFiles();
   checkUpdate();
@@ -298,6 +299,18 @@ async function loop() {
 }
 $("retry").onclick = () => { setPill("wait", "connecting…"); probe(); };
 $("startlink").addEventListener("click", () => { setPill("wait", "starting…"); toast("Starting pyxpp… (allow the browser to open the pyxpp link)"); });
+
+// ---------------------------------------------------------------- heartbeat
+// pyxpp serve stops a minute after the last open editor tab is gone.  The heartbeat runs in a
+// worker: browsers slow down timers of hidden tabs, and a tab in the background is still open.
+let beat = null;
+function startHeartbeat() {
+  if (beat) return;
+  try {
+    const src = `setInterval(() => fetch(${JSON.stringify((API || location.origin) + "/ping?tab=1")}, {cache: "no-store"}).catch(() => {}), 10000);`;
+    beat = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+  } catch (e) { beat = setInterval(() => api("/ping?tab=1").catch(() => {}), 10000); }
+}
 
 // ---------------------------------------------------------------- updates
 function vkey(v) { return v.split(".").map((x) => parseInt(x, 10) || 0); }

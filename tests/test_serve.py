@@ -96,3 +96,22 @@ def test_update_only_in_the_installers_environment(server):
     with pytest.raises(urllib.error.HTTPError) as e:
         call(base + "/update", {})
     assert e.value.code == 400
+
+
+def test_stops_a_while_after_the_last_editor_tab(tmp_path):
+    srv = S.Server(0, tmp_path, set(S.ORIGINS))
+    base = f"http://127.0.0.1:{srv.server_address[1]}"
+    t = threading.Thread(target=srv.serve_forever, kwargs={"poll_interval": 0.1}, daemon=True)
+    t.start()
+    threading.Thread(target=S._idle_watch, args=(srv, 3), daemon=True).start()
+    try:
+        time.sleep(4)
+        assert call(base + "/ping")["app"] == "pyxpp"        # no tab ever came: it keeps running
+        for _ in range(4):                                  # a tab's heartbeat keeps it up
+            call(base + "/ping?tab=1")
+            time.sleep(1.5)
+        assert t.is_alive()
+        t.join(10)                                          # the tab is gone: it stops by itself
+        assert not t.is_alive()
+    finally:
+        srv.server_close()

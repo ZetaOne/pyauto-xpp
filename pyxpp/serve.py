@@ -41,6 +41,7 @@ INDEX = os.environ.get("PYXPP_INDEX", SITE + "wheels/")
 ORIGINS = {"https://zetaone.github.io", "{0.scheme}://{0.netloc}".format(urlparse(SITE))}
 PORT = 8790
 HOME = Path(os.environ.get("PYXPP_HOME", Path.home() / ".pyxpp"))
+IDLE_EXIT = 60          # seconds without an open editor tab before the server stops (0: never)
 WORKDIR = Path.home() / "pyxpp-work"
 MARK = b"\x00PYXPP-"
 TEXT_EXT = {".py", ".ode", ".xps", ".txt", ".md", ".csv", ".dat", ".json", ".set", ".tab", ".ani", ".toml"}
@@ -191,6 +192,14 @@ class Server(ThreadingHTTPServer):
         self.jobs = {}
         self.slock = threading.Lock()
         self.started = time.time()
+        self.last_tab = None            # last heartbeat of an open editor tab
+        self.restart = False
+
+    def tab_seen(self):
+        self.last_tab = time.time()
+
+    def busy(self):
+        return any(s.job and not s.job.done for s in self.sessions.values())
 
     def session(self, name):
         name = re.sub(r"[^A-Za-z0-9_-]", "", name or "main")[:40] or "main"
@@ -287,6 +296,8 @@ class Handler(BaseHTTPRequestHandler):
             return
         u = urlparse(self.path)
         q = {k: v[0] for k, v in parse_qs(u.query).items()}
+        if "tab" in q:                                   # an open editor tab says it is still there
+            self.server.tab_seen()
         try:
             if u.path in ("/", "/index.html"):          # the editor itself, from this computer
                 page = Path(__file__).with_name("editor") / "index.html"
@@ -581,7 +592,20 @@ def unregister():
     return "pyxpp:// link removed"
 
 
-def serve(port=PORT, workdir=WORKDIR, origins=(), open_browser=False):
+def _idle_watch(srv, idle):
+    """stop the server `idle` seconds after the last editor tab went away (never during a run)"""
+    while True:
+        time.sleep(2)
+        if srv.last_tab is None or srv.busy():
+            continue
+        if time.time() - srv.last_tab > idle:
+            print(f"no editor tab for {idle} s: stopping (start again with the editor's Start pyxpp)")
+            sys.stdout.flush()
+            srv.shutdown()
+            return
+
+
+def serve(port=PORT, workdir=WORKDIR, origins=(), open_browser=False, idle_exit=IDLE_EXIT):
     workdir = Path(workdir).expanduser()
     workdir.mkdir(parents=True, exist_ok=True)
     if ping(port):
@@ -595,6 +619,9 @@ def serve(port=PORT, workdir=WORKDIR, origins=(), open_browser=False):
     print(f"pyxpp serve {version()} on http://127.0.0.1:{port}  (Python {platform.python_version()}, {sys.prefix})")
     print(f"work folder: {workdir}")
     print(f"editor: {EDITOR}   (stop: Ctrl+C, or the editor's Stop server)")
+    if idle_exit:
+        print(f"stops by itself {idle_exit} s after the last editor tab closes (--idle-exit 0: never)")
+        threading.Thread(target=_idle_watch, args=(srv, idle_exit), daemon=True).start()
     sys.stdout.flush()
     if open_browser:
         import webbrowser
@@ -607,7 +634,8 @@ def serve(port=PORT, workdir=WORKDIR, origins=(), open_browser=False):
         srv.stop_all()
         srv.server_close()
     if getattr(srv, "restart", False):                # after an update: the new version takes over
-        args = [sys.executable, "-m", "pyxpp", "serve", "--port", str(port), "--workdir", str(workdir)]
+        args = [sys.executable, "-m", "pyxpp", "serve", "--port", str(port), "--workdir", str(workdir),
+                "--idle-exit", str(idle_exit)]
         for o in sorted(allowed - ORIGINS - {f"http://127.0.0.1:{port}", f"http://localhost:{port}"}):
             args += ["--allow-origin", o]
         _spawn_detached(args)

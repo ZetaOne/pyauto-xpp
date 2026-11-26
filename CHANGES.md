@@ -4,6 +4,18 @@ This folder starts from pyxpp by Youngmin Park
 (https://github.com/youngmp/pyxpp, GPL-2.0-or-later; copy in
 `../resources/pyxpp`). The Python import name is still `pyxpp` for now.
 
+## 2026-11-26 (v0.6.1): pyxpp serve stops a minute after the last editor tab
+
+- `pyxpp serve` stops by itself 60 s after the last open editor tab is gone
+  (each tab sends a heartbeat every 10 s from a worker, so a tab in the
+  background still counts); never during a run, and not before any tab has
+  connected. `--idle-exit SECONDS` changes it, `--idle-exit 0` turns it off.
+  The editor's Start pyxpp brings it back.
+- Editor: explains how to allow local network access when the browser keeps
+  the page from reaching pyxpp; "Run in editor" links open a tutorial of the
+  repository (`editor/?open=...`).
+- Tests: 51.
+
 ## 2026-11-26 (v0.6.0): the editor on the project page, pyxpp serve
 
 - **Editor** at https://zetaone.github.io/pyauto-xpp/editor/: write and run

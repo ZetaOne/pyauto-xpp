@@ -1,7 +1,7 @@
 """
 pyxpp on the command line.
 
-    pyxpp serve [--port 8790] [--workdir DIR] [--open] [--allow-origin URL]
+    pyxpp serve [--port 8790] [--workdir DIR] [--open] [--allow-origin URL] [--idle-exit 60]
                           run pyauto-xpp for the editor on the project page
     pyxpp start           start `pyxpp serve` in the background (what pyxpp://start does)
     pyxpp stop            stop it
@@ -26,6 +26,8 @@ def main(argv=None):
     p.add_argument("--workdir", default=str(S.WORKDIR), help="folder for your files (default ~/pyxpp-work)")
     p.add_argument("--open", action="store_true", help="open the editor in the browser")
     p.add_argument("--allow-origin", action="append", default=[], help="another web origin allowed to use it")
+    p.add_argument("--idle-exit", type=int, default=S.IDLE_EXIT,
+                   help="stop this many seconds after the last editor tab closes (0: never; default %(default)s)")
     sub.add_parser("start", help="start the server in the background")
     sub.add_parser("stop", help="stop the server")
     sub.add_parser("status", help="is the server running")
@@ -39,7 +41,7 @@ def main(argv=None):
     a = ap.parse_args(argv)
 
     if a.cmd == "serve":
-        return S.serve(a.port, a.workdir, a.allow_origin, a.open)
+        return S.serve(a.port, a.workdir, a.allow_origin, a.open, a.idle_exit)
     if a.cmd == "start":
         ok = S.start_background()
         print("pyxpp serve is running" if ok else f"pyxpp serve did not start; see {S.HOME / 'serve.log'}")
