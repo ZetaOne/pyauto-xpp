@@ -48,10 +48,10 @@ if [ ! -x "$PY" ]; then
   "$UV" venv --quiet --python "$PYVER" "$PYXPP_HOME/env"
 fi
 
-# 3. the pyauto-xpp wheel for this machine (the newest); matplotlib (figures), tqdm (progress bars), plotly + ipywidgets 8.1 + anywidget 0.11 (live widgets; these two match the editor), only if missing:
+# 3. the pyauto-xpp wheel for this machine (the newest); matplotlib (figures), scipy, pandas, tqdm (progress bars), plotly + ipywidgets 8.1 + anywidget 0.11 (live widgets; these two match the editor), only if missing:
 #    the editor offers updates of the other packages, and you choose)
 say "installing pyauto-xpp from $INDEX"
-"$UV" pip install --quiet --python "$PY" --upgrade-package pyauto-xpp "pyauto-xpp>=$NEED" matplotlib tqdm plotly "ipywidgets>=8.1,<8.2" "anywidget>=0.11,<0.12" --find-links "$INDEX" || {
+"$UV" pip install --quiet --python "$PY" --upgrade-package pyauto-xpp "pyauto-xpp>=$NEED" matplotlib scipy pandas tqdm plotly "ipywidgets>=8.1,<8.2" "anywidget>=0.11,<0.12" --find-links "$INDEX" || {
   say "could not install pyauto-xpp $NEED or newer from $INDEX (a new release may still be building: try again in a few minutes)"; exit 1; }
 AFTER=$("$PY" -m pyxpp version)
 say "pyauto-xpp $AFTER for $("$PY" -c 'import platform; print(platform.system(), platform.machine(), "Python", platform.python_version())')"

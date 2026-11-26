@@ -785,14 +785,17 @@ function defineOdeLanguage() {
     [/\b\d+(\.\d+)?([eE][-+]?\d+)?\b/, "number"], [/[a-zA-Z_]\w*'/, "type"], [/".*?"/, "string"]] } });
 }
 const scriptCache = {};
-function loadScript(src) {
-  // Monaco's module loader (window.define) would make these scripts register as anonymous
-  // modules instead of setting their globals (marked, katex)
-  return scriptCache[src] || (scriptCache[src] = new Promise((res, rej) => {
-    // only the "amd" mark is hidden: Monaco's own modules keep loading through define()
-    const d = window.define, amd = d && d.amd; if (d) d.amd = undefined;
-    const done = (f) => () => { if (d) d.amd = amd; f(); };
-    const s = document.createElement("script"); s.src = src; s.onload = done(res); s.onerror = done(rej); document.head.appendChild(s); }));
+function loadScript(src, globalName) {
+  // The script runs with private (empty) define/require/module/exports, so a UMD library sets its global
+  // (marked, katex, ...) instead of registering with Monaco's module loader, and the page-wide loader is
+  // never touched (Monaco may be loading modules of its own at the same moment).
+  return scriptCache[src] || (scriptCache[src] = (async () => {
+    const r = await fetch(src);
+    if (!r.ok) throw new Error(`${src}: ${r.status}`);
+    const code = await r.text();
+    const tail = (globalName ? `\n;globalThis.${globalName} = ${globalName};` : "") + `\n//# sourceURL=${src}`;
+    new Function("define", "require", "module", "exports", code + tail).call(globalThis);
+  })());
 }
 function loadCss(href) { if (!document.querySelector(`link[href="${href}"]`)) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = href; document.head.appendChild(l); } }
 
@@ -1203,7 +1206,12 @@ function openExample(i, quiet) {
 // ---------------------------------------------------------------- ?open=<file of the pyauto-xpp repository>
 // Only files of the project's own repository: a link cannot bring anyone else's code to this computer.
 const REPO_RAW = "https://raw.githubusercontent.com/ZetaOne/pyauto-xpp/main/";
-const OPEN = (() => { const o = qs.get("open"); return o && /^[A-Za-z0-9_][A-Za-z0-9_./-]*\.(ipynb|py|ode)$/.test(o) && !o.includes("..") ? o : null; })();
+// also full addresses, but only on the project's own sites (their files are served to any page)
+const OPEN_SITES = ["https://zetaone.github.io/Wilson-Cowan-Notebook/", "https://zetaone.github.io/Isochrons-Notebook/",
+                    "https://zetaone.github.io/pyauto-xpp/"];
+const OPEN = (() => { const o = qs.get("open"); if (!o || o.includes("..") || !/\.(ipynb|py|ode)$/.test(o)) return null;
+  if (/^https:\/\//.test(o)) return OPEN_SITES.some((p) => o.startsWith(p)) && /^[A-Za-z0-9_:/.%-]+$/.test(o) ? o : null;
+  return /^[A-Za-z0-9_][A-Za-z0-9_./-]*$/.test(o) ? o : null; })();
 if (OPEN) { const n = $("opennote"); n.hidden = false;
   n.innerHTML = `<b>${esc(OPEN.split("/").pop())}</b> opens in the editor as soon as pyauto-xpp is connected.`; }
 function ipynbToPy(nb, path) {
@@ -1219,20 +1227,27 @@ function ipynbToPy(nb, path) {
   }
   return out.join("\n\n") + "\n";
 }
-const COMPANIONS = [[/^tutorials\/notebooks\//, ["tutorials/notebooks/xpptut.py"]]];
+// files a notebook reads, fetched next to it (into your folder) when it is opened and they are missing:
+// [pattern, [[source (repository path or URL), name in your folder], ...]]
+const WCF = "https://zetaone.github.io/Wilson-Cowan-Notebook/study/files/";
+const COMPANIONS = [
+  [/^tutorials\/notebooks\//, [["tutorials/notebooks/xpptut.py", "xpptut.py"]]],
+  [/^https:\/\/zetaone\.github\.io\/Wilson-Cowan-Notebook\/study\/files\/.*\.ipynb$/,
+   ["one_population", "wc_oscillator", "wc_hysteresis", "stm_form", "amari_bump", "theta_network", "mpr_mean_field",
+    "langevin_population"].map((n) => [WCF + n + ".ode", "ode/" + n + ".ode"])],
+];
 async function openFromRepo(path) {
   for (const [re, files] of COMPANIONS) if (re.test(path)) {
     await listFiles();
-    for (const f of files) {
-      const name = f.split("/").pop();
+    for (const [f, name] of files) {
       if (fileSet.has(name)) continue;                       // a copy is there already: kept as it is
-      try { const r = await fetch(REPO_RAW + f, { cache: "no-store" });
+      try { const r = await fetch(/^https:/.test(f) ? f : REPO_RAW + f, { cache: "no-store" });
             if (r.ok) { await api("/file", { method: "PUT", body: { path: name, text: await r.text() } }); toast(`${name} put in your folder (the notebook uses it)`); } }
       catch (e) {}
     }
     listFiles();
   }
-  const r = await fetch(REPO_RAW + path, { cache: "no-store" });
+  const r = await fetch(/^https:/.test(path) ? path : REPO_RAW + path, { cache: "no-store" });
   if (!r.ok) throw new Error(`${path}: ${r.status} ${r.statusText}`);
   const text = await r.text(), name = path.split("/").pop();
   const open = findTab(name); if (open) await closeTab(open);
@@ -1333,7 +1348,7 @@ function widgetsStart() {
   if (!widgetsWanted()) return (W.ready = Promise.resolve(false));
   const base = (LOCAL ? "" : "") + "widgets/";
   loadCss(base + "widgets.css");
-  W.ready = loadScript(base + "widgets.js").then(() => {
+  W.ready = loadScript(base + "widgets.js", "PyxppWidgets").then(() => {
     W.mgr = new PyxppWidgets.LiveManager({ send: (msg) => api("/comm", { method: "POST", body: { session, msg } }).catch(() => {}) });
     widgetEvents();
     return true;
@@ -1549,7 +1564,7 @@ let mdReady = null;
 function mdLoad() {
   if (!mdReady) {
     loadCss("https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css");
-    // one after another: each hides Monaco's loader while it loads (see loadScript)
+    // one after another: auto-render needs katex
     mdReady = loadScript("https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js")
       .then(() => loadScript("https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"))
       .then(() => loadScript("https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js")).catch(() => null);
