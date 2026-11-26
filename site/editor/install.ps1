@@ -52,7 +52,7 @@ if (-not (Test-Path $py)) {
 # 3. the pyauto-xpp wheel for this machine (the newest), and matplotlib only if missing
 #    (the editor offers updates of the other packages, and you choose)
 Say "installing pyauto-xpp from $Index"
-& $uv pip install --quiet --python $py --upgrade-package pyauto-xpp "pyauto-xpp>=0.6.0" matplotlib --find-links $Index
+& $uv pip install --quiet --python $py --upgrade-package pyauto-xpp "pyauto-xpp>=0.6.0" matplotlib tqdm --find-links $Index
 if ($LASTEXITCODE -ne 0) { throw "could not install pyauto-xpp 0.6.0 or newer from $Index (a new release may still be building: try again in a few minutes)" }
 $after = (& $py -m pyxpp version)
 Say "pyauto-xpp $after"

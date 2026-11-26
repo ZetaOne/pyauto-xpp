@@ -763,11 +763,12 @@ function defineOdeLanguage() {
 }
 const scriptCache = {};
 function loadScript(src) {
-  // Monaco's module loader (window.define) is hidden meanwhile: these scripts would register as
-  // anonymous modules instead of setting their globals (marked, katex)
+  // Monaco's module loader (window.define) would make these scripts register as anonymous
+  // modules instead of setting their globals (marked, katex)
   return scriptCache[src] || (scriptCache[src] = new Promise((res, rej) => {
-    const amd = window.define; window.define = undefined;
-    const done = (f) => () => { window.define = amd; f(); };
+    // only the "amd" mark is hidden: Monaco's own modules keep loading through define()
+    const d = window.define, amd = d && d.amd; if (d) d.amd = undefined;
+    const done = (f) => () => { if (d) d.amd = amd; f(); };
     const s = document.createElement("script"); s.src = src; s.onload = done(res); s.onerror = done(rej); document.head.appendChild(s); }));
 }
 function loadCss(href) { if (!document.querySelector(`link[href="${href}"]`)) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = href; document.head.appendChild(l); } }
@@ -1245,6 +1246,17 @@ $("restart").onclick = async () => {
   try { await api("/stop", { method: "POST", body: { session } }); toast("A fresh Python starts with the next run");
         for (const t of tabs) if (t.nb) { t.counter = 0; } } catch (e) {} };
 
+// text as a terminal shows it: "\r" goes back to the start of the line (progress bars, tqdm)
+function termAppend(prev, text) {
+  if (!text.includes("\r")) return prev + text;
+  let s = prev;
+  for (const part of text.split(/(\r\n|\r|\n)/)) {
+    if (part === "\r") s = s.slice(0, s.lastIndexOf("\n") + 1);
+    else s += part === "\r\n" ? "\n" : part;
+  }
+  return s;
+}
+
 // the output panel: one block per run
 const out = $("out");
 function outBlock(label) {
@@ -1258,7 +1270,7 @@ function outBlock(label) {
   out.scrollTop = out.scrollHeight;
   return {
     add(c) {
-      if (c.t === "out") pre.textContent += c.text;
+      if (c.t === "out") pre.textContent = termAppend(pre.textContent, c.text);
       else if (c.t === "fig") { bb.appendChild(figImg(c.png)); pre = document.createElement("pre"); bb.appendChild(pre); }
       stick();
     },
@@ -1548,7 +1560,8 @@ async function nbRunCell(t, i, advance) {
   const cnt = c.el.querySelector(".cnt"); cnt.textContent = "[*]";
   if (c.ed && c.errd?.length) c.errd = c.ed.getModel().deltaDecorations(c.errd, []);
   const add = (o) => { const last = c.outputs[c.outputs.length - 1];
-    if (o.output_type === "stream" && last && last.output_type === "stream") last.text = joinSrc(last.text) + o.text; else c.outputs.push(o); };
+    if (o.output_type === "stream" && last && last.output_type === "stream") last.text = termAppend(joinSrc(last.text), o.text);
+    else c.outputs.push(Object.assign(o, o.text !== undefined ? { text: termAppend("", o.text) } : {})); };
   const d = await runJob({ code: src, file, mode: "cell", label: file,
     onChunk: (ch) => { if (ch.t === "out") add({ output_type: "stream", name: "stdout", text: ch.text });
                        else add({ output_type: "display_data", data: { "image/png": ch.png, "text/plain": ["<Figure>"] }, metadata: {} });
