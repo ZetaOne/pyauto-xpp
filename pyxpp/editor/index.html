@@ -115,6 +115,7 @@ dialog pre { max-height: 40vh; overflow: auto; background: var(--code); padding:
 
 <main id="setup">
   <h1>Run pyauto-xpp from this page</h1>
+  <p class="card" id="opennote" hidden></p>
   <p class="lead">The editor sends your code to pyauto-xpp on <b>your own computer</b> (XPPAUT and its AUTO,
      at full native speed, your files on your disk). That needs a one-time install, done from here.</p>
 
@@ -390,6 +391,7 @@ async function ensureEditor() {
     });
     ed = { get: () => ta.value, set: (t) => { ta.value = t; }, selection: () => ta.value.slice(ta.selectionStart, ta.selectionEnd) };
   }
+  if (OPEN) { try { await openFromRepo(OPEN); return; } catch (e) { toast("Could not open " + OPEN + ": " + e.message, 6000); } }
   if (current) await openFile(current, true); else openExample(0, true);
 }
 function lang(path) { return /\.py$/.test(path) ? "python" : /\.(json)$/.test(path) ? "json" : /\.md$/.test(path) ? "markdown" : "plaintext"; }
@@ -538,6 +540,37 @@ function openExample(i, quiet) {
   const [, file, code] = EXAMPLES[i];
   ed.set(code, "python"); setName(file); markDirty(false);   // unchanged examples are not "unsaved"
   if (!quiet) toast("Example " + file + " (Save to keep it in your work folder)");
+}
+
+// ---------------------------------------------------------------- ?open=<file of the pyauto-xpp repository>
+// Only files of the project's own repository: a link cannot bring anyone else's code to this computer.
+const REPO_RAW = "https://raw.githubusercontent.com/ZetaOne/pyauto-xpp/main/";
+const OPEN = (() => { const o = qs.get("open"); return o && /^[A-Za-z0-9_][A-Za-z0-9_./-]*\.(ipynb|py|ode)$/.test(o) && !o.includes("..") ? o : null; })();
+if (OPEN) { const n = $("opennote"); n.hidden = false;
+  n.innerHTML = `<b>${esc(OPEN.split("/").pop())}</b> opens in the editor as soon as pyauto-xpp is connected.`; }
+function ipynbToPy(nb, path) {
+  const out = [`# ${path}`, "# from the pyauto-xpp repository, converted from the notebook: the text cells are comments,",
+               "# each \"# %%\" starts a cell.  Run runs it all (select lines to run only those); figures appear on the right.", ""];
+  for (const c of nb.cells || []) {
+    const src = Array.isArray(c.source) ? c.source.join("") : (c.source || "");
+    if (!src.trim()) continue;
+    if (c.cell_type === "markdown") out.push("# %% [markdown]\n" + src.split("\n").map((l) => ("# " + l).trimEnd()).join("\n"));
+    else if (c.cell_type === "code") {
+      if (src.includes("google.colab")) continue;                // the Colab install cell
+      out.push("# %%\n" + src.split("\n").map((l) => l.replace(/^(\s*)([%!].*)$/, "$1pass  # $2")).join("\n"));
+    }
+  }
+  return out.join("\n\n") + "\n";
+}
+async function openFromRepo(path) {
+  const r = await fetch(REPO_RAW + path, { cache: "no-store" });
+  if (!r.ok) throw new Error(`${path}: ${r.status} ${r.statusText}`);
+  let text = await r.text(), name = path.split("/").pop();
+  if (name.endsWith(".ipynb")) { text = ipynbToPy(JSON.parse(text), path); name = name.replace(/\.ipynb$/, ".py"); }
+  if (dirty && !confirm("Discard the unsaved changes?")) return;
+  ed.set(text, lang(name)); setName(name); markDirty(true);
+  history.replaceState(null, "", location.pathname + (qs.get("port") ? "?port=" + qs.get("port") : ""));
+  toast(`${path} is open: press Run (Save keeps it in your work folder)`, 5000);
 }
 
 // ---------------------------------------------------------------- run

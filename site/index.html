@@ -527,7 +527,23 @@ footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
   .btn { min-height: 44px }
   .copy { min-height: 34px; padding: 4px 12px }
 }
-/* the editor card under the hero: a moving gradient border */
+/* the top section's Editor button: a moving gradient, a soft glow */
+.btn.shiny { position: relative; border: 0; color: #011627; font-weight: 700;
+             background: linear-gradient(115deg, #82aaff, #c792ea, #f78c6c, #addb67, #7fdbca, #82aaff);
+             background-size: 300% 300%; animation: edglow 6s linear infinite, throb 2.4s ease-in-out infinite;
+             transform-origin: center }
+@keyframes throb {
+  0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(199,146,234,.65), 0 4px 18px rgba(199,146,234,.45) }
+  45%  { transform: scale(1.07); box-shadow: 0 0 0 12px rgba(199,146,234,0), 0 6px 26px rgba(130,170,255,.6) }
+  100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(199,146,234,0), 0 4px 18px rgba(199,146,234,.45) }
+}
+.btn.shiny:hover { filter: brightness(1.1); animation: edglow 6s linear infinite; transform: scale(1.07);
+                   box-shadow: 0 6px 26px rgba(130,170,255,.65) }
+.btn.shiny svg { fill: currentColor }
+.btn.shiny .new { font-size: .68rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
+                  padding: 1px 6px; border-radius: 99px; background: #011627; color: #fff }
+@media (prefers-reduced-motion: reduce) { .btn.shiny { animation: none; box-shadow: 0 4px 18px rgba(199,146,234,.45) } }
+/* the editor card: a moving gradient border */
 .edcard { position: relative; margin: 26px 0 6px; padding: 2px; border-radius: 14px; overflow: hidden;
           background: linear-gradient(115deg, #82aaff, #c792ea, #f78c6c, #addb67, #7fdbca, #82aaff);
           background-size: 300% 300%; animation: edglow 9s linear infinite }
@@ -541,7 +557,9 @@ footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
 .edcard p { margin: 0 0 8px; color: var(--muted) }
 .edcard ul { margin: 6px 0 0; padding-left: 1.2em; color: var(--muted) }
 .edcard ul li { margin: 2px 0 }
-.edcard .go { display: flex; flex-direction: column; gap: 8px; align-items: stretch; min-width: 220px }
+.edcard .go { display: flex; flex-direction: column; gap: 10px; align-items: stretch; min-width: 230px }
+.edcard .go .btn { justify-content: center; text-align: center }
+.edcard { margin: 34px 0 10px }
 @media (max-width: 720px) { .edcard .in { grid-template-columns: 1fr } .edcard .go { min-width: 0 } }
 /* landscape phones: little height, so the bar scrolls away */
 @media (max-height: 500px) and (orientation: landscape) {
@@ -602,12 +620,12 @@ footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
         <li><code>import pyxpp</code></li><li>73 tutorials</li><li>Linux, macOS and Windows wheels, Python 3.9-3.15</li><li>GPL-3.0-or-later</li>
       </ul>
       <div class="row">
-        <a class="btn" href="https://colab.research.google.com/github/ZetaOne/pyauto-xpp/blob/main/tutorials/worked-examples/01_first-steps.ipynb" target="_blank" rel="noopener" title="Google Colab: the first cell installs pyauto-xpp with pip"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>Try it in Colab</a>
+        <a class="btn shiny" href="editor/" title="Write and run pyauto-xpp code here; it runs on your computer"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>Try the editor <span class="new">new</span></a>
+        <a class="btn ghost" href="https://colab.research.google.com/github/ZetaOne/pyauto-xpp/blob/main/tutorials/worked-examples/01_first-steps.ipynb" target="_blank" rel="noopener" title="Google Colab: the first cell installs pyauto-xpp with pip"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>Try it in Colab</a>
         <a class="btn ghost" href="https://codespaces.new/ZetaOne/pyauto-xpp?quickstart=1" title="Uses your GitHub account's free Codespaces hours">Open in Codespaces</a>
         <a class="btn ghost" href="#install">Install</a>
         <a class="btn ghost" href="#tutorials">Tutorials</a>
         <a class="btn ghost" href="manual/">Manual</a>
-        <a class="btn ghost" href="editor/" title="Write and run pyauto-xpp code here; it runs on your computer">Editor</a>
         <a class="btn ghost" href="https://github.com/ZetaOne/pyauto-xpp"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
       </div>
     </div>
@@ -615,6 +633,11 @@ footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
 </div>
 
 <div class="wrap">
+  <section id="gallery" aria-labelledby="h-gallery">
+    <h2 id="h-gallery">Gallery <a class="anchor" href="#gallery" aria-label="Link to Gallery">#</a></h2>
+    <p class="lead">Figures made by the tutorial scripts, with XPP's integrators and AUTO called from Python. Click one to enlarge it.</p>
+    <div class="gallery"><figure class="shot"><button type="button" data-i="0" aria-label="Enlarge: Morris-Lecar in AUTO"><img src="gallery/16_2D-FLOWS_morris-lecar-bifurcation_ml-bifurcation.gif" width="960" height="600" loading="lazy" alt="Morris-Lecar in AUTO: Equilibria in the applied current i (red stable, thin line unstable), the two Hopf points, and the periodic orbits between them (green stable, blue unstable)."></button><figcaption><b>Morris-Lecar in AUTO</b>Equilibria in the applied current i (red stable, thin line unstable), the two Hopf points, and the periodic orbits between them (green stable, blue unstable). <a href="https://github.com/ZetaOne/pyauto-xpp/blob/main/tutorials/worked-examples/03_two-parameters-and-global-bifurcations.ipynb">Script</a></figcaption></figure><figure class="shot"><button type="button" data-i="1" aria-label="Enlarge: FitzHugh-Nagumo phase plane"><img src="gallery/01_2D-FLOWS_fitzhugh-nagumo_phase_plane.gif" width="960" height="600" loading="lazy" alt="FitzHugh-Nagumo phase plane: Nullclines, direction field and trajectories that all end on the stable equilibrium."></button><figcaption><b>FitzHugh-Nagumo phase plane</b>Nullclines, direction field and trajectories that all end on the stable equilibrium. <a href="https://github.com/ZetaOne/pyauto-xpp/blob/main/tutorials/worked-examples/01_first-steps.ipynb">Script</a></figcaption></figure><figure class="shot"><button type="button" data-i="2" aria-label="Enlarge: Mackey-Glass, a delay equation"><img src="gallery/37_DELAYS_mackey-glass-period-doubling_orbit_diagram.gif" width="960" height="600" loading="lazy" alt="Mackey-Glass, a delay equation: AUTO&#x27;s periodic orbits and period doublings, drawn over the maxima of simulations: the route to chaos."></button><figcaption><b>Mackey-Glass, a delay equation</b>AUTO&#x27;s periodic orbits and period doublings, drawn over the maxima of simulations: the route to chaos. <a href="https://github.com/ZetaOne/pyauto-xpp/blob/main/tutorials/worked-examples/06b_delay-equations-with-auto.ipynb">Script</a></figcaption></figure><figure class="shot"><button type="button" data-i="3" aria-label="Enlarge: The Lorenz attractor"><img src="gallery/07_3D-FLOWS_lorenz_attractor.gif" width="960" height="600" loading="lazy" alt="The Lorenz attractor: r = 27, in 3-D and projected on (x, z), with the two unstable equilibria."></button><figcaption><b>The Lorenz attractor</b>r = 27, in 3-D and projected on (x, z), with the two unstable equilibria. <a href="https://github.com/ZetaOne/pyauto-xpp/blob/main/tutorials/worked-examples/01_first-steps.ipynb">Script</a></figcaption></figure><figure class="shot"><button type="button" data-i="4" aria-label="Enlarge: Waves along a chain"><img src="gallery/28_SPACE_fhn-chain-arrays_space_time.gif" width="960" height="600" loading="lazy" alt="Waves along a chain: A chain of 20 FitzHugh-Nagumo cells driven at one end: voltage against cell and time."></button><figcaption><b>Waves along a chain</b>A chain of 20 FitzHugh-Nagumo cells driven at one end: voltage against cell and time. <a href="https://github.com/ZetaOne/pyauto-xpp/blob/main/tutorials/worked-examples/05_noise-and-space.ipynb">Script</a></figcaption></figure><figure class="shot"><button type="button" data-i="5" aria-label="Enlarge: The Henon map"><img src="gallery/06_MAPS_henon-map_attractor.gif" width="960" height="600" loading="lazy" alt="The Henon map: Its strange attractor and the layers seen when zooming in near a fixed point."></button><figcaption><b>The Henon map</b>Its strange attractor and the layers seen when zooming in near a fixed point. <a href="https://github.com/ZetaOne/pyauto-xpp/blob/main/tutorials/worked-examples/01_first-steps.ipynb">Script</a></figcaption></figure></div>
+  </section>
   <aside class="edcard" aria-labelledby="h-editor">
     <div class="in">
       <div>
@@ -634,11 +657,6 @@ footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
       </div>
     </div>
   </aside>
-  <section id="gallery" aria-labelledby="h-gallery">
-    <h2 id="h-gallery">Gallery <a class="anchor" href="#gallery" aria-label="Link to Gallery">#</a></h2>
-    <p class="lead">Figures made by the tutorial scripts, with XPP's integrators and AUTO called from Python. Click one to enlarge it.</p>
-    <div class="gallery"><figure class="shot"><button type="button" data-i="0" aria-label="Enlarge: Morris-Lecar in AUTO"><img src="gallery/16_2D-FLOWS_morris-lecar-bifurcation_ml-bifurcation.gif" width="960" height="600" loading="lazy" alt="Morris-Lecar in AUTO: Equilibria in the applied current i (red stable, thin line unstable), the two Hopf points, and the periodic orbits between them (green stable, blue unstable)."></button><figcaption><b>Morris-Lecar in AUTO</b>Equilibria in the applied current i (red stable, thin line unstable), the two Hopf points, and the periodic orbits between them (green stable, blue unstable). <a href="https://github.com/ZetaOne/pyauto-xpp/blob/main/tutorials/worked-examples/03_two-parameters-and-global-bifurcations.ipynb">Script</a></figcaption></figure><figure class="shot"><button type="button" data-i="1" aria-label="Enlarge: FitzHugh-Nagumo phase plane"><img src="gallery/01_2D-FLOWS_fitzhugh-nagumo_phase_plane.gif" width="960" height="600" loading="lazy" alt="FitzHugh-Nagumo phase plane: Nullclines, direction field and trajectories that all end on the stable equilibrium."></button><figcaption><b>FitzHugh-Nagumo phase plane</b>Nullclines, direction field and trajectories that all end on the stable equilibrium. <a href="https://github.com/ZetaOne/pyauto-xpp/blob/main/tutorials/worked-examples/01_first-steps.ipynb">Script</a></figcaption></figure><figure class="shot"><button type="button" data-i="2" aria-label="Enlarge: Mackey-Glass, a delay equation"><img src="gallery/37_DELAYS_mackey-glass-period-doubling_orbit_diagram.gif" width="960" height="600" loading="lazy" alt="Mackey-Glass, a delay equation: AUTO&#x27;s periodic orbits and period doublings, drawn over the maxima of simulations: the route to chaos."></button><figcaption><b>Mackey-Glass, a delay equation</b>AUTO&#x27;s periodic orbits and period doublings, drawn over the maxima of simulations: the route to chaos. <a href="https://github.com/ZetaOne/pyauto-xpp/blob/main/tutorials/worked-examples/06b_delay-equations-with-auto.ipynb">Script</a></figcaption></figure><figure class="shot"><button type="button" data-i="3" aria-label="Enlarge: The Lorenz attractor"><img src="gallery/07_3D-FLOWS_lorenz_attractor.gif" width="960" height="600" loading="lazy" alt="The Lorenz attractor: r = 27, in 3-D and projected on (x, z), with the two unstable equilibria."></button><figcaption><b>The Lorenz attractor</b>r = 27, in 3-D and projected on (x, z), with the two unstable equilibria. <a href="https://github.com/ZetaOne/pyauto-xpp/blob/main/tutorials/worked-examples/01_first-steps.ipynb">Script</a></figcaption></figure><figure class="shot"><button type="button" data-i="4" aria-label="Enlarge: Waves along a chain"><img src="gallery/28_SPACE_fhn-chain-arrays_space_time.gif" width="960" height="600" loading="lazy" alt="Waves along a chain: A chain of 20 FitzHugh-Nagumo cells driven at one end: voltage against cell and time."></button><figcaption><b>Waves along a chain</b>A chain of 20 FitzHugh-Nagumo cells driven at one end: voltage against cell and time. <a href="https://github.com/ZetaOne/pyauto-xpp/blob/main/tutorials/worked-examples/05_noise-and-space.ipynb">Script</a></figcaption></figure><figure class="shot"><button type="button" data-i="5" aria-label="Enlarge: The Henon map"><img src="gallery/06_MAPS_henon-map_attractor.gif" width="960" height="600" loading="lazy" alt="The Henon map: Its strange attractor and the layers seen when zooming in near a fixed point."></button><figcaption><b>The Henon map</b>Its strange attractor and the layers seen when zooming in near a fixed point. <a href="https://github.com/ZetaOne/pyauto-xpp/blob/main/tutorials/worked-examples/01_first-steps.ipynb">Script</a></figcaption></figure></div>
-  </section>
 
   <section id="install" aria-labelledby="h-install">
     <h2 id="h-install">Quick start <a class="anchor" href="#install" aria-label="Link to Quick start">#</a></h2>
@@ -1067,6 +1085,7 @@ function card(i) {
     '</p><div class="f mono">' + esc(name) + '</div><div class="links">' +
     '<a href="' + GH + '/blob/main/' + i.file + '" aria-label="View ' + esc(name) + ' on GitHub">View</a>' +
     '<a href="' + RAW + i.file + '" data-dl aria-label="Download ' + esc(name) + '">Download</a>' +
+    (i.kind === 'example' ? '<a href="editor/?open=' + encodeURIComponent(i.file) + '" aria-label="Run ' + esc(name) + ' in the editor">Run in editor</a>' : '') +
     '<a href="https://colab.research.google.com/github/ZetaOne/pyauto-xpp/blob/main/' + i.file + '" target="_blank" rel="noopener" ' +
     'aria-label="Open ' + esc(name) + ' in Google Colab">Open in Colab</a></div></article>';
 }
