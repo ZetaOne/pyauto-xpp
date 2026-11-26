@@ -67,6 +67,17 @@ examples; more in the [gallery](https://zetaone.github.io/pyauto-xpp/#gallery).*
 | **pip, prebuilt** | `pip install pyauto-xpp --find-links https://zetaone.github.io/pyauto-xpp/wheels/` | Python 3.9 to 3.15 on Linux, macOS or Windows |
 | **pip, from source** | `pip install .` in this folder | a C compiler |
 
+### The editor (in your browser, running on your computer)
+
+[The editor](https://zetaone.github.io/pyauto-xpp/editor/) on the project page
+runs your code with pyauto-xpp on your own computer. The first time, it shows
+one install line for your system (macOS and Linux:
+`curl -LsSf https://zetaone.github.io/pyauto-xpp/editor/install.sh | sh`;
+Windows: a small `.bat` to download). The installer sets up uv, its own Python
+in `~/.pyxpp` and the pyauto-xpp built for your machine, then starts
+`pyxpp serve`; the page connects by itself, offers updates when a new version
+is out, and starts it again later with one click. `pyxpp uninstall` removes it.
+
 ### uv
 
 Install [uv](https://docs.astral.sh/uv/) once (Linux and macOS:

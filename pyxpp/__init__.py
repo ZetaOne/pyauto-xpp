@@ -16,4 +16,8 @@ from .run import Run
 
 __all__ = ["load", "Model", "Trajectory", "Equilibrium", "Auto", "Diagram", "Point",
            "XPPError", "AnswersNotUsed", "ESC", "show", "Run"]
-__version__ = "0.1.0"
+try:                                    # the installed distribution's version (pyauto-xpp)
+    from importlib.metadata import version as _version
+    __version__ = _version("pyauto-xpp")
+except Exception:                       # run from a source folder
+    __version__ = "0.6.0"

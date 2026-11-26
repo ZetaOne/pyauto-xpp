@@ -4,6 +4,33 @@ This folder starts from pyxpp by Youngmin Park
 (https://github.com/youngmp/pyxpp, GPL-2.0-or-later; copy in
 `../resources/pyxpp`). The Python import name is still `pyxpp` for now.
 
+## 2026-11-26 (v0.6.0): the editor on the project page, pyxpp serve
+
+- **Editor** at https://zetaone.github.io/pyauto-xpp/editor/: write and run
+  pyauto-xpp code in the browser while it runs on your own computer
+  (examples, files in ~/pyxpp-work, output and figures, Stop, Restart).
+- **Install from the page.** macOS and Linux: one line
+  (`curl -LsSf https://zetaone.github.io/pyauto-xpp/editor/install.sh | sh`);
+  Windows: `install-pyxpp.bat` or one PowerShell line. The installer finds out
+  what the computer is and installs only what is missing: uv, a Python in its
+  own folder (`~/.pyxpp/env`), the pyauto-xpp wheel for that machine and
+  matplotlib; registers `pyxpp://` links (the page's "Start pyxpp" button) and
+  starts the server. No administrator rights.
+- **Updates from the page.** On connecting, the page compares the installed
+  version with the project's wheel list and offers "Update to x.y.z"; the
+  server upgrades its own environment (only pyauto-xpp, only from that list)
+  and restarts.
+- **`pyxpp serve`** (`pyxpp/serve.py`, standard library only): listens on
+  127.0.0.1, accepts only the project page's origin and local Host names,
+  runs code in a worker process per session (`pyxpp/_worker.py`; a crash in
+  XPP does not stop the server), keeps files inside the work folder. It also
+  serves the editor itself at http://127.0.0.1:8790/ for browsers that keep a
+  secure page from talking to it.
+- **`pyxpp` command** (also `python -m pyxpp`): serve, start, stop, status,
+  register, unregister, uninstall, version.
+- `pyxpp.__version__` is the installed version (it said 0.1.0).
+- Tests: 50 (6 for the server).
+
 ## 2026-11-26 (v0.5.0): XPPAUT 8.4 of 25 Nov: maps
 
 - **XPPAUT 8.4, Bard's source of 25 Nov 2026**, in `csrc/xppaut` (his changes

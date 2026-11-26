@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pyauto-xpp editor</title>
+<meta name="description" content="Write and run pyauto-xpp code in the browser; it runs on your own computer through pyxpp serve.">
+<style>
+:root {
+  --bg: #011627; --panel: #0b2942; --panel2: #0e3352; --line: #1d3b53; --fg: #d6deeb; --muted: #8ca3b8;
+  --accent: #82aaff; --ok: #addb67; --warn: #ffcb8b; --bad: #ef5350; --code: #01111d;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #fbfbfb; --panel: #f0f0f0; --panel2: #e6e6e6; --line: #d0d0d0; --fg: #1d1f21; --muted: #5f6b77;
+    --accent: #2a6bd6; --ok: #2e7d32; --warn: #a15c00; --bad: #c62828; --code: #ffffff; color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #fbfbfb; --panel: #f0f0f0; --panel2: #e6e6e6; --line: #d0d0d0; --fg: #1d1f21; --muted: #5f6b77;
+  --accent: #2a6bd6; --ok: #2e7d32; --warn: #a15c00; --bad: #c62828; --code: #ffffff; color-scheme: light;
+}
+* { box-sizing: border-box }
+html, body { height: 100%; margin: 0 }
+body { background: var(--bg); color: var(--fg); font: 15px/1.45 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+       display: flex; flex-direction: column }
+a { color: var(--accent) }
+code, pre, kbd { font-family: var(--font-mono) }
+button, select { font: inherit; color: var(--fg); background: var(--panel2); border: 1px solid var(--line);
+                 border-radius: 6px; padding: 5px 11px; cursor: pointer; min-height: 32px }
+button:hover:not(:disabled) { border-color: var(--accent) }
+button:disabled { opacity: .5; cursor: default }
+button.primary { background: var(--accent); color: #011627; border-color: var(--accent); font-weight: 600 }
+button.danger { border-color: var(--bad) }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+
+header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 16px;
+         border-bottom: 1px solid var(--line); background: var(--panel) }
+header .brand { font-weight: 600; text-decoration: none; color: var(--fg) }
+header .sp { flex: 1 }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 99px;
+        border: 1px solid var(--line); font-size: 13px; color: var(--muted) }
+.pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--bad) }
+.pill.on { color: var(--fg) } .pill.on::before { background: var(--ok) }
+.pill.wait::before { background: var(--warn) }
+
+/* setup (not connected) */
+#setup { max-width: 860px; margin: 0 auto; padding: 24px 16px 40px; overflow: auto }
+#setup h1 { font-size: 1.5rem; margin: .2em 0 .4em }
+#setup .lead { color: var(--muted); margin-top: 0 }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin: 16px 0 }
+.card h2 { font-size: 1.1rem; margin: 0 0 8px }
+.os { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-bottom: 10px }
+.os button { border: 0; border-radius: 0; background: transparent }
+.os button[aria-pressed="true"] { background: var(--accent); color: #011627 }
+.cmd { display: flex; gap: 8px; align-items: stretch; margin: 8px 0 }
+.cmd pre { flex: 1; margin: 0; padding: 10px 12px; background: var(--code); border: 1px solid var(--line);
+           border-radius: 8px; overflow-x: auto; font-size: 13px; white-space: pre }
+.note { color: var(--muted); font-size: 13.5px }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center }
+ol.steps { padding-left: 1.3em } ol.steps li { margin: .3em 0 }
+
+/* workspace (connected) */
+#work { flex: 1; display: none; min-height: 0 }
+#work.show { display: grid; grid-template-columns: 220px minmax(0, 1fr) minmax(0, 1fr) }
+#files { border-right: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0 }
+#files .tools { display: flex; gap: 6px; padding: 8px; border-bottom: 1px solid var(--line); flex-wrap: wrap }
+#files .tools button { padding: 3px 8px; min-height: 28px; font-size: 13px }
+#files .tools select { flex: 1; min-width: 0; padding: 3px 6px; min-height: 28px; font-size: 13px }
+#flist { list-style: none; margin: 0; padding: 4px 0; overflow: auto; flex: 1; font-size: 13.5px }
+#flist li button { width: 100%; text-align: left; border: 0; border-radius: 0; background: transparent; padding: 4px 10px;
+                   min-height: 26px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+#flist li button[aria-current="true"] { background: var(--panel2); box-shadow: inset 3px 0 0 var(--accent) }
+#flist .dir { color: var(--muted); padding: 6px 10px 2px; font-size: 12px }
+#wd { padding: 6px 10px; font-size: 11.5px; color: var(--muted); border-top: 1px solid var(--line); word-break: break-all }
+#edpane { display: flex; flex-direction: column; min-width: 0; min-height: 0; border-right: 1px solid var(--line) }
+.bar2 { display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--line); flex-wrap: wrap }
+.bar2 .name { font-family: var(--font-mono); font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40% }
+.bar2 .sp { flex: 1 }
+#editor { flex: 1; min-height: 0 }
+#fallback { width: 100%; height: 100%; resize: none; border: 0; padding: 10px; background: var(--code); color: var(--fg);
+            font: 13.5px/1.5 var(--font-mono); tab-size: 4 }
+#outpane { display: flex; flex-direction: column; min-width: 0; min-height: 0 }
+#out { flex: 1; overflow: auto; padding: 10px 12px; background: var(--code); font: 13px/1.45 var(--font-mono) }
+#out pre { margin: 0; white-space: pre-wrap; word-break: break-word }
+#out img { display: block; max-width: 100%; margin: 8px 0; border-radius: 6px; background: #fff }
+#out .run { color: var(--muted); border-top: 1px dashed var(--line); margin-top: 8px; padding-top: 6px; font-size: 12px }
+#out .run:first-child { border-top: 0; margin-top: 0 }
+#out .err { color: var(--bad) }
+#runinfo { font-size: 12.5px; color: var(--muted) }
+#toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--panel2); border: 1px solid var(--line);
+         padding: 8px 14px; border-radius: 8px; display: none; max-width: 90vw; z-index: 9 }
+#update { display: none }
+dialog { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 10px; max-width: 640px; width: 92vw }
+dialog pre { max-height: 40vh; overflow: auto; background: var(--code); padding: 8px; border-radius: 6px; font-size: 12px; white-space: pre-wrap }
+
+@media (max-width: 900px) {
+  #work.show { grid-template-columns: 1fr; grid-template-rows: auto 55vh 45vh; overflow: auto }
+  #files { border-right: 0; border-bottom: 1px solid var(--line); max-height: 160px }
+  #edpane { border-right: 0 }
+}
+</style>
+</head>
+<body>
+<header>
+  <a class="brand" href="https://zetaone.github.io/pyauto-xpp/">pyauto-xpp</a><span style="color:var(--muted)">editor</span>
+  <span class="sp"></span>
+  <span id="conn" class="pill" role="status" aria-live="polite">not connected</span>
+  <button id="update" class="primary" type="button">Update</button>
+  <button id="srvstop" type="button" title="Stop pyxpp serve on this computer" hidden>Stop server</button>
+  <button id="theme" type="button" aria-label="Switch light/dark">◐</button>
+</header>
+
+<main id="setup">
+  <h1>Run pyauto-xpp from this page</h1>
+  <p class="lead">The editor sends your code to pyauto-xpp on <b>your own computer</b> (XPPAUT and its AUTO,
+     at full native speed, your files on your disk). That needs a one-time install, done from here.</p>
+
+  <section class="card" id="installcard" aria-labelledby="h-inst">
+    <h2 id="h-inst">First time on this computer: install</h2>
+    <div class="os" role="group" aria-label="Your system">
+      <button type="button" data-os="mac">macOS</button><button type="button" data-os="linux">Linux</button><button type="button" data-os="win">Windows</button>
+    </div>
+    <div data-for="mac linux">
+      <p>Open <b data-for="mac">Terminal</b><b data-for="linux">a terminal</b>, paste this line and press Enter:</p>
+      <div class="cmd"><pre id="cmd-unix">curl -LsSf https://zetaone.github.io/pyauto-xpp/editor/install.sh | sh</pre><button type="button" data-copy="cmd-unix">Copy</button></div>
+    </div>
+    <div data-for="win" hidden>
+      <p><a href="install-pyxpp.bat" download><button type="button" class="primary">Download the installer</button></a>
+         then double-click <code>install-pyxpp.bat</code> (Windows asks once whether to run a downloaded file: More info &rarr; Run anyway).
+         Or paste this into PowerShell:</p>
+      <div class="cmd"><pre id="cmd-win">powershell -ExecutionPolicy ByPass -c "irm https://zetaone.github.io/pyauto-xpp/editor/install.ps1 | iex"</pre><button type="button" data-copy="cmd-win">Copy</button></div>
+    </div>
+    <ol class="steps note">
+      <li>It finds out what your computer is (system, processor) and installs only what is missing:
+          <a href="https://docs.astral.sh/uv/" target="_blank" rel="noopener">uv</a>, a Python for pyauto-xpp in its own folder
+          <code>~/.pyxpp</code>, and the pyauto-xpp built for your machine. No administrator rights.</li>
+      <li>It registers <code>pyxpp://</code> links, so this page can start pyauto-xpp next time with one click.</li>
+      <li>It starts <code>pyxpp serve</code> and this page connects by itself. Your files go to <code>~/pyxpp-work</code>.</li>
+    </ol>
+    <p class="note">Your browser may ask whether this page may connect to apps on your device or local network: allow it
+       (the page talks only to <code>127.0.0.1</code>, this computer).</p>
+  </section>
+
+  <section class="card" aria-labelledby="h-start">
+    <h2 id="h-start">Already installed</h2>
+    <div class="row">
+      <a href="pyxpp://start" id="startlink"><button type="button" class="primary">Start pyxpp</button></a>
+      <button type="button" id="retry">Connect again</button>
+      <span class="note" id="tries"></span>
+    </div>
+    <p class="note">Or in a terminal: <code>~/.pyxpp/env/bin/pyxpp start</code> (Windows: <code>%USERPROFILE%\.pyxpp\env\Scripts\pyxpp start</code>).
+       If this page cannot reach it (some browsers block a secure page from talking to <code>http://127.0.0.1</code>),
+       open the same editor from your computer: <a id="locallink" href="http://127.0.0.1:8790/">http://127.0.0.1:8790/</a>.</p>
+  </section>
+</main>
+
+<div id="work">
+  <aside id="files" aria-label="Files">
+    <div class="tools">
+      <button type="button" id="fnew" title="New file">New</button>
+      <select id="examples" aria-label="Open an example"><option value="">Examples…</option></select>
+      <button type="button" id="frefresh" title="Reload the file list" aria-label="Reload the file list">↻</button>
+    </div>
+    <ul id="flist"></ul>
+    <div id="wd"></div>
+  </aside>
+  <section id="edpane" aria-label="Editor">
+    <div class="bar2">
+      <span class="name" id="fname">untitled.py</span><span id="dirty" class="note"></span>
+      <span class="sp"></span>
+      <button type="button" id="save" title="Save (Ctrl+S)">Save</button>
+      <button type="button" id="run" class="primary" title="Run (Ctrl+Enter)">▶ Run</button>
+      <button type="button" id="stop" class="danger" disabled>■ Stop</button>
+    </div>
+    <div id="editor"></div>
+  </section>
+  <section id="outpane" aria-label="Output">
+    <div class="bar2">
+      <b>Output</b><span id="runinfo"></span><span class="sp"></span>
+      <button type="button" id="restart" title="Start a fresh Python (forget all variables)">Restart Python</button>
+      <button type="button" id="clear">Clear</button>
+    </div>
+    <div id="out" aria-live="polite"></div>
+  </section>
+</div>
+
+<dialog id="dlg"><h3 id="dlgh"></h3><div id="dlgb"></div><form method="dialog" class="row" style="margin-top:12px;justify-content:flex-end" id="dlgf"></form></dialog>
+<div id="toast" role="status"></div>
+
+<script>
+(() => {
+"use strict";
+const $ = (id) => document.getElementById(id);
+const qs = new URLSearchParams(location.search);
+const SERVED_BY_PYXPP = false;            // pyxpp serve sets this to true in the copy it serves itself
+const LOCAL = SERVED_BY_PYXPP;
+const PORT = qs.get("port") || (LOCAL ? location.port : "8790");
+const API = LOCAL ? "" : `http://127.0.0.1:${PORT}`;
+const SITE = "https://zetaone.github.io/pyauto-xpp/";
+const store = { get(k, d) { try { const v = localStorage.getItem("pyxpp-ed:" + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+                set(k, v) { try { localStorage.setItem("pyxpp-ed:" + k, JSON.stringify(v)); } catch (e) {} } };
+$("locallink").href = `http://127.0.0.1:${PORT}/`;
+$("locallink").textContent = `http://127.0.0.1:${PORT}/`;
+
+// ---------------------------------------------------------------- theme
+const theme = store.get("theme", null);
+if (theme) document.documentElement.dataset.theme = theme;
+$("theme").onclick = () => {
+  const dark = getComputedStyle(document.documentElement).colorScheme.includes("dark");
+  const t = dark ? "light" : "dark";
+  document.documentElement.dataset.theme = t; store.set("theme", t);
+  if (window.monaco) monaco.editor.setTheme(t === "dark" ? "vs-dark" : "vs");
+};
+function isDark() { return getComputedStyle(document.documentElement).colorScheme.includes("dark"); }
+
+// ---------------------------------------------------------------- toast, dialog
+function toast(msg, ms = 2600) { const t = $("toast"); t.textContent = msg; t.style.display = "block";
+  clearTimeout(toast.h); toast.h = setTimeout(() => t.style.display = "none", ms); }
+function dialog(title, html, buttons) {
+  return new Promise((res) => {
+    $("dlgh").textContent = title; $("dlgb").innerHTML = html; const f = $("dlgf"); f.innerHTML = "";
+    for (const [label, val, cls] of buttons) { const b = document.createElement("button"); b.value = val; b.textContent = label;
+      if (cls) b.className = cls; f.appendChild(b); }
+    const d = $("dlg"); d.onclose = () => res(d.returnValue); d.showModal();
+  });
+}
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// ---------------------------------------------------------------- system detection (installer choice)
+function detectOS() {
+  const p = ((navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent).toLowerCase();
+  if (p.includes("win")) return "win";
+  if (p.includes("mac") || p.includes("iphone") || p.includes("ipad")) return "mac";
+  return "linux";
+}
+function showOS(os) {
+  document.querySelectorAll(".os button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.os === os)));
+  document.querySelectorAll("#installcard [data-for]").forEach((el) => el.hidden = !el.dataset.for.split(" ").includes(os));
+}
+document.querySelectorAll(".os button").forEach((b) => b.onclick = () => showOS(b.dataset.os));
+showOS(detectOS());
+document.querySelectorAll("[data-copy]").forEach((b) => b.onclick = async () => {
+  try { await navigator.clipboard.writeText($(b.dataset.copy).textContent); b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy", 1500); }
+  catch (e) { toast("Select the line and copy it"); }
+});
+
+// ---------------------------------------------------------------- server calls
+async function api(path, opts = {}) {
+  const r = await fetch(API + path, Object.assign({ cache: "no-store" }, opts,
+    opts.body !== undefined ? { body: JSON.stringify(opts.body), headers: { "Content-Type": "application/json" } } : {}));
+  const ct = r.headers.get("content-type") || "";
+  const data = ct.includes("json") ? await r.json() : await r.text();
+  if (!r.ok) throw new Error((data && data.error) || r.statusText);
+  return data;
+}
+let connected = false, status = null, tries = 0;
+async function probe() {
+  try {
+    const p = await api("/ping");
+    if (p.app !== "pyxpp") throw new Error("not pyxpp");
+    status = await api("/status");
+    if (!connected) onConnect();
+    return true;
+  } catch (e) {
+    if (connected) onDisconnect();
+    return false;
+  }
+}
+function setPill(cls, text) { const c = $("conn"); c.className = "pill " + cls; c.textContent = text; }
+async function onConnect() {
+  connected = true;
+  setPill("on", `pyauto-xpp ${status.version} · Python ${status.python} · ${status.system} ${status.machine}`);
+  $("setup").style.display = "none"; $("work").classList.add("show"); $("srvstop").hidden = false;
+  $("wd").textContent = status.workdir;
+  await ensureEditor();
+  await listFiles();
+  checkUpdate();
+}
+function onDisconnect() {
+  connected = false; setPill("", "not connected"); $("update").style.display = "none"; $("srvstop").hidden = true;
+  $("work").classList.remove("show"); $("setup").style.display = "";
+}
+async function loop() {
+  const ok = await probe();
+  if (!ok) { tries++; $("tries").textContent = tries > 1 ? `looking for pyxpp on 127.0.0.1:${PORT}…` : ""; }
+  setTimeout(loop, ok ? 5000 : 2000);
+}
+$("retry").onclick = () => { setPill("wait", "connecting…"); probe(); };
+$("startlink").addEventListener("click", () => { setPill("wait", "starting…"); toast("Starting pyxpp… (allow the browser to open the pyxpp link)"); });
+
+// ---------------------------------------------------------------- updates
+function vkey(v) { return v.split(".").map((x) => parseInt(x, 10) || 0); }
+function newer(a, b) { const x = vkey(a), y = vkey(b); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; }
+async function latestOnSite() {
+  // the project's wheel list (same site when the page is on it; otherwise ask the server)
+  try {
+    if (!LOCAL && location.hostname === "zetaone.github.io") {
+      const html = await (await fetch(SITE + "wheels/", { cache: "no-store" })).text();
+      const vs = [...html.matchAll(/pyauto_xpp-(\d+\.\d+\.\d+)-/g)].map((m) => m[1]);
+      return vs.sort((a, b) => newer(a, b) ? -1 : 1)[0];
+    }
+  } catch (e) {}
+  try { return (await api("/latest")).latest; } catch (e) { return null; }
+}
+async function checkUpdate() {
+  const latest = await latestOnSite();
+  const b = $("update");
+  if (latest && newer(latest, status.version)) {
+    b.textContent = `Update to ${latest}`; b.style.display = "inline-block";
+    b.title = status.can_update ? `pyauto-xpp ${status.version} is installed; ${latest} is on the site`
+                                : "This pyxpp was not installed by the installer: update it the way you installed it";
+    b.dataset.latest = latest;
+  } else b.style.display = "none";
+}
+$("update").onclick = async () => {
+  const latest = $("update").dataset.latest;
+  if (!status.can_update) {
+    await dialog("Update pyauto-xpp", `<p>This pyxpp runs in <code>${esc(status.prefix)}</code>, not in the installer's own folder, so the page does not change it.
+      Update it the way you installed it, for example:</p><pre>uv pip install --upgrade pyauto-xpp --find-links ${SITE}wheels/</pre>
+      <p>Or run the installer from this page once; it makes its own environment.</p>`, [["Close", "x"]]);
+    return;
+  }
+  const go = await dialog("Update pyauto-xpp", `<p>Installed: <b>${esc(status.version)}</b>. On the site: <b>${esc(latest)}</b>.</p>
+    <p>pyxpp updates its own environment (<code>${esc(status.prefix)}</code>) from the project's wheel list and restarts.
+    Your files are not touched; unsaved runs and variables are lost.</p>`, [["Cancel", "no"], ["Update", "yes", "primary"]]);
+  if (go !== "yes") return;
+  setPill("wait", "updating…");
+  try {
+    const r = await api("/update", { method: "POST", body: {} });
+    if (!r.updated) { toast(r.log || "already the newest"); return probe(); }
+    toast(`Updated ${r.from} → ${r.to}; restarting…`, 5000);
+    connected = false;
+    for (let i = 0; i < 60; i++) {
+      await new Promise((r) => setTimeout(r, 1000));
+      try { const p = await api("/ping"); if (p.version === r.to) { status = await api("/status"); connected = true;
+        setPill("on", `pyauto-xpp ${status.version} · Python ${status.python} · ${status.system} ${status.machine}`); checkUpdate(); toast(`pyauto-xpp ${p.version}`); return; } } catch (e) {}
+    }
+    toast("The server did not come back; start it again", 6000); onDisconnect();
+  } catch (e) {
+    setPill("on", "update failed");
+    await dialog("The update failed", `<pre>${esc(e.message)}</pre>`, [["Close", "x"]]);
+    probe();
+  }
+};
+$("srvstop").onclick = async () => {
+  const go = await dialog("Stop pyxpp serve?", "<p>It stops on this computer; start it again with Start pyxpp.</p>", [["Cancel", "no"], ["Stop", "yes", "danger"]]);
+  if (go !== "yes") return;
+  try { await api("/shutdown", { method: "POST", body: {} }); } catch (e) {}
+  onDisconnect();
+};
+
+// ---------------------------------------------------------------- editor (Monaco, or a plain text area)
+let ed = null, current = store.get("current", null), dirty = false;
+const MONACO = "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs";
+function loadMonaco() {
+  return new Promise((res) => {
+    const s = document.createElement("script"); s.src = MONACO + "/loader.min.js";
+    const timer = setTimeout(() => res(false), 10000);
+    s.onerror = () => { clearTimeout(timer); res(false); };
+    s.onload = () => {
+      window.MonacoEnvironment = { getWorkerUrl: () => "data:text/javascript;charset=utf-8," +
+        encodeURIComponent(`self.MonacoEnvironment={baseUrl:"${MONACO.replace(/vs$/, "")}"};importScripts("${MONACO}/base/worker/workerMain.js");`) };
+      require.config({ paths: { vs: MONACO } });
+      require(["vs/editor/editor.main"], () => { clearTimeout(timer); res(true); }, () => { clearTimeout(timer); res(false); });
+    };
+    document.head.appendChild(s);
+  });
+}
+async function ensureEditor() {
+  if (ed) return;
+  const host = $("editor");
+  if (await loadMonaco()) {
+    const m = monaco.editor.create(host, { value: "", language: "python", theme: isDark() ? "vs-dark" : "vs",
+      automaticLayout: true, fontSize: 13.5, minimap: { enabled: false }, scrollBeyondLastLine: false, tabSize: 4 });
+    m.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, run);
+    m.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, save);
+    m.onDidChangeModelContent(() => markDirty(true));
+    ed = { get: () => m.getValue(), set: (t, lang) => { monaco.editor.setModelLanguage(m.getModel(), lang); m.setValue(t); },
+           selection: () => m.getModel().getValueInRange(m.getSelection()) };
+  } else {
+    const ta = document.createElement("textarea"); ta.id = "fallback"; ta.spellcheck = false; host.appendChild(ta);
+    ta.addEventListener("input", () => markDirty(true));
+    ta.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); run(); }
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); save(); }
+      if (e.key === "Tab") { e.preventDefault(); const s = ta.selectionStart; ta.setRangeText("    ", s, ta.selectionEnd, "end"); markDirty(true); }
+    });
+    ed = { get: () => ta.value, set: (t) => { ta.value = t; }, selection: () => ta.value.slice(ta.selectionStart, ta.selectionEnd) };
+  }
+  if (current) await openFile(current, true); else openExample(0, true);
+}
+function lang(path) { return /\.py$/.test(path) ? "python" : /\.(json)$/.test(path) ? "json" : /\.md$/.test(path) ? "markdown" : "plaintext"; }
+function markDirty(v) { dirty = v; $("dirty").textContent = v ? "● unsaved" : ""; if (v && current) store.set("draft:" + current, ed.get()); }
+function setName(p) { current = p; store.set("current", p); $("fname").textContent = p || "untitled.py";
+  document.querySelectorAll("#flist button").forEach((b) => b.setAttribute("aria-current", String(b.dataset.path === p))); }
+
+// ---------------------------------------------------------------- files
+async function listFiles() {
+  let d; try { d = await api("/files"); } catch (e) { return; }
+  const ul = $("flist"); ul.innerHTML = ""; let lastDir = null;
+  for (const f of d.files) {
+    const parts = f.path.split("/"); const dir = parts.slice(0, -1).join("/");
+    if (dir !== lastDir && dir) { const h = document.createElement("li"); h.className = "dir"; h.textContent = dir + "/"; ul.appendChild(h); }
+    lastDir = dir;
+    const li = document.createElement("li"); const b = document.createElement("button"); b.type = "button";
+    b.textContent = (dir ? "  " : "") + parts[parts.length - 1]; b.dataset.path = f.path; b.title = f.path;
+    b.setAttribute("aria-current", String(f.path === current));
+    b.onclick = () => f.text ? openFile(f.path) : window.open(API + "/raw?path=" + encodeURIComponent(f.path), "_blank");
+    li.appendChild(b); ul.appendChild(li);
+  }
+  if (!d.files.length) { const li = document.createElement("li"); li.className = "dir"; li.textContent = "no files yet: Save, or pick an example"; ul.appendChild(li); }
+}
+async function openFile(path, quiet) {
+  if (dirty && !quiet && !confirm("Discard the unsaved changes?")) return;
+  try {
+    const d = await api("/file?path=" + encodeURIComponent(path));
+    const draft = store.get("draft:" + path, null);
+    ed.set(draft !== null && draft !== d.text ? draft : d.text, lang(path)); setName(path);
+    markDirty(draft !== null && draft !== d.text);
+  } catch (e) { if (!quiet) toast(e.message); else openExample(0, true); }
+}
+async function save() {
+  let path = current;
+  if (!path) { path = prompt("Save as (in your work folder):", "my_model.py"); if (!path) return; }
+  try { await api("/file", { method: "PUT", body: { path, text: ed.get() } }); setName(path); markDirty(false);
+        try { localStorage.removeItem("pyxpp-ed:draft:" + path); } catch (e) {} toast("Saved " + path); listFiles(); }
+  catch (e) { toast(e.message, 5000); }
+}
+$("save").onclick = save;
+$("frefresh").onclick = listFiles;
+$("fnew").onclick = async () => {
+  if (dirty && !confirm("Discard the unsaved changes?")) return;
+  const path = prompt("New file (.py or .ode):", "untitled.py"); if (!path) return;
+  ed.set(path.endsWith(".ode") ? "# a model\nx'=-x\ninit x=1\n@ total=10\ndone\n" : "import pyxpp\n", lang(path));
+  setName(path); markDirty(true);
+};
+
+// ---------------------------------------------------------------- examples
+const EXAMPLES = [
+  ["First steps: a model, a run, a plot", "first_steps.py", `import numpy as np
+import matplotlib.pyplot as plt
+import pyxpp
+
+# a model written as an .ode file (XPP's format), here as text
+m = pyxpp.load(text="""
+# van der Pol oscillator
+x'=y
+y'=mu*(1-x^2)*y-x
+par mu=1
+init x=2,y=0
+@ total=40, dt=0.01
+done
+""")
+tr = m.run()                                  # XPP integrates
+print("variables:", m.vars)
+print("x at the end:", tr["X"][-1])
+
+nc = m.nullclines(x="x", y="y", xlo=-3, xhi=3, ylo=-4, yhi=4)
+fig, ax = plt.subplots(figsize=(5, 4))
+ax.plot(tr["X"], tr["Y"], lw=1, label="orbit")
+ax.plot(*nc["X"].T, lw=.8, label="x nullcline")
+ax.plot(*nc["Y"].T, lw=.8, label="y nullcline")
+ax.set(xlabel="x", ylabel="y", title="van der Pol, mu = 1"); ax.legend(fontsize=8)
+plt.show()
+`],
+  ["AUTO: Hopf bifurcation and periodic orbits", "auto_hopf.py", `import matplotlib.pyplot as plt
+import pyxpp
+
+# FitzHugh-Nagumo: follow the rest state in the input current i with AUTO,
+# then the periodic orbits born at the Hopf point
+m = pyxpp.load(text="""
+v'=v-v^3/3-w+i
+w'=eps*(v+a-b*w)
+par i=0,a=0.7,b=0.8,eps=0.08
+init v=-1.1994,w=-0.6243
+@ total=200, dt=0.05
+done
+""")
+m.run(); m.run()                              # settle on the rest state
+a = m.auto
+a.numerics(ds=0.01, dsmax=0.05, nmax=300, parmin=0, parmax=1.6, ntst=30)
+a.run("i", start="steady")
+for hb in a.diagram.special("HB"):
+    print("Hopf point: i =", round(hb.par["i"], 5), " label", hb.label)
+hb = a.diagram.special("HB")[0]
+a.run(grab=hb.label, choice="periodic")       # periodic orbits from the Hopf point
+print(a.diagram)
+a.diagram.plot(y="v")
+plt.show()
+`],
+  ["Maps: cobwebs (XPPAUT 8.4)", "cobweb.py", `import matplotlib.pyplot as plt
+import pyxpp
+from pyxpp.plot import cobweb
+
+m = pyxpp.load(text="par r=3.7\\ninit x=0.2\\nx'=r*x*(1-x)\\n@ meth=discrete,total=200\\ndone\\n")
+fig, axs = plt.subplots(1, 4, figsize=(14, 3.8))
+for ax, r in zip(axs, (2.8, 3.2, 3.5, 3.9)):
+    m.set(r=r)
+    _, d = cobweb(m, n=100, ax=ax, title=f"r = {r}")
+    print(f"r = {r}:", [(round(x, 6), round(mu, 4)) for x, mu in d["fixed"]])
+plt.tight_layout(); plt.show()
+`],
+  ["Maps: stable manifold without the inverse (XPPAUT 8.4)", "stable_manifold.py", `import matplotlib.pyplot as plt
+import pyxpp
+
+m = pyxpp.load(text="""
+par a=1,b=.9,e=1,phi=.4,q=6
+m=phi-q/(1+x^2+y^2)
+x'=a+b*x*cos(m)-e*y*sin(m)
+y'=b*y*cos(m)+e*x*sin(m)
+@ meth=discrete,total=200
+@ xp=x,yp=y,xlo=-9,xhi=2,ylo=-5,yhi=3
+done
+""")
+zc = m.nullclines(mesh=200)                   # for a map: the zero-change curves
+ws = m.stable_manifold(near={"x": 1.08, "y": -2.41})
+print("saddle", ws["saddle"], "stable multiplier", round(ws["multiplier"], 6))
+for b, why in zip(ws["branches"], ws["why"]):
+    print(len(b), "points,", why)
+
+fig, ax = plt.subplots(figsize=(6, 4.6))
+ax.plot(*zc["X"].T, lw=.7, label="x does not change")
+ax.plot(*zc["Y"].T, lw=.7, label="y does not change")
+for b in ws["branches"]:
+    ax.plot(b[:, 0], b[:, 1], color="tab:blue", lw=.6)
+ax.set(xlim=(-9, 2), ylim=(-5, 3), title="Ikeda-type map: stable manifold of a saddle"); ax.legend(fontsize=8)
+plt.show()
+`],
+];
+const sel = $("examples");
+EXAMPLES.forEach(([title], i) => { const o = document.createElement("option"); o.value = String(i); o.textContent = title; sel.appendChild(o); });
+sel.onchange = () => { if (sel.value !== "") openExample(+sel.value); sel.value = ""; };
+function openExample(i, quiet) {
+  if (dirty && !quiet && !confirm("Discard the unsaved changes?")) return;
+  const [, file, code] = EXAMPLES[i];
+  ed.set(code, "python"); setName(file); markDirty(false);   // unchanged examples are not "unsaved"
+  if (!quiet) toast("Example " + file + " (Save to keep it in your work folder)");
+}
+
+// ---------------------------------------------------------------- run
+let job = null, session = "main";
+const out = $("out");
+function outBlock(title) { const d = document.createElement("div"); d.className = "run"; d.textContent = title; out.appendChild(d);
+  const pre = document.createElement("pre"); out.appendChild(pre); return pre; }
+async function run() {
+  if (!connected || job) return;
+  let code = ed.get(), file = current || "<editor>";
+  const sel = ed.selection();
+  if (sel && sel.trim()) { code = sel; file = "<selection>"; }
+  if (/\.ode$/.test(current || "") && !(sel && sel.trim())) {
+    // an .ode file: save it, load it, run it, plot every variable against time
+    await save();
+    code = `import pyxpp, matplotlib.pyplot as plt\nm = pyxpp.load(${JSON.stringify(current)})\ntr = m.run()\n` +
+      `print(m)\nfig, ax = plt.subplots(figsize=(6, 3.6))\nfor v in m.vars:\n    ax.plot(tr["t"], tr[v], label=v)\n` +
+      `ax.set(xlabel="t"); ax.legend(fontsize=8); plt.show()\n`;
+    file = current;
+  }
+  let pre = outBlock(`▶ ${file}  ${new Date().toLocaleTimeString()}`);
+  $("run").disabled = true; $("stop").disabled = false; $("runinfo").textContent = "running…";
+  try {
+    const r = await api("/run", { method: "POST", body: { code, file, session } });
+    job = r.job; let from = 0;
+    for (;;) {
+      const d = await api(`/job/${job}?from=${from}`);
+      for (const c of d.chunks) {
+        if (c.t === "out") { pre.textContent += c.text; }
+        else if (c.t === "fig") { const img = new Image(); img.alt = "figure"; img.src = "data:image/png;base64," + c.png; out.appendChild(img);
+          pre = document.createElement("pre"); out.appendChild(pre); }
+      }
+      from = d.next;
+      if (d.chunks.length) out.scrollTop = out.scrollHeight;
+      if (d.done) { $("runinfo").textContent = `${d.ok ? "done" : "stopped with an error"} in ${d.seconds} s`;
+        if (!d.ok) pre.classList.add("err"); break; }
+      await new Promise((res) => setTimeout(res, d.chunks.length ? 80 : 250));
+    }
+  } catch (e) { pre.textContent += "\n" + e.message; pre.classList.add("err"); $("runinfo").textContent = "";
+  } finally { job = null; $("run").disabled = false; $("stop").disabled = true; out.scrollTop = out.scrollHeight; listFiles(); }
+}
+$("run").onclick = run;
+$("stop").onclick = async () => { try { await api("/stop", { method: "POST", body: { session } }); } catch (e) {} };
+$("restart").onclick = async () => { try { await api("/stop", { method: "POST", body: { session } }); toast("A fresh Python starts with the next run"); } catch (e) {} };
+$("clear").onclick = () => { out.innerHTML = ""; $("runinfo").textContent = ""; };
+window.addEventListener("beforeunload", (e) => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
+
+loop();
+})();
+</script>
+</body>
+</html>
