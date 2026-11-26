@@ -1,8 +1,7 @@
 """Make JupyterLab open .py files as notebooks (jupytext) in this environment.
 
 Writes share/jupyter/lab/settings/overrides.json under the running Python's
-prefix, so it affects only this environment.  Run by `pixi run lab` and by
-Binder's postBuild; safe to run again.
+prefix, so it affects only this environment.  Run by `pixi run lab`; safe to run again.
 """
 import json
 import sys

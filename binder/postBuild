@@ -1,6 +1,0 @@
-#!/bin/bash
-# build XPP's C library and install pyxpp into Binder's environment
-set -e
-pip install --no-deps -e .
-# .py tutorial scripts open as notebooks in JupyterLab
-python tools/jupytext_default.py

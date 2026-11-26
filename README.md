@@ -2,7 +2,6 @@
 
 <img src="site/icon-192.png" width="128" align="right" alt="The pyauto-xpp icon: an auto-rickshaw with Python-coloured wheels doing a wheelie on the stable firing branch of the Hodgkin-Huxley bifurcation diagram, over its direction field">
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ZetaOne/pyauto-xpp/HEAD?urlpath=lab/tree/tutorials)
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ZetaOne/pyauto-xpp/blob/main/tutorials/worked-examples/01_first-steps.ipynb)
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/ZetaOne/pyauto-xpp?quickstart=1)
 [![Release](https://img.shields.io/github/v/release/ZetaOne/pyauto-xpp?label=release)](https://github.com/ZetaOne/pyauto-xpp/releases/latest)
@@ -61,11 +60,27 @@ examples; more in the [gallery](https://zetaone.github.io/pyauto-xpp/#gallery).*
 
 | | how | what you need |
 |---|---|---|
-| **In your browser** | [Open the tutorials in Binder](https://mybinder.org/v2/gh/ZetaOne/pyauto-xpp/HEAD?urlpath=lab/tree/tutorials) | nothing (starts in a minute or two; edits are not kept) |
+| **In your browser** | [Open a tutorial in Google Colab](https://colab.research.google.com/github/ZetaOne/pyauto-xpp/blob/main/tutorials/worked-examples/01_first-steps.ipynb) | a Google account; the first cell installs pyauto-xpp |
 | **In your browser, with GitHub** | [Open in GitHub Codespaces](https://codespaces.new/ZetaOne/pyauto-xpp?quickstart=1) | a GitHub account; uses its free monthly Codespaces hours. JupyterLab opens by itself; your work is kept until you delete the codespace |
-| **pixi** (recommended) | `pixi run lab` in this folder | [pixi](https://pixi.sh), installed once |
-| **pip, prebuilt** | `pip install` the wheel from [Releases](https://github.com/ZetaOne/pyauto-xpp/releases/latest) | Python 3.9 to 3.15 on Linux or macOS |
+| **uv** (recommended) | `uv run --find-links https://zetaone.github.io/pyauto-xpp/wheels/ --with pyauto-xpp --with matplotlib --with jupyterlab jupyter lab` in this folder | [uv](https://docs.astral.sh/uv/), installed once; Linux, macOS or Windows |
+| **pixi** | `pixi run lab` in this folder | [pixi](https://pixi.sh), installed once |
+| **pip, prebuilt** | `pip install pyauto-xpp --find-links https://zetaone.github.io/pyauto-xpp/wheels/` | Python 3.9 to 3.15 on Linux, macOS or Windows |
 | **pip, from source** | `pip install .` in this folder | a C compiler |
+
+### uv
+
+Install [uv](https://docs.astral.sh/uv/) once (Linux and macOS:
+`curl -LsSf https://astral.sh/uv/install.sh | sh`; Windows, in PowerShell:
+`powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`),
+open a new terminal, and in this folder:
+
+```
+uv run --find-links https://zetaone.github.io/pyauto-xpp/wheels/ --with pyauto-xpp --with matplotlib --with jupyterlab jupyter lab
+```
+
+uv fetches Python, pyauto-xpp and the packages, and picks the right wheel for
+your computer from [the wheel list](https://zetaone.github.io/pyauto-xpp/wheels/).
+The first run takes a minute; after that it starts in about a second.
 
 ### pixi
 
@@ -138,7 +153,7 @@ The full guide is [`docs/usage/USAGE.mdx`](docs/usage/USAGE.mdx).
   They use `xpptut.py` from the same folder.
 
 The [project page](https://zetaone.github.io/pyauto-xpp/#tutorials) lists
-them all with a search, and a View, Download and Open in Binder link for each.
+them all with a search, and a View, Download and Open in Colab link for each.
 
 ## Sister project
 
