@@ -1,8 +1,12 @@
-# Publish site/ (the project page) to GitHub Pages on every push to main.
+# Publish site/ (the project page) to GitHub Pages on every push to main, and again after
+# the wheels workflow (a new release) so that site/wheels/ lists the new wheels.
 name: pages
 on:
   push:
     branches: [main]
+  workflow_run:
+    workflows: [wheels]
+    types: [completed]
   workflow_dispatch:
 permissions:
   contents: read
@@ -16,6 +20,28 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      # site/wheels/index.html: a "find links" page with every released wheel, so that
+      #   uv run --find-links https://zetaone.github.io/pyauto-xpp/wheels/ --with pyauto-xpp ...
+      #   pip install --find-links https://zetaone.github.io/pyauto-xpp/wheels/ pyauto-xpp
+      # pick the right wheel for the computer and Python by themselves.
+      - name: Wheel index (site/wheels/)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p site/wheels
+          {
+            echo '<!doctype html><html><head><meta charset="utf-8"><title>pyauto-xpp wheels</title></head><body>'
+            echo '<h1>pyauto-xpp wheels</h1>'
+            gh release list -R "$GITHUB_REPOSITORY" --exclude-drafts --limit 200 --json tagName -q '.[].tagName' |
+            while read -r tag; do
+              gh release view "$tag" -R "$GITHUB_REPOSITORY" --json assets \
+                -q '.assets[] | select(.name | endswith(".whl")) | "<a href=\"\(.url)\">\(.name)</a><br>"'
+            done
+            echo '</body></html>'
+          } > site/wheels/index.html
+          n=$(grep -c '\.whl' site/wheels/index.html)
+          echo "$n wheels listed"
+          test "$n" -gt 0
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

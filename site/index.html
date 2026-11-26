@@ -607,9 +607,10 @@ footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
 
   <section id="install" aria-labelledby="h-install">
     <h2 id="h-install">Quick start <a class="anchor" href="#install" aria-label="Link to Quick start">#</a></h2>
-    <p class="lead">Three ways to get it: nothing to install (Binder), one tool that sets up everything (pixi), or pip.</p>
+    <p class="lead">Ways to get it: nothing to install (Binder), one tool that sets up everything (pixi or uv), or pip.</p>
     <div class="tabs" role="tablist" aria-label="Ways to install">
       <button role="tab" id="tab-pixi" aria-controls="p-pixi" aria-selected="true">pixi (recommended)</button>
+      <button role="tab" id="tab-uv" aria-controls="p-uv" aria-selected="false" tabindex="-1">uv</button>
       <button role="tab" id="tab-pip" aria-controls="p-pip" aria-selected="false" tabindex="-1">pip: prebuilt wheel</button>
       <button role="tab" id="tab-src" aria-controls="p-src" aria-selected="false" tabindex="-1">pip: from source</button>
       <button role="tab" id="tab-binder" aria-controls="p-binder" aria-selected="false" tabindex="-1">Binder</button>
@@ -637,6 +638,25 @@ jupyter lab         <span class="c"># in the unzipped repository folder</span></
       <p>The first run downloads Python and the packages and builds XPP's C library; after an update only what changed
          is downloaded again. No git? Take <a href="https://github.com/ZetaOne/pyauto-xpp/archive/refs/heads/main.zip">the .zip</a>, unzip it and run
          <code>pixi run lab</code> in that folder.</p>
+    </div>
+    <div class="tabpanel" role="tabpanel" id="p-uv" aria-labelledby="tab-uv" hidden>
+      <p>One small program, <a href="https://docs.astral.sh/uv/" target="_blank" rel="noopener">uv</a>, fetches Python,
+         pyauto-xpp and the packages by itself, the same way on Linux, macOS and Windows. Nothing to download by hand:
+         uv picks the right wheel for your computer from <a href="wheels/">the wheel list</a>.</p>
+      <div class="os" role="group" aria-label="Your system">
+        <button data-os="unix" aria-pressed="true">Linux / macOS</button><button data-os="win" aria-pressed="false">Windows</button>
+      </div>
+      <div data-for="unix">
+        <div class="code"><pre><code>curl -LsSf https://astral.sh/uv/install.sh | sh   <span class="c"># installs uv, once (open a new terminal after)</span></code></pre></div>
+      </div>
+      <div data-for="win" hidden>
+        <div class="code"><pre><code>powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"   <span class="c"># installs uv, once (open a new terminal after)</span></code></pre></div>
+      </div>
+      <div class="code"><pre><code>uv run --find-links https://zetaone.github.io/pyauto-xpp/wheels/ --with pyauto-xpp python -c "import pyxpp; print(pyxpp.__file__)"   <span class="c"># check</span>
+uv run --find-links https://zetaone.github.io/pyauto-xpp/wheels/ --with pyauto-xpp --with matplotlib --with jupyterlab jupyter lab   <span class="c"># JupyterLab</span></code></pre></div>
+      <p class="muted">The first run downloads everything (a minute); after that uv reuses its cache and starts in about a second.
+         Add <code>--python 3.12</code> to choose the Python version. In a project of your own:
+         <code>uv add pyauto-xpp --find-links https://zetaone.github.io/pyauto-xpp/wheels/</code>.</p>
     </div>
     <div class="tabpanel" role="tabpanel" id="p-pip" aria-labelledby="tab-pip" hidden>
       <p>We suggest a fresh conda environment, so pyauto-xpp and its packages stay apart from everything else.
