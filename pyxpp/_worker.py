@@ -5,6 +5,8 @@ Protocol, one JSON object per line:
   stdin   {"id": "...", "code": "..."}            run this code
   stdout  ordinary text: what the code (and XPP's C code) printed
           \x00PYXPP-FIG <id> <base64 png>         a matplotlib figure
+          \x00PYXPP-PLOTLY <id> <base64 json>     a plotly figure (fig.show(), or a figure/widget shown)
+          \x00PYXPP-HTML <id> <base64 html>       the text of an ipywidgets widget (HTML, Label)
           \x00PYXPP-LINE <id> <n>                 the line of the editor's file running now
           \x00PYXPP-ERR <id> <n>                  the line of that file where an error came from
           \x00PYXPP-DONE <id> <ok 0|1>            the code finished
@@ -25,6 +27,10 @@ import time
 import traceback
 
 MARK = "\x00PYXPP-"
+
+
+def b64(text):
+    return base64.b64encode(text.encode("utf-8")).decode()
 
 
 def main():
@@ -54,6 +60,65 @@ def main():
 
     def show(*args, **kwargs):                           # plt.show(): send the figures now
         send_figures()
+
+    # ---- plotly figures and ipywidgets (the interactive tutorials): shown, without live controls
+    told = {"widgets": None}
+
+    def emit_plotly(fig):
+        try:
+            js = fig.to_json()
+        except Exception as e:
+            print(f"(a plotly figure could not be sent: {e})")
+            return
+        sys.stdout.write(f"\n{MARK}PLOTLY {current['id']} {b64(js)}\n")
+        sys.stdout.flush()
+
+    def show_value(v, *more, **kw):
+        """what Jupyter's display() does, as far as the editor can show it"""
+        for x in (v,) + more:
+            mod = type(x).__module__ or ""
+            if hasattr(x, "to_plotly_json") and hasattr(x, "to_json") and mod.startswith("plotly"):
+                emit_plotly(x)
+            elif mod.startswith(("ipywidgets", "xpptut", "anywidget")) or hasattr(x, "children") and hasattr(x, "keys"):
+                walk_widget(x)
+                if told["widgets"] != current["id"]:
+                    told["widgets"] = current["id"]
+                    print("(shown without its sliders and buttons: the editor runs code, it does not keep widgets "
+                          "alive. Change values in code, e.g. ex.set(i=0.5), and show it again.)")
+            elif type(x).__name__ == "Figure" and mod.startswith("matplotlib"):
+                send_figures()
+            elif x is not None:
+                print(repr(x))
+
+    def walk_widget(w, depth=0):
+        if depth > 40:
+            return
+        if hasattr(w, "to_plotly_json") and hasattr(w, "to_json"):
+            emit_plotly(w)
+            return
+        cls = type(w).__name__
+        val = getattr(w, "value", None)
+        if cls in ("HTML", "HTMLMath", "Label") and isinstance(val, str) and val.strip():
+            sys.stdout.write(f"\n{MARK}HTML {current['id']} {b64(val)}\n")
+            sys.stdout.flush()
+        for c in (getattr(w, "children", None) or ()):
+            walk_widget(c, depth + 1)
+
+    # plotly's fig.show() and IPython's display(), installed once if those packages are there
+    import builtins
+    builtins.display = show_value
+    try:
+        import importlib.util as _iu
+        if _iu.find_spec("plotly"):
+            import plotly.basedatatypes as _bd
+            import plotly.io as _pio
+            _bd.BaseFigure.show = lambda self, *a, **k: emit_plotly(self)
+            _pio.show = lambda fig, *a, **k: emit_plotly(fig)
+        if _iu.find_spec("IPython"):
+            import IPython.display as _ipd
+            _ipd.display = show_value
+    except Exception:
+        pass
 
     def flush_c():
         try:                                             # XPP's own printf output
@@ -128,7 +193,7 @@ def main():
                     value = eval(last, ns)
                     if value is not None:
                         ns["_"] = value
-                        print(repr(value))
+                        show_value(value)
             finally:
                 sys.settrace(None)
         except SystemExit:

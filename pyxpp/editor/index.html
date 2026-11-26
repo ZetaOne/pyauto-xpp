@@ -173,6 +173,9 @@ ol.steps { padding-left: 1.3em } ol.steps li { margin: .3em 0 }
 .bb pre.err { color: var(--bad) }
 .bb img { display: block; max-width: 100%; margin: 6px 0; border-radius: 6px; background: #fff; cursor: zoom-in }
 .tbl { color: var(--accent); text-decoration: underline; cursor: pointer }
+.plotly-out { background: #fff; border-radius: 6px; margin: 6px 0; min-height: 120px; overflow: hidden }
+.html-out { font: 13px/1.5 var(--font-ui); margin: 4px 0; overflow-x: auto }
+.html-out table { border-collapse: collapse; font: 12px var(--font-mono) } .html-out td, .html-out th { border: 1px solid var(--line); padding: 2px 6px }
 #console { display: flex; align-items: center; gap: 6px; border-top: 1px solid var(--line); padding: 4px 8px; background: var(--panel) }
 #console > span { color: var(--accent); font-family: var(--font-mono); font-size: 13px }
 #cin { flex: 1; min-width: 0; background: var(--code); color: var(--fg); border: 1px solid var(--line); border-radius: 6px;
@@ -1196,7 +1199,19 @@ function ipynbToPy(nb, path) {
   }
   return out.join("\n\n") + "\n";
 }
+const COMPANIONS = [[/^tutorials\/notebooks\//, ["tutorials/notebooks/xpptut.py"]]];
 async function openFromRepo(path) {
+  for (const [re, files] of COMPANIONS) if (re.test(path)) {
+    await listFiles();
+    for (const f of files) {
+      const name = f.split("/").pop();
+      if (fileSet.has(name)) continue;                       // a copy is there already: kept as it is
+      try { const r = await fetch(REPO_RAW + f, { cache: "no-store" });
+            if (r.ok) { await api("/file", { method: "PUT", body: { path: name, text: await r.text() } }); toast(`${name} put in your folder (the notebook uses it)`); } }
+      catch (e) {}
+    }
+    listFiles();
+  }
   const r = await fetch(REPO_RAW + path, { cache: "no-store" });
   if (!r.ok) throw new Error(`${path}: ${r.status} ${r.statusText}`);
   const text = await r.text(), name = path.split("/").pop();
@@ -1257,6 +1272,27 @@ function termAppend(prev, text) {
   return s;
 }
 
+// plotly figures and widget text (the interactive tutorials)
+const unb64 = (b) => new TextDecoder().decode(Uint8Array.from(atob(b), (c) => c.charCodeAt(0)));
+const loadPlotly = () => loadScript("https://cdn.jsdelivr.net/npm/plotly.js-dist-min@3.0.1/plotly.min.js");
+function plotlyDiv(fig) {
+  const d = document.createElement("div"); d.className = "plotly-out";
+  loadPlotly().then(() => {
+    const lay = Object.assign({}, fig.layout || {}); delete lay.width; lay.autosize = true;
+    Plotly.newPlot(d, fig.data || [], lay, { responsive: true, displaylogo: false });
+  }).catch(() => { d.textContent = "(plotly.js could not be loaded: no internet?)"; d.style.padding = "8px"; });
+  return d;
+}
+function htmlDiv(html) {
+  // widget text is shown, but nothing in it can run: scripts, frames, event handlers and javascript: links go
+  const d = document.createElement("div"); d.className = "html-out";
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  doc.querySelectorAll("script,iframe,object,embed,link,meta,style,form,input,button").forEach((n) => n.remove());
+  doc.querySelectorAll("*").forEach((n) => [...n.attributes].forEach((a) => {
+    if (/^on/i.test(a.name) || /^\s*javascript:/i.test(a.value)) n.removeAttribute(a.name); }));
+  d.append(...doc.body.childNodes); return d;
+}
+
 // the output panel: one block per run
 const out = $("out");
 function outBlock(label) {
@@ -1272,6 +1308,8 @@ function outBlock(label) {
     add(c) {
       if (c.t === "out") pre.textContent = termAppend(pre.textContent, c.text);
       else if (c.t === "fig") { bb.appendChild(figImg(c.png)); pre = document.createElement("pre"); bb.appendChild(pre); }
+      else if (c.t === "plotly") { try { bb.appendChild(plotlyDiv(JSON.parse(unb64(c.b64)))); } catch (e) {} pre = document.createElement("pre"); bb.appendChild(pre); }
+      else if (c.t === "html") { bb.appendChild(htmlDiv(unb64(c.b64))); pre = document.createElement("pre"); bb.appendChild(pre); }
       stick();
     },
     tick(sec) { el.querySelector(".st").innerHTML = `<span class="spin"></span> ${sec} s`; },
@@ -1529,6 +1567,8 @@ function nbDrawOuts(c) {
       if (o.name === "stderr" || o.output_type === "error" || o.err) p.className = "err"; box.appendChild(p);
     } else if (o.data) {
       if (o.data["image/png"]) box.appendChild(figImg(joinSrc(o.data["image/png"]).replace(/\s/g, "")));
+      else if (o.data["application/vnd.plotly.v1+json"]) box.appendChild(plotlyDiv(o.data["application/vnd.plotly.v1+json"]));
+      else if (o.data["text/html"]) box.appendChild(htmlDiv(joinSrc(o.data["text/html"])));
       else if (o.data["text/plain"]) { const p = document.createElement("pre"); p.textContent = joinSrc(o.data["text/plain"]); box.appendChild(p); }
     }
   }
@@ -1564,6 +1604,8 @@ async function nbRunCell(t, i, advance) {
     else c.outputs.push(Object.assign(o, o.text !== undefined ? { text: termAppend("", o.text) } : {})); };
   const d = await runJob({ code: src, file, mode: "cell", label: file,
     onChunk: (ch) => { if (ch.t === "out") add({ output_type: "stream", name: "stdout", text: ch.text });
+                       else if (ch.t === "plotly") { try { add({ output_type: "display_data", data: { "application/vnd.plotly.v1+json": JSON.parse(unb64(ch.b64)), "text/plain": ["<Figure>"] }, metadata: {} }); } catch (e) {} }
+                       else if (ch.t === "html") add({ output_type: "display_data", data: { "text/html": [unb64(ch.b64)], "text/plain": ["<HTML>"] }, metadata: {} });
                        else add({ output_type: "display_data", data: { "image/png": ch.png, "text/plain": ["<Figure>"] }, metadata: {} });
                        nbDrawOuts(c); },
     onLine: (n) => { if (c.ed) c.arrow = arrowOn(c.ed, c.ed.getModel(), c.arrow, n); } });

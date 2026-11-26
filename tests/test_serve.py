@@ -29,8 +29,8 @@ def call(url, body=None, method=None, headers=None):
         return json.loads(r.read())
 
 
-def run(base, code, session="t"):
-    job = call(base + "/run", {"code": code, "session": session})["job"]
+def run(base, code, session="t", mode="exec"):
+    job = call(base + "/run", {"code": code, "session": session, "mode": mode})["job"]
     t = time.time()
     while time.time() - t < 60:
         d = call(f"{base}/job/{job}")
@@ -158,3 +158,15 @@ def test_folders_rename_mkdir_and_notebooks(server, tmp_path):
         call(base + "/workdir", {"path": "/"})                         # only folders inside the home folder
     assert e.value.code == 403
     assert call(base + "/dirs")["home"]
+
+
+def test_plotly_figures_and_widget_text_are_sent(server):
+    pytest.importorskip("plotly")
+    pytest.importorskip("ipywidgets")
+    _, base = server
+    d = run(base, "import plotly.graph_objects as go\ngo.Figure(go.Scatter(x=[0, 1], y=[1, 0])).show()\n"
+                  "import ipywidgets as W\nW.VBox([W.HTML('<b>hello</b>'), W.FloatSlider(1.0)])", mode="cell")
+    assert d["ok"]
+    kinds = [c["t"] for c in d["chunks"]]
+    assert kinds.count("plotly") == 1 and kinds.count("html") == 1
+    assert any("without its sliders" in c.get("text", "") for c in d["chunks"])

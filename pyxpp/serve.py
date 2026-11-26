@@ -169,6 +169,8 @@ class Session:
                 parts = raw[len(MARK):].decode(errors="replace").strip().split(" ")
                 if parts[0] == "FIG" and len(parts) >= 3 and job and parts[1] == job.id:
                     job.add({"t": "fig", "png": parts[2]})
+                elif parts[0] in ("PLOTLY", "HTML") and len(parts) >= 3 and job and parts[1] == job.id:
+                    job.add({"t": parts[0].lower(), "b64": parts[2]})
                 elif parts[0] == "DONE" and len(parts) >= 3 and job and parts[1] == job.id:
                     job.finish(parts[2] == "1")
                 elif parts[0] in ("LINE", "ERR") and len(parts) >= 3 and job and parts[1] == job.id:

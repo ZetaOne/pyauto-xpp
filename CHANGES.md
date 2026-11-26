@@ -4,6 +4,20 @@ This folder starts from pyxpp by Youngmin Park
 (https://github.com/youngmp/pyxpp, GPL-2.0-or-later; copy in
 `../resources/pyxpp`). The Python import name is still `pyxpp` for now.
 
+## 2026-11-27 (v0.7.1): the interactive tutorials in the editor
+
+- Editor: "Run in editor" on every tutorial notebook, also the 31 interactive ones (and the
+  3 isochron notebooks). Their plotly figures are drawn as plotly charts (zoom, hover), an
+  Explorer shows its figures, tables and labels; its sliders and clicks are not live (the
+  editor runs code and does not keep widgets alive), so values are changed in code, e.g.
+  `ex.set(i=0.5)`. Notebooks keep plotly figures in Jupyter's format. The tutorials' helper
+  `xpptut.py` is put next to them when it is missing.
+- pyxpp serve: `fig.show()` and displaying a figure or an ipywidgets widget send plotly
+  figures and the widget's text to the page; IPython's `display()` works in the editor.
+- Progress bars (tqdm) stay on one line, as in a terminal.
+- Installer: adds tqdm, plotly, ipywidgets and anywidget (only when missing).
+- Tests: 55 (one needs plotly and ipywidgets, skipped without them).
+
 ## 2026-11-27 (v0.7.0): the editor grows up: tabs, folders, a running-line arrow, notebooks
 
 - **Editor** (https://zetaone.github.io/pyauto-xpp/editor/), laid out like a code editor:
