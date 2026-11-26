@@ -43,8 +43,8 @@ if (-not (Test-Path $py)) {
 
 # 3. the pyauto-xpp wheel for this machine, and matplotlib
 Say "installing pyauto-xpp from $Index"
-& $uv pip install --quiet --python $py --upgrade pyauto-xpp matplotlib --find-links $Index
-if ($LASTEXITCODE -ne 0) { throw "installing pyauto-xpp failed" }
+& $uv pip install --quiet --python $py --upgrade "pyauto-xpp>=0.6.0" matplotlib --find-links $Index
+if ($LASTEXITCODE -ne 0) { throw "could not install pyauto-xpp 0.6.0 or newer from $Index (a new release may still be building: try again in a few minutes)" }
 Say ("pyauto-xpp " + (& $py -m pyxpp version))
 
 # 4. pyxpp:// links, then start (an older server is stopped first)

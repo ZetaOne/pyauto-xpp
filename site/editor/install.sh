@@ -12,6 +12,7 @@ SITE="${SITE%/}"
 INDEX="${PYXPP_INDEX:-$SITE/wheels/}"
 PYXPP_HOME="${PYXPP_HOME:-$HOME/.pyxpp}"
 PYVER="${PYXPP_PYTHON:-3.12}"
+NEED="0.6.0"   # the first pyauto-xpp with pyxpp serve
 say() { printf 'pyxpp: %s\n' "$*"; }
 os=$(uname -s); arch=$(uname -m)
 case "$os" in
@@ -43,7 +44,8 @@ fi
 
 # 3. the pyauto-xpp wheel for this machine, and matplotlib for figures
 say "installing pyauto-xpp from $INDEX"
-"$UV" pip install --quiet --python "$PY" --upgrade pyauto-xpp matplotlib --find-links "$INDEX"
+"$UV" pip install --quiet --python "$PY" --upgrade "pyauto-xpp>=$NEED" matplotlib --find-links "$INDEX" || {
+  say "could not install pyauto-xpp $NEED or newer from $INDEX (a new release may still be building: try again in a few minutes)"; exit 1; }
 say "pyauto-xpp $("$PY" -m pyxpp version) for $("$PY" -c 'import platform; print(platform.system(), platform.machine(), "Python", platform.python_version())')"
 
 # 4. pyxpp:// links, then start (an older server is stopped first)
