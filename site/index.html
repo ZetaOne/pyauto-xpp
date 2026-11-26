@@ -527,6 +527,22 @@ footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
   .btn { min-height: 44px }
   .copy { min-height: 34px; padding: 4px 12px }
 }
+/* the editor card under the hero: a moving gradient border */
+.edcard { position: relative; margin: 26px 0 6px; padding: 2px; border-radius: 14px; overflow: hidden;
+          background: linear-gradient(115deg, #82aaff, #c792ea, #f78c6c, #addb67, #7fdbca, #82aaff);
+          background-size: 300% 300%; animation: edglow 9s linear infinite }
+@keyframes edglow { 0% { background-position: 0% 50% } 100% { background-position: 300% 50% } }
+@media (prefers-reduced-motion: reduce) { .edcard { animation: none } }
+.edcard .in { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px 24px; align-items: center;
+              padding: 20px 22px; border-radius: 12px; background: var(--bg) }
+.edcard .tag { display: inline-block; font-size: .75rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+               padding: 2px 8px; border-radius: 99px; background: linear-gradient(115deg, #82aaff, #c792ea); color: #011627 }
+.edcard h2 { margin: 8px 0 6px; font-size: 1.35rem }
+.edcard p { margin: 0 0 8px; color: var(--muted) }
+.edcard ul { margin: 6px 0 0; padding-left: 1.2em; color: var(--muted) }
+.edcard ul li { margin: 2px 0 }
+.edcard .go { display: flex; flex-direction: column; gap: 8px; align-items: stretch; min-width: 220px }
+@media (max-width: 720px) { .edcard .in { grid-template-columns: 1fr } .edcard .go { min-width: 0 } }
 /* landscape phones: little height, so the bar scrolls away */
 @media (max-height: 500px) and (orientation: landscape) {
   .bar { position: static }
@@ -599,6 +615,25 @@ footer .row a { color: var(--fg); display: inline-block; padding: 8px 4px }
 </div>
 
 <div class="wrap">
+  <aside class="edcard" aria-labelledby="h-editor">
+    <div class="in">
+      <div>
+        <span class="tag">New &middot; v0.6</span>
+        <h2 id="h-editor">Rather not set things up by hand? Use the editor in your browser</h2>
+        <p>Write and run pyauto-xpp code on a web page, with no terminal work, environments or notebooks to manage.
+           The code runs on <b>your own computer</b>, at full speed, with your files on your disk.</p>
+        <ul>
+          <li>one install line, shown for your system; it sets up everything else by itself</li>
+          <li>examples to start from, figures right under the code</li>
+          <li>updates with one click when a new version is out</li>
+        </ul>
+      </div>
+      <div class="go">
+        <a class="btn" href="editor/"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>Open the editor</a>
+        <a class="btn ghost" href="#install">Or install it yourself</a>
+      </div>
+    </div>
+  </aside>
   <section id="gallery" aria-labelledby="h-gallery">
     <h2 id="h-gallery">Gallery <a class="anchor" href="#gallery" aria-label="Link to Gallery">#</a></h2>
     <p class="lead">Figures made by the tutorial scripts, with XPP's integrators and AUTO called from Python. Click one to enlarge it.</p>
