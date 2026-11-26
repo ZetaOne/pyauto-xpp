@@ -76,7 +76,13 @@ one install line for your system (macOS and Linux:
 Windows: a small `.bat` to download). The installer sets up uv, its own Python
 in `~/.pyxpp` and the pyauto-xpp built for your machine, then starts
 `pyxpp serve`; the page connects by itself, offers updates when a new version
-is out, and starts it again later with one click. `pyxpp uninstall` removes it.
+is out, and starts it again later with one click.
+
+To remove it: `~/.pyxpp/env/bin/pyxpp uninstall` (Windows:
+`%USERPROFILE%\.pyxpp\env\Scripts\pyxpp uninstall`). That stops the server,
+removes the `pyxpp://` link and `~/.pyxpp`, and keeps your files in
+`~/pyxpp-work`. uv's download cache (`~/.cache/uv`; Windows `%LOCALAPPDATA%\uv`)
+can be deleted too if you do not use uv otherwise.
 
 ### uv
 

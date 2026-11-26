@@ -121,6 +121,7 @@ dialog pre { max-height: 40vh; overflow: auto; background: var(--code); padding:
   <span id="conn" class="pill" role="status" aria-live="polite">not connected</span>
   <button id="update" class="primary" type="button">Update</button>
   <button id="srvstop" type="button" title="Stop pyxpp serve on this computer" hidden>Stop server</button>
+  <button id="uninst" type="button" title="How to remove pyauto-xpp from this computer" hidden>Uninstall…</button>
   <button id="theme" type="button" aria-label="Switch light/dark">◐</button>
 </header>
 
@@ -154,6 +155,26 @@ dialog pre { max-height: 40vh; overflow: auto; background: var(--code); padding:
     </ol>
     <p class="note">Your browser may ask whether this page may connect to apps on your device or local network: allow it
        (the page talks only to <code>127.0.0.1</code>, this computer).</p>
+  </section>
+
+  <section class="card" id="remove" aria-labelledby="h-remove">
+    <h2 id="h-remove">Remove it from this computer</h2>
+    <p>One command removes it. It stops the server, removes the <code>pyxpp://</code> link and the folder
+       <code>~/.pyxpp</code> (pyauto-xpp, its Python, and uv if the installer put it there).
+       <b>Your files in <code>~/pyxpp-work</code> are kept.</b></p>
+    <div data-for="mac linux">
+      <p>In <b data-for="mac">Terminal</b><b data-for="linux">a terminal</b>:</p>
+      <div class="cmd"><pre id="rm-unix">~/.pyxpp/env/bin/pyxpp uninstall</pre><button type="button" data-copy="rm-unix">Copy</button></div>
+      <p class="note">Afterwards, if you do not use uv for anything else, you can also delete its download cache:
+         <code>rm -rf ~/.cache/uv</code> (and <code>~/.local/share/uv</code>, Pythons uv downloaded).</p>
+    </div>
+    <div data-for="win" hidden>
+      <p>In Command Prompt (or the Run box, Win+R):</p>
+      <div class="cmd"><pre id="rm-win">%USERPROFILE%\.pyxpp\env\Scripts\pyxpp uninstall</pre><button type="button" data-copy="rm-win">Copy</button></div>
+      <p class="note">Afterwards, if you do not use uv for anything else, you can also delete its download cache:
+         the folders <code>%LOCALAPPDATA%\uv</code> and <code>%APPDATA%\uv</code>.</p>
+    </div>
+    <p class="note">It asks once to confirm. To use the editor again later, just install it again from this page.</p>
   </section>
 
   <section class="card" aria-labelledby="h-start">
@@ -264,7 +285,7 @@ function detectOS() {
 }
 function showOS(os) {
   document.querySelectorAll(".os button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.os === os)));
-  document.querySelectorAll("#installcard [data-for]").forEach((el) => el.hidden = !el.dataset.for.split(" ").includes(os));
+  document.querySelectorAll("#installcard [data-for], #remove [data-for]").forEach((el) => el.hidden = !el.dataset.for.split(" ").includes(os));
 }
 document.querySelectorAll(".os button").forEach((b) => b.onclick = () => showOS(b.dataset.os));
 showOS(detectOS());
@@ -272,6 +293,19 @@ document.querySelectorAll("[data-copy]").forEach((b) => b.onclick = async () => 
   try { await navigator.clipboard.writeText($(b.dataset.copy).textContent); b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy", 1500); }
   catch (e) { toast("Select the line and copy it"); }
 });
+
+// ---------------------------------------------------------------- uninstall
+function showRemoveDialog() {
+  const card = $("remove").cloneNode(true); card.querySelector("h2").remove(); card.removeAttribute("id");
+  const os = detectOS();
+  card.querySelectorAll("[data-for]").forEach((el) => el.hidden = !el.dataset.for.split(" ").includes(os));
+  card.querySelectorAll("[id]").forEach((el) => { el.id = el.id + "-d"; });
+  card.querySelectorAll("[data-copy]").forEach((b) => { b.dataset.copy += "-d"; });
+  dialog("Remove pyauto-xpp from this computer", card.innerHTML, [["Close", "x"]]);
+  $("dlgb").querySelectorAll("[data-copy]").forEach((b) => b.onclick = async () => {
+    try { await navigator.clipboard.writeText($(b.dataset.copy).textContent); b.textContent = "Copied"; } catch (e) {} });
+}
+$("uninst").onclick = showRemoveDialog;
 
 // ---------------------------------------------------------------- server calls
 async function api(path, opts = {}) {
@@ -299,7 +333,8 @@ function setPill(cls, text) { const c = $("conn"); c.className = "pill " + cls; 
 async function onConnect() {
   connected = true;
   setPill("on", `pyauto-xpp ${status.version} · Python ${status.python} · ${status.system} ${status.machine}`);
-  $("setup").style.display = "none"; $("work").classList.add("show"); $("srvstop").hidden = false;
+  $("setup").style.display = "none"; $("work").classList.add("show"); $("srvstop").hidden = false; $("uninst").hidden = false;
+  if (location.hash === "#remove") { history.replaceState(null, "", location.pathname + location.search); showRemoveDialog(); }
   $("wd").textContent = status.workdir;
   startHeartbeat();
   await ensureEditor();
@@ -308,7 +343,7 @@ async function onConnect() {
   checkPackages();
 }
 function onDisconnect() {
-  connected = false; setPill("", "not connected"); $("update").style.display = "none"; $("srvstop").hidden = true;
+  connected = false; setPill("", "not connected"); $("update").style.display = "none"; $("srvstop").hidden = true; $("uninst").hidden = true;
   $("work").classList.remove("show"); $("setup").style.display = "";
 }
 async function loop() {
