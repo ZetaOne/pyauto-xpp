@@ -744,6 +744,97 @@ class Model:
         return Equilibrium({self.vars[i]: x[i] for i in range(n)}, ev, discrete=disc)
 
     # ------------------------------------------------------------------
+    # stable manifolds of planar maps (XPPAUT 8.4 of 25 Nov)
+    # ------------------------------------------------------------------
+    _MF_STOP = {0: "stopped", 1: "left the region", 2: "reached the arclength",
+                3: "reached the maximum number of points",
+                4: "step fell below Delta_min (very sharp fold?)", 5: "out of memory"}
+
+    def view_window(self):
+        """The current 2D view: {"x": name, "y": name, "xlo", "xhi", "ylo", "yhi"}."""
+        w, xy = (ctypes.c_double * 4)(), (ctypes.c_int * 2)()
+        self._c.pyxpp_view_get(w, xy)
+        names = self.columns
+        return {"x": names[xy[0]], "y": names[xy[1]],
+                "xlo": w[0], "xhi": w[1], "ylo": w[2], "yhi": w[3]}
+
+    def stable_manifold(self, near=None, x=None, y=None, box=None, arclength=None,
+                        init=None, alpha=None, dalpha=None, delta=None, maxpts=200000):
+        """The one-dimensional stable manifold of a saddle fixed point of a
+        planar map, computed WITHOUT the inverse map (XPPAUT 8.4, 25 Nov;
+        England, Krauskopf & Osinga, SIAM J. Appl. Dyn. Syst. 3 (2004) 161-190).
+        In XPP: Sing pts on a saddle of a map, then "Draw invariant sets".
+
+        near       first guess of the saddle (dict or sequence; default: the
+                   initial conditions); Newton's method polishes it
+        x, y       the two variables of the map (default: the plotted ones);
+                   other variables stay at their values in `near`
+        box        (xlo, xhi, ylo, yhi): a branch stops when it leaves this
+                   region (default, as in XPP: the view enlarged by half its
+                   size on each side)
+        arclength  maximal arclength of each branch (XPP's MFLEN, default 100)
+        init       distance of the first point from the saddle (MFINIT, 1e-3)
+        alpha      (alpha_min, alpha_max): turning angle between segments
+                   (MFAMIN, MFAMAX: 0.2, 0.3)
+        dalpha     ((Delta alpha)_min, (Delta alpha)_max) (MFDAMIN, MFDAMAX: 1e-6, 1e-5)
+        delta      (Delta_min, Delta_max): smallest and largest step (MFDMIN, MFDMAX: 1e-6, 0.1)
+        maxpts     maximal number of points of each branch
+
+        Defaults are the values XPP holds (its Numerics > stabLe manifold, or
+        @ MFLEN=... in the .ode file).  Returns a dict: "saddle" {x:, y:},
+        "multiplier" (the stable one), "eigenvector", and "branches": two
+        arrays (N, 2) leaving the saddle along +eigenvector and -eigenvector,
+        with "why" (why each branch stopped) and "arclength"."""
+        n = self._c.pyxpp_node()
+        win = self.view_window()
+        x = x or (win["x"] if win["x"] in self.vars else self.vars[0])
+        y = y or (win["y"] if win["y"] in self.vars and win["y"] != x else
+                  next(v for v in self.vars if v != x))
+        low = [v.lower() for v in self.vars]
+        i1, i2 = low.index(str(x).lower()), low.index(str(y).lower())
+        base = (ctypes.c_double * max(n, 1))()
+        for i in range(n):
+            base[i] = self._last_ic[i]
+        if isinstance(near, dict):
+            g = {str(k).lower(): v for k, v in near.items()}
+            for i in range(n):
+                base[i] = g.get(low[i], base[i])
+        elif near is not None:
+            vals = list(near)
+            if len(vals) == 2 and n > 2:
+                base[i1], base[i2] = vals
+            else:
+                for i, v in enumerate(vals):
+                    base[i] = v
+        g = lambda name: ctypes.c_double.in_dll(self._c, name).value
+        if box is None:
+            if [win["x"], win["y"]] == [self.vars[i1], self.vars[i2]]:
+                w, h = win["xhi"] - win["xlo"], win["yhi"] - win["ylo"]
+                box = (win["xlo"] - w / 2, win["xhi"] + w / 2, win["ylo"] - h / 2, win["yhi"] + h / 2)
+            else:
+                raise ValueError("give box=(xlo, xhi, ylo, yhi), or view() the two variables")
+        a = alpha or (g("MF_AMIN"), g("MF_AMAX"))
+        da = dalpha or (g("MF_DAMIN"), g("MF_DAMAX"))
+        dl = delta or (g("MF_DMIN"), g("MF_DMAX"))
+        par = (ctypes.c_double * 12)(init if init is not None else g("MF_INIT"), dl[0], dl[1], a[0], a[1],
+                                     da[0], da[1], arclength if arclength is not None else g("MF_LEN"),
+                                     *box)
+        cap = int(maxpts)
+        bufs = [np.zeros(cap) for _ in range(4)]
+        P = ctypes.POINTER(ctypes.c_double)
+        nb, why, info = (ctypes.c_int * 2)(), (ctypes.c_int * 2)(), (ctypes.c_double * 5)()
+        self._run(self._c.pyxpp_map_stable_manifold, base, i1, i2, par, cap,
+                  *[b.ctypes.data_as(P) for b in bufs], nb, why, info)
+        br = [np.column_stack([bufs[0][:nb[0]], bufs[1][:nb[0]]]),
+              np.column_stack([bufs[2][:nb[1]], bufs[3][:nb[1]]])]
+        X, Y = self.vars[i1], self.vars[i2]
+        return {"saddle": {X: info[0], Y: info[1]}, "multiplier": info[2],
+                "eigenvector": (info[3], info[4]), "branches": br,
+                "why": [self._MF_STOP.get(why[0], "?"), self._MF_STOP.get(why[1], "?")],
+                "arclength": [float(np.sum(np.hypot(*np.diff(b, axis=0).T))) if len(b) > 1 else 0.0
+                              for b in br]}
+
+    # ------------------------------------------------------------------
     # Lyapunov exponents (XPPAUT 8.4)
     # ------------------------------------------------------------------
     def lyapunov_spectrum(self, n=None, time=0, transient=0, renorm=None, tol=None):

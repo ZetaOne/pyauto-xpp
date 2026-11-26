@@ -268,3 +268,91 @@ def compare_curve(tr, cols, svg_path, per_axis=None):
     if len(px) != len(D):
         out["why"] = "XPP drew a different number of points"
     return out
+
+
+# ----------------------------------------------------------------------
+# cobweb diagram of a 1D map (XPPAUT 8.4 of 25 Nov: Viewaxes > Cobweb)
+# ----------------------------------------------------------------------
+def cobweb_data(m, var=None, xlim=(0.0, 1.0), n=50, transient=0, x0=None, ncurve=400):
+    """What XPP's cobweb draws, computed with XPP's own right-hand side (m.rhs),
+    in double precision:
+
+    graph   (x, f(x)) on ncurve+1 points of xlim
+    orbit   the staircase: x0, then n points (x_k, x_k), (x_k, x_k+1), ... after
+            `transient` iterations that are not drawn
+    fixed   [(x*, multiplier f'(x*))] where f(x) - x changes sign in xlim,
+            polished by bisection (60 steps) like XPP
+
+    var: the map's variable (default: the first); the other variables stay at
+    the initial conditions.  x0: start (default: the initial condition)."""
+    var = var or m.vars[0]
+    ic = dict(zip(m.vars, m._last_ic))
+
+    def f(x):
+        p = dict(ic)
+        p[var] = x
+        return m.rhs(p)[var]
+
+    lo, hi = map(float, xlim)
+    xs = np.linspace(lo, hi, ncurve + 1)
+    fs = np.array([f(x) for x in xs])
+    x = float(ic[var] if x0 is None else x0)
+    for _ in range(int(transient)):
+        x = f(x)
+    stair = [(x, x)]
+    for _ in range(int(n)):
+        y = f(x)
+        if not np.isfinite(y):
+            break
+        stair += [(x, y), (y, y)]
+        x = y
+    fixed = []
+    g = fs - xs
+    for i in range(ncurve):
+        if not (np.isfinite(g[i]) and np.isfinite(g[i + 1])):
+            continue
+        if g[i] == 0.0:
+            xr = xs[i]
+        elif g[i] * g[i + 1] < 0.0:
+            a, b, ga = xs[i], xs[i + 1], g[i]
+            for _ in range(60):
+                mid = 0.5 * (a + b)
+                gm = f(mid) - mid
+                if gm == 0.0:
+                    a = b = mid
+                    break
+                if ga * gm < 0.0:
+                    b = mid
+                else:
+                    a, ga = mid, gm
+            xr = 0.5 * (a + b)
+        else:
+            continue
+        h = 1e-6 * max(abs(xr), 1.0)
+        fixed.append((float(xr), float((f(xr + h) - f(xr - h)) / (2 * h))))
+    return {"var": var, "graph": (xs, fs), "orbit": np.array(stair), "fixed": fixed}
+
+
+def cobweb(m, var=None, xlim=(0.0, 1.0), n=50, transient=0, x0=None, ax=None, title=None):
+    """Draw a cobweb diagram like XPP 8.4's Viewaxes > Cobweb: the diagonal,
+    the graph of the map, the orbit's staircase, and the fixed points
+    (filled circle: stable, |f'| < 1; open square: unstable).
+    Returns (ax, data) with data from cobweb_data()."""
+    import matplotlib.pyplot as plt
+    d = cobweb_data(m, var, xlim, n, transient, x0)
+    if ax is None:
+        _, ax = plt.subplots(figsize=(5, 5))
+    lo, hi = xlim
+    ax.plot([lo, hi], [lo, hi], color="tab:green", lw=1)
+    ax.plot(*d["graph"], color="tab:red", lw=1.2)
+    ax.plot(d["orbit"][:, 0], d["orbit"][:, 1], color="k", lw=0.7)
+    for xr, mu in d["fixed"]:
+        if abs(mu) < 1:
+            ax.plot(xr, xr, "o", color="k", ms=6)
+        else:
+            ax.plot(xr, xr, "s", mfc="white", mec="k", ms=6)
+    v = d["var"]
+    ax.set(xlim=xlim, ylim=xlim, xlabel=f"{v}(n)", ylabel=f"{v}(n+1)", aspect="equal")
+    if title:
+        ax.set_title(title)
+    return ax, d

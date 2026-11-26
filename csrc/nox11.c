@@ -317,3 +317,5 @@ Status XGetGCValues(Display *d, GC g, unsigned long mask, XGCValues *v) {
 
 /* used by XPP 8.4's scripting (xpp_script.c: keys pressed while a script runs) */
 KeySym XLookupKeysym(XKeyEvent *e, int index) { (void)e; (void)index; return NoSymbol; }
+/* used by XPP 8.4 (25 Nov) pop_list.c: the XPP_KEYDEBUG trace of scripted keys */
+char *XKeysymToString(KeySym k) { (void)k; return "?"; }

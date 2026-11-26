@@ -1,3 +1,4 @@
+#include "mapview.h"
 #include "xpp_script.h"
 #include "main.h"
 
@@ -274,6 +275,14 @@ int argc;
   notAlreadySet.TOR_PER=1;
   notAlreadySet.JAC_EPS=1;
   notAlreadySet.NEWT_TOL=1;
+  notAlreadySet.MFLEN=1;
+  notAlreadySet.MFINIT=1;
+  notAlreadySet.MFAMIN=1;
+  notAlreadySet.MFAMAX=1;
+  notAlreadySet.MFDAMIN=1;
+  notAlreadySet.MFDAMAX=1;
+  notAlreadySet.MFDMIN=1;
+  notAlreadySet.MFDMAX=1;
   notAlreadySet.NEWT_ITER=1;
   notAlreadySet.FOLD=1;
   notAlreadySet.DTMIN=1;
@@ -1164,6 +1173,7 @@ void redraw_all()
   restore(0,my_browser.maxrow);
   draw_label(draw_win);
   draw_freeze(draw_win);
+  map_overlay_redraw();
   restore_on();
   }
 }

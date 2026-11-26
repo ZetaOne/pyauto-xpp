@@ -26,7 +26,7 @@ _NUMERICS = {  # python name -> AutoNum dialog field
     "ncol": "Ncol", "epsl": "EPSL", "dsmax": "Dsmax", "parmin": "Par Min",
     "parmax": "Par Max", "normmin": "Norm Min", "normmax": "Norm Max",
     "epsu": "EPSU", "epss": "EPSS", "iad": "IAD", "mxbf": "MXBF", "iid": "IID",
-    "itmx": "ITMX", "itnw": "ITNW", "nwtn": "NWTN", "iads": "IADS",
+    "itmx": "ITMX", "itnw": "ITNW", "nwtn": "NWTN", "iads": "IADS", "suppbp": "SuppBP",
 }
 _PLOTS = {"hi": "h", "norm": "n", "hi-lo": "i", "hilo": "i", "period": "p",
           "two_par": "t", "twopar": "t", "frequency": "r", "average": "a"}
@@ -412,7 +412,7 @@ class Auto:
 
     def numerics(self, **kw):
         """Continuation numerics: ntst nmax npr ds dsmin dsmax ncol epsl epsu
-        epss parmin parmax normmin normmax iad mxbf iid itmx itnw nwtn iads"""
+        epss parmin parmax normmin normmax iad mxbf iid itmx itnw nwtn iads suppbp"""
         d = {}
         for k, v in kw.items():
             if k.lower() not in _NUMERICS:

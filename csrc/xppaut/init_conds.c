@@ -1,3 +1,4 @@
+#include "mapview.h"
 #include "xpp_script.h"
 #include "init_conds.h"
 #include "parserslow.h"
@@ -1388,7 +1389,8 @@ void do_slide_motion(w,x,p,s)
 	draw_label(draw_win);
 	SuppressBounds=1;
 	run_now();
-	SuppressBounds=sp;}
+	SuppressBounds=sp;
+	map_overlay_redraw();}
     }
   }
 }
@@ -2492,6 +2494,7 @@ void   redo_stuff()
    re_evaluate_kernels();
 	  redo_all_fun_tables();
         evaluate_derived();
+  map_cobweb_refresh();
 }
 	
 
@@ -2501,6 +2504,7 @@ void   set_default_ics()
   for(i=0;i<NODE+NMarkov;i++)
     last_ic[i]=default_ic[i];
    redraw_ics();
+   map_cobweb_refresh();
 }
 
   
@@ -2519,6 +2523,7 @@ void   set_default_params()
  redraw_params();
  re_evaluate_kernels();
  redo_all_fun_tables(); 
+ map_cobweb_refresh();
  }
 	
 
@@ -2813,6 +2818,7 @@ void load_entire_box(b)
     redo_all_fun_tables();
     reset_sliders();
   }
+  if(b->type==PARAMBOX||b->type==ICBOX)map_cobweb_refresh();
   if(b->type==DELAYBOX){
    do_init_delay(DELAY);
   }

@@ -96,3 +96,55 @@ d = m.data
 print(d)
 print("iapp, v, w:")
 print(np.round(d.array[::5, :3], 5))
+
+# %% [markdown]
+# ### Maps: zero-change curves, stable manifolds, cobwebs (XPPAUT 8.4, 25 Nov)
+#
+# For a map $(x, y) \mapsto (f, g)$ (`meth=discrete`) XPP's Nullcline command
+# draws the **zero-change curves** $f(x,y) = x$ and $g(x,y) = y$, which cross
+# at the fixed points; `nullclines()` returns them unchanged.
+# `stable_manifold(near=...)` computes the stable manifold of a saddle
+# **without the inverse map** (England, Krauskopf & Osinga, SIAM J. Appl.
+# Dyn. Syst. 3 (2004) 161-190), XPP's Sing pts > draw invariant sets for a
+# map. Its settings are XPP's (Numerics > stabLe manifold, or `@ MFLEN=...`):
+# `arclength`, `init`, `alpha`, `dalpha`, `delta`, and `box`, the region where
+# the branches stop (by default the view enlarged by half its size on each side).
+
+# %%
+ikeda = pyxpp.load(text="""
+par a=1,b=.9,e=1,phi=.4,q=6
+m=phi-q/(1+x^2+y^2)
+x'=a+b*x*cos(m)-e*y*sin(m)
+y'=b*y*cos(m)+e*x*sin(m)
+@ meth=discrete,total=200
+@ xp=x,yp=y,xlo=-9,xhi=2,ylo=-5,yhi=3
+done
+""")
+zc = ikeda.nullclines(mesh=200)
+ws = ikeda.stable_manifold(near={"x": 1.08, "y": -2.41})
+print("saddle", ws["saddle"], " stable multiplier", round(ws["multiplier"], 6))
+for b, why, L in zip(ws["branches"], ws["why"], ws["arclength"]):
+    print(f"  branch: {len(b)} points, arclength {L:.2f}, {why}")
+fig, ax = plt.subplots(figsize=(6, 4.6))
+ax.plot(*zc["X"].T, color="tab:red", lw=0.7, label="x does not change")
+ax.plot(*zc["Y"].T, color="tab:green", lw=0.7, label="y does not change")
+for b in ws["branches"]:
+    ax.plot(b[:, 0], b[:, 1], color="tab:blue", lw=0.6)
+ax.plot(ws["saddle"]["X"], ws["saddle"]["Y"], "s", mfc="w", mec="k")
+ax.set(xlim=(-9, 2), ylim=(-5, 3), xlabel="x", ylabel="y", title="Ikeda-type map: W^s of a saddle (blue)")
+ax.legend(fontsize=8, loc="lower right")
+fig.tight_layout(); fig.savefig(FIG / "map_stable_manifold.png", dpi=110)
+
+# %% [markdown]
+# **Cobwebs.** XPP 8.4 draws a cobweb for a one-dimensional map (Viewaxes >
+# Cobweb). `pyxpp.plot.cobweb(m)` draws the same picture with matplotlib, and
+# `cobweb_data(m)` returns its pieces: the graph of $f$, the staircase of the
+# orbit, and the fixed points with their multipliers.
+
+# %%
+from pyxpp.plot import cobweb
+logistic = pyxpp.load(text="par r=3.2\ninit x=0.2\nx'=r*x*(1-x)\n@ meth=discrete,total=200\ndone\n")
+fig, ax = plt.subplots(figsize=(4.4, 4.4))
+_, cw = cobweb(logistic, n=40, ax=ax, title="logistic map, r = 3.2")
+print("fixed points (x*, multiplier):", [(round(x, 6), round(mu, 6)) for x, mu in cw["fixed"]])
+fig.tight_layout(); fig.savefig(FIG / "cobweb.png", dpi=110)

@@ -1023,6 +1023,72 @@ iapp, v, w:
  [ 6.0000e-02 -3.5588e-01  1.8600e-03]]
 ```
 
+### Maps: zero-change curves, stable manifolds, cobwebs (XPPAUT 8.4, 25 Nov)
+
+For a map $(x, y) \mapsto (f, g)$ (`meth=discrete`) XPP's Nullcline command
+draws the **zero-change curves** $f(x,y) = x$ and $g(x,y) = y$, which cross
+at the fixed points; `nullclines()` returns them unchanged.
+`stable_manifold(near=...)` computes the stable manifold of a saddle
+**without the inverse map** (England, Krauskopf & Osinga, SIAM J. Appl.
+Dyn. Syst. 3 (2004) 161-190), XPP's Sing pts > draw invariant sets for a
+map. Its settings are XPP's (Numerics > stabLe manifold, or `@ MFLEN=...`):
+`arclength`, `init`, `alpha`, `dalpha`, `delta`, and `box`, the region where
+the branches stop (by default the view enlarged by half its size on each side).
+
+```python
+ikeda = pyxpp.load(text="""
+par a=1,b=.9,e=1,phi=.4,q=6
+m=phi-q/(1+x^2+y^2)
+x'=a+b*x*cos(m)-e*y*sin(m)
+y'=b*y*cos(m)+e*x*sin(m)
+@ meth=discrete,total=200
+@ xp=x,yp=y,xlo=-9,xhi=2,ylo=-5,yhi=3
+done
+""")
+zc = ikeda.nullclines(mesh=200)
+ws = ikeda.stable_manifold(near={"x": 1.08, "y": -2.41})
+print("saddle", ws["saddle"], " stable multiplier", round(ws["multiplier"], 6))
+for b, why, L in zip(ws["branches"], ws["why"], ws["arclength"]):
+    print(f"  branch: {len(b)} points, arclength {L:.2f}, {why}")
+fig, ax = plt.subplots(figsize=(6, 4.6))
+ax.plot(*zc["X"].T, color="tab:red", lw=0.7, label="x does not change")
+ax.plot(*zc["Y"].T, color="tab:green", lw=0.7, label="y does not change")
+for b in ws["branches"]:
+    ax.plot(b[:, 0], b[:, 1], color="tab:blue", lw=0.6)
+ax.plot(ws["saddle"]["X"], ws["saddle"]["Y"], "s", mfc="w", mec="k")
+ax.set(xlim=(-9, 2), ylim=(-5, 3), xlabel="x", ylabel="y", title="Ikeda-type map: W^s of a saddle (blue)")
+ax.legend(fontsize=8, loc="lower right")
+fig.tight_layout(); fig.savefig(FIG / "map_stable_manifold.png", dpi=110)
+```
+
+```text
+saddle {'X': 1.0833188740400526, 'Y': -2.407963483400624}  stable multiplier 0.458225
+  branch: 5333 points, arclength 17.88, left the region
+  branch: 50580 points, arclength 100.00, reached the arclength
+```
+
+![map_stable_manifold.png](figures/05_phaseplane/map_stable_manifold.png)
+
+**Cobwebs.** XPP 8.4 draws a cobweb for a one-dimensional map (Viewaxes >
+Cobweb). `pyxpp.plot.cobweb(m)` draws the same picture with matplotlib, and
+`cobweb_data(m)` returns its pieces: the graph of $f$, the staircase of the
+orbit, and the fixed points with their multipliers.
+
+```python
+from pyxpp.plot import cobweb
+logistic = pyxpp.load(text="par r=3.2\ninit x=0.2\nx'=r*x*(1-x)\n@ meth=discrete,total=200\ndone\n")
+fig, ax = plt.subplots(figsize=(4.4, 4.4))
+_, cw = cobweb(logistic, n=40, ax=ax, title="logistic map, r = 3.2")
+print("fixed points (x*, multiplier):", [(round(x, 6), round(mu, 6)) for x, mu in cw["fixed"]])
+fig.tight_layout(); fig.savefig(FIG / "cobweb.png", dpi=110)
+```
+
+```text
+fixed points (x*, multiplier): [(0.0, 3.2), (0.6875, -1.2)]
+```
+
+![cobweb.png](figures/05_phaseplane/cobweb.png)
+
 ## Every XPP button from Python
 
 `m.buttons` mirrors XPP's main window menu by menu, with XPP's keyboard
@@ -2315,6 +2381,7 @@ XPPAUT 8.4.2 Copyright (C) 2002-now  Bard Ermentrout
 | 8.4 (19 Nov 2026) | a scripting language for the X11 interface (`xpp_script.c`: `set`, `keys`, `autokeys`, `ans`, `auto goto`, loops, `shot`), run with `-script FILE` | it drives XPP's windows, which a headless library does not have: Python is the scripting language here; nothing changes |
 | update (21 Nov 2026) | the full Lyapunov spectrum by the QR method (`lyapunov.c`, Numerics > stocHast > Liapunov): double precision, its own adaptive Dormand-Prince integrator (so independent of Dt and the method), error bars, the sum against the divergence of the flow, the Kaplan-Yorke dimension; recording scripts (File > recOrd script) | `m.lyapunov_spectrum()`, or `buttons.numerics.stochast.liapunov({...})` with the dialog's fields |
 | update (23 Nov 2026) | AUTO: a new start that keeps the diagram numbers its labels and branch after the diagram's own and keeps their restart data (a fix by the author of XPP Lab); fort.8 closed before it is renamed; a missing restart file is skipped; diagrams saved with 17 digits; the model's parameters put back when AUTO stops at NaN or far outside Par min/max | `m.auto.run(..., keep=True)` keeps the diagram on a new start; two of pyauto-xpp's own patches (closing fort.8, appending a missing fort.8) are now in XPP itself and were dropped |
+| update (25 Nov 2026) | maps: Viewaxes > Cobweb for 1D maps; the Nullcline command draws the zero-change curves f = x, g = y of a planar map; Sing pts on a saddle of a planar map computes its stable manifold without the inverse (`mapmanifold.c`, England, Krauskopf & Osinga 2004; Numerics > stabLe manifold, `@ MFLEN=...`); scripted keys go to the window they were sent to (XQuartz) | `m.nullclines()` returns the zero-change curves unchanged; `m.stable_manifold(near=...)` returns both branches; `pyxpp.plot.cobweb(m)` and `cobweb_data(m)` |
 | 13 Nov 2026, later | window-manager close button on every window, bevelled buttons, an X error handler, "OK"/"Close" labels; the integrator draws its progress bar and checks for Esc about 50 times a second instead of at every output point | no window, so nothing to see; results identical; same speed (below) |
 
 **The integrator change, timed.** In the X11 GUI each progress/Esc check
@@ -2331,6 +2398,6 @@ for label, kw in (("rk4, dt = 0.05, every step stored", dict(meth="rk4", dt=0.05
 ```
 
 ```text
-rk4, dt = 0.05, every step stored           297 ms for 200001 rows, v at t = 10000: -0.2914104
-rk4, dt = 0.05, every 20th step stored      246 ms for  10001 rows, v at t = 10000: -0.2914104
+rk4, dt = 0.05, every step stored           281 ms for 200001 rows, v at t = 10000: -0.2914104
+rk4, dt = 0.05, every 20th step stored      231 ms for  10001 rows, v at t = 10000: -0.2914104
 ```

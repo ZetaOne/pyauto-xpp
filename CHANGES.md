@@ -4,6 +4,37 @@ This folder starts from pyxpp by Youngmin Park
 (https://github.com/youngmp/pyxpp, GPL-2.0-or-later; copy in
 `../resources/pyxpp`). The Python import name is still `pyxpp` for now.
 
+## 2026-11-26 (v0.5.0): XPPAUT 8.4 of 25 Nov: maps
+
+- **XPPAUT 8.4, Bard's source of 25 Nov 2026**, in `csrc/xppaut` (his changes
+  since 23 Nov applied on top; `stdfix.h` replaced as before). New in it:
+  - **Zero-change curves.** For a map (`meth=discrete`) the Nullcline command
+    draws f(x,y) = x and g(x,y) = y, which cross at the fixed points.
+    `m.nullclines()` returns them with no change.
+  - **Stable manifolds of planar maps without the inverse** (`mapmanifold.c`,
+    after England, Krauskopf & Osinga, SIAM J. Appl. Dyn. Syst. 3 (2004)
+    161-190). XPP draws the manifold as an overlay; the new export
+    `pyxpp_map_stable_manifold` (headless.c) returns the points instead, and
+    `m.stable_manifold(near=..., x=, y=, box=, arclength=, init=, alpha=,
+    dalpha=, delta=, maxpts=)` gives both branches, the saddle (polished by
+    Newton's method with central differences, as in `mapview.c`), the stable
+    multiplier and eigenvector, and why each branch stopped. Defaults are
+    XPP's own settings (Numerics > stabLe manifold, `@ MFLEN=...`).
+    `m.view_window()` (new export `pyxpp_view_get`) reads the 2D view.
+  - **Cobweb** for 1D maps (Viewaxes > Cobweb). XPP only draws it, so
+    `pyxpp.plot.cobweb(m)` draws the same picture with matplotlib and
+    `pyxpp.plot.cobweb_data(m)` returns the graph of f, the orbit's
+    staircase, and the fixed points with their multipliers.
+  - Scripted keys go to the window they were sent to (the XQuartz fix);
+    nothing changes headless. The key trace it added (`XPP_KEYDEBUG`) needs
+    `XKeysymToString`, now stubbed in `csrc/nox11.c`.
+- `m.auto.numerics(suppbp=1)`: AUTO's SuppBP field (Numerics), which
+  suppresses the false branch points of boundary value runs.
+- Tests: 44 (invariance of the Ikeda map's stable manifold, errors for flows
+  and non-saddles, zero-change curves, cobweb fixed points).
+- Tutorials: worked-example notebook `07_maps-cobwebs-and-stable-manifolds`
+  (models 40-42, 18 checks); manual section "Phase plane" has the maps.
+
 ## 2026-11-23 (v0.4.0): XPPAUT 8.4
 
 - **XPPAUT 8.4** (Bard's source of 23 Nov 2026, which includes his drops of

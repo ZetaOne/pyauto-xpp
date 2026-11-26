@@ -1100,3 +1100,139 @@ EXPORT int pyxpp_last_state(double *x, double *t) {
   *t = MyTime;
   return 0;
 }
+
+/* ------------------------------------------------------------------------
+   Stable manifold of a saddle of a planar map, without the inverse
+   (XPPAUT 8.4 of 25 Nov: mapmanifold.c, after England, Krauskopf & Osinga,
+   SIAM J. Appl. Dyn. Syst. 3 (2004) 161-190).  XPP draws the manifold as an
+   overlay on the graph; here the points are returned instead.
+   base[NODE]: all variables (i1, i2 also the first guess of the saddle);
+   i1, i2: the two free variables (0-based), the others stay at base.
+   par[12]: initial step, Delta_min, Delta_max, alpha_min, alpha_max,
+            (Delta alpha)_min, (Delta alpha)_max, arclength, xlo, xhi, ylo, yhi
+   cap: room in each of x0,y0,x1,y1.  info[5]: saddle (2), stable multiplier,
+   stable eigenvector (2).  n[2], why[2]: points and stop reason per branch
+   (branch 0 leaves the saddle along +v, branch 1 along -v).
+   Returns 0, or -1 with pyxpp_error() set.
+   ------------------------------------------------------------------------ */
+#include <math.h>
+#include "mapmanifold.h"
+extern int METHOD;
+extern int (*rhs)();
+typedef struct { double base[MAXODE]; int i1, i2; } PyxppMap2;
+static int pyxpp_map2(const double *x, double *y, void *ctx) {
+  PyxppMap2 *m = (PyxppMap2 *)ctx;
+  double in[MAXODE], out[MAXODE];
+  int i;
+  for (i = 0; i < NODE; i++) in[i] = m->base[i];
+  in[m->i1] = x[0];
+  in[m->i2] = x[1];
+  (*rhs)(0.0, in, out, NODE);
+  y[0] = out[m->i1];
+  y[1] = out[m->i2];
+  return 1;
+}
+static void pyxpp_map_jac2(PyxppMap2 *m, const double *p, double J[4]) {
+  int j;
+  for (j = 0; j < 2; j++) {
+    double q[2], a[2], b[2];
+    double h = 1e-6 * (fabs(p[j]) > 1.0 ? fabs(p[j]) : 1.0);
+    q[0] = p[0]; q[1] = p[1];
+    q[j] = p[j] + h; pyxpp_map2(q, a, m);
+    q[j] = p[j] - h; pyxpp_map2(q, b, m);
+    J[0 + j] = (a[0] - b[0]) / (2.0 * h);
+    J[2 + j] = (a[1] - b[1]) / (2.0 * h);
+  }
+}
+/* as mapview.c's map_saddle_data: Newton with central differences, then the
+   stable multiplier and unit eigenvector of the 2x2 Jacobian */
+static const char *pyxpp_saddle(PyxppMap2 *m, double *p, double *lam, double *v) {
+  double J[4], F[2], r0, r1, det, tr, disc, l1, l2, ls, vn;
+  int it;
+  for (it = 0; it < 30; it++) {
+    pyxpp_map2(p, F, m);
+    r0 = F[0] - p[0]; r1 = F[1] - p[1];
+    if (fabs(r0) + fabs(r1) < 1e-14) break;
+    pyxpp_map_jac2(m, p, J);
+    J[0] -= 1.0; J[3] -= 1.0;
+    det = J[0] * J[3] - J[1] * J[2];
+    if (det == 0.0) return "singular Jacobian in Newton's method";
+    p[0] -= (J[3] * r0 - J[1] * r1) / det;
+    p[1] -= (-J[2] * r0 + J[0] * r1) / det;
+  }
+  pyxpp_map2(p, F, m);
+  if (fabs(F[0] - p[0]) + fabs(F[1] - p[1]) > 1e-8) return "Newton's method did not reach a fixed point";
+  pyxpp_map_jac2(m, p, J);
+  tr = J[0] + J[3];
+  det = J[0] * J[3] - J[1] * J[2];
+  disc = tr * tr - 4.0 * det;
+  if (disc <= 0.0) return "the fixed point is not a saddle (complex multipliers)";
+  l1 = 0.5 * (tr + sqrt(disc));
+  l2 = 0.5 * (tr - sqrt(disc));
+  if (fabs(l1) < 1.0 && fabs(l2) > 1.0) ls = l1;
+  else if (fabs(l2) < 1.0 && fabs(l1) > 1.0) ls = l2;
+  else return "the fixed point is not a saddle";
+  v[0] = J[1]; v[1] = ls - J[0];
+  vn = sqrt(v[0] * v[0] + v[1] * v[1]);
+  if (vn < 1e-10 * (fabs(J[0]) + fabs(J[1]) + fabs(J[2]) + fabs(J[3]))) {
+    v[0] = ls - J[3]; v[1] = J[2];
+    vn = sqrt(v[0] * v[0] + v[1] * v[1]);
+  }
+  if (vn == 0.0) return "no stable eigenvector";
+  v[0] /= vn; v[1] /= vn;
+  *lam = ls;
+  return NULL;
+}
+static const char *pyxpp_manifold(double *base, int i1, int i2, double *par, int cap,
+                                  double *x0, double *y0, double *x1, double *y1,
+                                  int *n, int *why, double *info) {
+  PyxppMap2 m;
+  MfParams mp;
+  MfBranch br[2];
+  double p[2], v[2], lam = 0.0;
+  const char *bad;
+  int i, b;
+  if (METHOD != 0) return "the stable manifold without the inverse is for maps (meth=discrete)";
+  if (i1 < 0 || i2 < 0 || i1 >= NODE || i2 >= NODE || i1 == i2) return "two different variables are needed";
+  for (i = 0; i < NODE; i++) m.base[i] = base[i];
+  m.i1 = i1; m.i2 = i2;
+  p[0] = base[i1]; p[1] = base[i2];
+  bad = pyxpp_saddle(&m, p, &lam, v);
+  if (bad) return bad;
+  m.base[i1] = p[0]; m.base[i2] = p[1];
+  memset(&mp, 0, sizeof mp);
+  mp.delta0 = par[0]; mp.dmin = par[1]; mp.dmax = par[2];
+  mp.amin = par[3]; mp.amax = par[4]; mp.devmin = par[5]; mp.dev = par[6];
+  mp.maxlen = par[7]; mp.maxpts = cap;
+  mp.xlo = par[8]; mp.xhi = par[9]; mp.ylo = par[10]; mp.yhi = par[11];
+  if (mf_stable_manifold(pyxpp_map2, &m, p, v, lam, &mp, br) != 0)
+    return "could not start the stable manifold computation";
+  for (b = 0; b < 2; b++) {
+    double *xs = b ? x1 : x0, *ys = b ? y1 : y0;
+    n[b] = br[b].n < cap ? br[b].n : cap;
+    for (i = 0; i < n[b]; i++) { xs[i] = br[b].x[i]; ys[i] = br[b].y[i]; }
+    why[b] = br[b].why;
+    mf_free(&br[b]);
+  }
+  info[0] = p[0]; info[1] = p[1]; info[2] = lam; info[3] = v[0]; info[4] = v[1];
+  return NULL;
+}
+static int pyxpp_guarded_manifold(double *base, int i1, int i2, double *par, int cap,
+                                  double *x0, double *y0, double *x1, double *y1,
+                                  int *n, int *why, double *info, const char **bad) {
+  GUARDED(*bad = pyxpp_manifold(base, i1, i2, par, cap, x0, y0, x1, y1, n, why, info));
+}
+EXPORT int pyxpp_map_stable_manifold(double *base, int i1, int i2, double *par, int cap,
+                                     double *x0, double *y0, double *x1, double *y1,
+                                     int *n, int *why, double *info) {
+  const char *bad = NULL;
+  int rc;
+  rc = pyxpp_guarded_manifold(base, i1, i2, par, cap, x0, y0, x1, y1, n, why, info, &bad);
+  if (rc == 0 && bad) { snprintf(errbuf, sizeof errbuf, "%s", bad); return -1; }
+  return rc;
+}
+/* the 2D view: xmin xmax ymin ymax, and the plotted columns (0 = t, 1.. = variables) */
+EXPORT void pyxpp_view_get(double *w, int *xy) {
+  w[0] = MyGraph->xmin; w[1] = MyGraph->xmax; w[2] = MyGraph->ymin; w[3] = MyGraph->ymax;
+  xy[0] = MyGraph->xv[0]; xy[1] = MyGraph->yv[0];
+}

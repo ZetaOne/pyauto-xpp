@@ -1,4 +1,5 @@
 
+#include "mapview.h"
 #include "graf_par.h"
 
 #include "integrate.h"
@@ -108,6 +109,10 @@ void change_view_com(int com)
  }
  if(com==3){
    new_vcr();
+   return;
+ }
+ if(com==4){
+   do_cobweb();
    return;
  }
 
@@ -600,6 +605,7 @@ void redraw_the_graph()
  draw_freeze(draw_win);
  redraw_dfield();
  if(MyGraph->Nullrestore)restore_nullclines();
+ map_overlay_redraw();
 }
 
 void movie_rot(start,increment,nclip,angle)

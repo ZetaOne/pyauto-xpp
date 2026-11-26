@@ -1,7 +1,7 @@
 # Worked examples: pyauto-xpp in notebooks
 
-Thirty-nine models, from a first phase plane to AUTO on delay equations, in
-seven Jupyter notebooks, one per level. They use XPPAUT 8.4 and its AUTO
+Forty-two models, from a first phase plane to AUTO on delay equations and the
+new map tools of XPPAUT 8.4, in eight Jupyter notebooks, one per level. They use XPPAUT 8.4 and its AUTO
 through pyauto-xpp (`pyxpp`). No widgets: each model is built in code with
 `ModelBuilder`, simulated and analysed, drawn with matplotlib, and its numbers
 are checked against exact or published values.
@@ -30,7 +30,8 @@ notebook writes its model files to `odes/<section>.ode` and its figures to
 The models come from two sources:
 
 - the examples of [XPP Studio](https://xpp-studio.github.io/xpp-studio/) (Peter Ashwin and Bard Ermentrout, GPL-3.0);
-- the delay-equation examples that come with XPPAUT 8.2.
+- the delay-equation examples that come with XPPAUT 8.2;
+- Bard Ermentrout's map examples for XPPAUT 8.4 (25 November 2026).
 
 Work through them in order: each level builds on the one before.
 
@@ -121,6 +122,16 @@ From simulations of delay equations to AUTO on them (XPP 8.2). Two notebooks.
 | 37 | Mackey–Glass | period-doubling cascade with AUTO |
 | 38 | delayed Stuart–Landau | rotating waves and their folds |
 | 39 | two delay-coupled Stuart–Landau | torus bifurcations of the in-phase wave |
+
+## Level 7 — Maps: cobwebs, zero-change curves and stable manifolds: [`07_maps-cobwebs-and-stable-manifolds.ipynb`](07_maps-cobwebs-and-stable-manifolds.ipynb)
+
+XPPAUT 8.4's tools for maps (25 Nov): cobwebs, zero-change curves, stable manifolds without the inverse.
+
+| | model | what it shows |
+|---|---|---|
+| 40 | logistic map | cobweb diagrams, fixed point and 2-cycle (exact) |
+| 41 | Ikeda-type map | zero-change curves, fixed points, saddles and a focus |
+| 42 | Ikeda-type map | stable manifold of a saddle without the inverse, checked for invariance |
 
 ## Things worth knowing (learned while writing these)
 

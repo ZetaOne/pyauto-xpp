@@ -525,3 +525,70 @@ def test_new_start_keeping_the_diagram_numbers_on():
     hb = [p for p in d1.labeled() if p.type == "HB"][0]
     po = m.auto.run(grab=hb.label, choice="periodic", nmax=20, ds=0.01)
     assert len(po) == 20 and po[-1].periodic
+
+
+# ----------------------------------------------------------------------
+# maps (XPPAUT 8.4 of 25 Nov): zero-change curves, stable manifold, cobweb
+# ----------------------------------------------------------------------
+IKEDA = """
+par a=1,b=.9,e=1,phi=.4,q=6
+m=phi-q/(1+x^2+y^2)
+x'=a+b*x*cos(m)-e*y*sin(m)
+y'=b*y*cos(m)+e*x*sin(m)
+@ meth=discrete,total=200
+@ xp=x,yp=y,xlo=-9,xhi=2,ylo=-5,yhi=3
+done
+"""
+
+
+def _ikeda(x, y, a=1, b=.9, e=1, phi=.4, q=6):
+    m = phi - q / (1 + x * x + y * y)
+    return a + b * x * np.cos(m) - e * y * np.sin(m), b * y * np.cos(m) + e * x * np.sin(m)
+
+
+def _dist_to_polyline(px, py, B):
+    A, D = B[:-1], np.diff(B, axis=0)
+    L2 = (D ** 2).sum(1) + 1e-300
+    t = np.clip(((px[:, None] - A[:, 0]) * D[:, 0] + (py[:, None] - A[:, 1]) * D[:, 1]) / L2, 0, 1)
+    return np.min(np.hypot(A[:, 0] + t * D[:, 0] - px[:, None], A[:, 1] + t * D[:, 1] - py[:, None]), axis=1)
+
+
+def test_map_stable_manifold_is_invariant():
+    m = pyxpp.load(text=IKEDA)
+    r = m.stable_manifold(near={"x": 1.08, "y": -2.41}, arclength=30)
+    sx, sy = r["saddle"]["X"], r["saddle"]["Y"]
+    assert np.hypot(*(np.array(_ikeda(sx, sy)) - (sx, sy))) < 1e-12       # a fixed point
+    assert 0 < r["multiplier"] < 1
+    assert [len(b) > 100 for b in r["branches"]] == [True, True]
+    allpts = np.vstack(r["branches"])
+    for b in r["branches"]:
+        P = b[np.linspace(1, len(b) - 1, 150).astype(int)]
+        fx, fy = _ikeda(P[:, 0], P[:, 1])
+        d = np.minimum(_dist_to_polyline(fx, fy, r["branches"][0]), _dist_to_polyline(fx, fy, r["branches"][1]))
+        assert d.max() < 1e-5          # F(W^s) lies on W^s
+    assert all(w in ("left the region", "reached the arclength") for w in r["why"])
+    assert len(allpts) > 0
+
+
+def test_map_stable_manifold_needs_a_map_and_a_saddle():
+    with pytest.raises(pyxpp.XPPError, match="maps"):
+        pyxpp.load(text=VDP).stable_manifold(near=(0, 0), box=(-1, 1, -1, 1))
+    with pytest.raises(pyxpp.XPPError, match="saddle"):
+        # the Ikeda map's third fixed point is a stable focus (complex multipliers, |mu| = 0.91)
+        pyxpp.load(text=IKEDA).stable_manifold(near={"x": 2.79, "y": 4.12}, box=(-10, 10, -10, 10))
+
+
+def test_map_zero_change_curves_and_cobweb():
+    m = pyxpp.load(text=IKEDA)
+    nc = m.nullclines(mesh=100)
+    for k, v in nc.items():                     # the "nullclines" of a map: f(x,y) - x = 0, g(x,y) - y = 0
+        ok = v[np.isfinite(v[:, 0])][::40]
+        ch = [m.rhs({"x": a, "y": b})[k] - {"X": a, "Y": b}[k] for a, b in ok]
+        assert len(ok) > 5 and np.max(np.abs(ch)) < 0.02
+    from pyxpp.plot import cobweb_data
+    lg = pyxpp.load(text="par r=3.2\ninit x=0.2\nx'=r*x*(1-x)\n@ meth=discrete,total=200\ndone\n")
+    d = cobweb_data(lg, n=20)
+    (x0, m0), (x1, m1) = d["fixed"]
+    assert abs(x0) < 1e-9 and abs(m0 - 3.2) < 1e-6
+    assert abs(x1 - (1 - 1 / 3.2)) < 1e-12 and abs(m1 - (2 - 3.2)) < 1e-6
+    assert d["orbit"].shape == (41, 2)

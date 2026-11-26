@@ -88,6 +88,10 @@ _PROTOS = {
     "pyxpp_load_storage": (c_int, [c_int, c_int, P_double]),
     "pyxpp_auto_solution": (c_int, [c_int, c_int, c_double, c_int, P_int, P_int, P_double, P_double]),
     "pyxpp_last_state": (c_int, [P_double, P_double]),
+    "pyxpp_map_stable_manifold": (c_int, [P_double, c_int, c_int, P_double, c_int,
+                                          P_double, P_double, P_double, P_double,
+                                          P_int, P_int, P_double]),
+    "pyxpp_view_get": (None, [P_double, P_int]),
     "pyxpp_shutdown": (None, []),
 }
 if _WINDOWS:
